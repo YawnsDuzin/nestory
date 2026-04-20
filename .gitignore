@@ -1,2 +1,17 @@
 .superpowers/
 .claude/
+
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.env
+.env.local
+/media/
+/data/
+*.sqlite
+*.db
+.DS_Store
+Thumbs.db
