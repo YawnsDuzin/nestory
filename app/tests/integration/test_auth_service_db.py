@@ -1,7 +1,12 @@
+import pytest
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.models.user import User
-from app.services.auth import create_user_with_password, find_user_by_email
+from app.services.auth import (
+    create_user_with_password,
+    find_user_by_email,
+    upsert_user_by_kakao_id,
+)
 
 
 def test_create_and_find_user(db: Session) -> None:
@@ -24,21 +29,19 @@ def test_create_and_find_user(db: Session) -> None:
 
 
 def test_create_user_duplicate_email_raises(db: Session) -> None:
-    create_user_with_password(db, email="dup@example.com", username="d1", display_name="d", password="x12345")
+    create_user_with_password(
+        db, email="dup@example.com", username="d1", display_name="d", password="x12345"
+    )
     db.commit()
 
-    import pytest
-    from sqlalchemy.exc import IntegrityError
-
     with pytest.raises(IntegrityError):
-        create_user_with_password(db, email="dup@example.com", username="d2", display_name="d", password="x12345")
+        create_user_with_password(
+            db, email="dup@example.com", username="d2", display_name="d", password="x12345"
+        )
         db.commit()
 
 
-from app.services.auth import upsert_user_by_kakao_id
-
-
-def test_upsert_by_kakao_id_creates_then_updates(db) -> None:
+def test_upsert_by_kakao_id_creates_then_updates(db: Session) -> None:
     u1 = upsert_user_by_kakao_id(db, kakao_id="K1", email=None, nickname="닉네임")
     db.commit()
     assert u1.id is not None

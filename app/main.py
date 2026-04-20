@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.config import get_settings
+from app.routers import auth as auth_router
 
 settings = get_settings()
 
@@ -16,12 +17,9 @@ app.add_middleware(
     https_only=settings.session_cookie_secure,
 )
 
+app.include_router(auth_router.router)
+
 
 @app.get("/healthz")
 async def healthz() -> dict[str, str]:
     return {"status": "ok", "env": settings.app_env}
-
-
-from app.routers import auth as auth_router
-
-app.include_router(auth_router.router)

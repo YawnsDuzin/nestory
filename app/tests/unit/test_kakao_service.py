@@ -1,7 +1,7 @@
 import httpx
 import pytest
 
-from app.services.kakao import KakaoProfile, exchange_code_for_profile, build_authorize_url
+from app.services.kakao import KakaoProfile, build_authorize_url, exchange_code_for_profile
 
 
 def test_build_authorize_url_includes_state_and_params() -> None:
@@ -19,10 +19,13 @@ async def test_exchange_code_returns_profile() -> None:
         if request.url.path == "/oauth/token":
             return httpx.Response(200, json={"access_token": "TOK", "token_type": "bearer"})
         if request.url.path == "/v2/user/me":
-            return httpx.Response(200, json={
-                "id": 123456,
-                "kakao_account": {"email": "kuser@kakao.com", "profile": {"nickname": "닉"}},
-            })
+            return httpx.Response(
+                200,
+                json={
+                    "id": 123456,
+                    "kakao_account": {"email": "kuser@kakao.com", "profile": {"nickname": "닉"}},
+                },
+            )
         return httpx.Response(404)
 
     transport = httpx.MockTransport(handler)

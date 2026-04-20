@@ -1,7 +1,6 @@
 from unittest.mock import patch
 from urllib.parse import parse_qs, urlparse
 
-import httpx
 from fastapi.testclient import TestClient
 
 from app.services.kakao import KakaoProfile

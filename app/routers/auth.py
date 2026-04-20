@@ -1,15 +1,21 @@
+import secrets
+
+import httpx
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.config import get_settings
 from app.deps import get_db
 from app.schemas.auth import LoginForm, SignupForm
 from app.services.auth import (
     create_user_with_password,
     find_user_by_email,
+    upsert_user_by_kakao_id,
     verify_password,
 )
+from app.services.kakao import build_authorize_url, exchange_code_for_profile
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -33,9 +39,11 @@ async def signup(
             password=form.password,
         )
         db.commit()
-    except IntegrityError:
+    except IntegrityError as err:
         db.rollback()
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Email or username already registered")
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST, "Email or username already registered"
+        ) from err
 
     request.session["user_id"] = user.id
     return RedirectResponse("/", status_code=status.HTTP_303_SEE_OTHER)
@@ -63,19 +71,10 @@ async def logout(request: Request) -> RedirectResponse:
     return RedirectResponse("/", status_code=status.HTTP_303_SEE_OTHER)
 
 
-import secrets as _secrets
-
-import httpx as _httpx
-
-from app.config import get_settings as _get_settings
-from app.services.auth import upsert_user_by_kakao_id as _upsert
-from app.services.kakao import build_authorize_url, exchange_code_for_profile
-
-
 @router.get("/kakao/start")
 async def kakao_start(request: Request) -> RedirectResponse:
-    settings = _get_settings()
-    state = _secrets.token_urlsafe(24)
+    settings = get_settings()
+    state = secrets.token_urlsafe(24)
     request.session["kakao_state"] = state
     url = build_authorize_url(
         client_id=settings.kakao_client_id,
@@ -92,12 +91,12 @@ async def kakao_callback(
     state: str,
     db: Session = Depends(get_db),
 ) -> RedirectResponse:
-    settings = _get_settings()
+    settings = get_settings()
     expected = request.session.pop("kakao_state", None)
     if not expected or expected != state:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Invalid state")
 
-    async with _httpx.AsyncClient(timeout=10.0) as http:
+    async with httpx.AsyncClient(timeout=10.0) as http:
         profile = await exchange_code_for_profile(
             http,
             code=code,
@@ -106,7 +105,9 @@ async def kakao_callback(
             redirect_uri=settings.kakao_redirect_uri,
         )
 
-    user = _upsert(db, kakao_id=profile.kakao_id, email=profile.email, nickname=profile.nickname)
+    user = upsert_user_by_kakao_id(
+        db, kakao_id=profile.kakao_id, email=profile.email, nickname=profile.nickname
+    )
     db.commit()
     request.session["user_id"] = user.id
     return RedirectResponse("/", status_code=status.HTTP_303_SEE_OTHER)

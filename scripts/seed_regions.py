@@ -25,12 +25,14 @@ def seed_regions(db: Session) -> None:
     for row in PILOT_REGIONS:
         if row["slug"] in existing_slugs:
             continue
-        db.add(Region(
-            sido=row["sido"],
-            sigungu=row["sigungu"],
-            slug=row["slug"],
-            is_pilot=True,
-        ))
+        db.add(
+            Region(
+                sido=row["sido"],
+                sigungu=row["sigungu"],
+                slug=row["slug"],
+                is_pilot=True,
+            )
+        )
 
 
 def main() -> None:
