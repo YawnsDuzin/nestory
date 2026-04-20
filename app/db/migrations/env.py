@@ -6,8 +6,7 @@ from alembic import context
 
 from app.config import get_settings
 from app.db.base import Base
-from app.models import user  # noqa: F401
-# from app.models import region  # noqa: F401  (added in Task 7)
+from app.models import region, user  # noqa: F401
 
 config = context.config
 config.set_main_option("sqlalchemy.url", get_settings().database_url)
