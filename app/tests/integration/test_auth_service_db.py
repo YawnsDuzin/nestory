@@ -33,3 +33,21 @@ def test_create_user_duplicate_email_raises(db: Session) -> None:
     with pytest.raises(IntegrityError):
         create_user_with_password(db, email="dup@example.com", username="d2", display_name="d", password="x12345")
         db.commit()
+
+
+from app.services.auth import upsert_user_by_kakao_id
+
+
+def test_upsert_by_kakao_id_creates_then_updates(db) -> None:
+    u1 = upsert_user_by_kakao_id(db, kakao_id="K1", email=None, nickname="닉네임")
+    db.commit()
+    assert u1.id is not None
+    assert u1.kakao_id == "K1"
+    assert u1.display_name == "닉네임"
+    assert u1.username.startswith("k_")
+
+    u2 = upsert_user_by_kakao_id(db, kakao_id="K1", email="k@kakao.com", nickname="새닉")
+    db.commit()
+    assert u2.id == u1.id
+    assert u2.email == "k@kakao.com"
+    assert u2.display_name == "새닉"

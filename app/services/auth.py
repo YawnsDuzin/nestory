@@ -1,3 +1,5 @@
+import secrets
+
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
 from sqlalchemy.orm import Session
@@ -44,3 +46,32 @@ def create_user_with_password(
 
 def find_user_by_email(db: Session, email: str) -> User | None:
     return db.query(User).filter(User.email == email.lower().strip()).one_or_none()
+
+
+def upsert_user_by_kakao_id(
+    db: Session,
+    *,
+    kakao_id: str,
+    email: str | None,
+    nickname: str | None,
+) -> User:
+    user = db.query(User).filter(User.kakao_id == kakao_id).one_or_none()
+    if user is None:
+        placeholder_email = email or f"kakao_{kakao_id}@nestory.local"
+        username = f"k_{kakao_id[:6]}_{secrets.token_hex(3)}"
+        user = User(
+            email=placeholder_email.lower(),
+            kakao_id=kakao_id,
+            username=username,
+            display_name=(nickname or "카카오 사용자")[:64],
+        )
+        db.add(user)
+        db.flush()
+        return user
+
+    if email:
+        user.email = email.lower()
+    if nickname:
+        user.display_name = nickname[:64]
+    db.flush()
+    return user
