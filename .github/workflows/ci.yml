@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: nestory
+          POSTGRES_PASSWORD: nestory
+          POSTGRES_DB: nestory
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd="pg_isready -U nestory"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      APP_ENV: test
+      APP_SECRET_KEY: ci-secret-ci-secret-ci-secret-ci
+      DATABASE_URL: postgresql+psycopg://nestory:nestory@localhost:5432/nestory
+      ADMIN_EMAIL: admin@example.com
+      SESSION_COOKIE_SECURE: "false"
+      KAKAO_CLIENT_ID: test-id
+      KAKAO_CLIENT_SECRET: test-secret
+      KAKAO_REDIRECT_URI: http://localhost:8000/auth/kakao/callback
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "0.11.x"
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Lint (ruff)
+        run: uv run ruff check .
+
+      - name: Format check (ruff format)
+        run: uv run ruff format --check .
+
+      - name: Apply migrations
+        run: uv run alembic upgrade head
+
+      - name: Run tests
+        run: uv run pytest -v
