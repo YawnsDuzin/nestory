@@ -204,7 +204,7 @@ Thumbs.db
 ```
 APP_ENV=local
 APP_SECRET_KEY=change-me-with-openssl-rand-hex-32
-DATABASE_URL=postgresql+psycopg://nestory:nestory@localhost:5432/nestory
+DATABASE_URL=postgresql+psycopg://nestory:nestory@localhost:5433/nestory
 KAKAO_CLIENT_ID=
 KAKAO_CLIENT_SECRET=
 KAKAO_REDIRECT_URI=http://localhost:8000/auth/kakao/callback
@@ -364,6 +364,8 @@ git commit -m "feat: add pydantic-settings config module with env loading"
 - Create: `docker-compose.local.yml`
 - Modify: `README.md` (없으면 생성)
 
+> **Deviation note (2026-04-20)**: host 포트는 원래 5432였으나, Windows 네이티브 PostgreSQL과 충돌해 5433으로 변경되었다. 컨테이너 내부 포트는 여전히 5432. `.env.example`과 README 인용 명령이 모두 5433 기준.
+
 - [ ] **Step 1: `docker-compose.local.yml` 작성**
 
 ```yaml
@@ -376,7 +378,7 @@ services:
       POSTGRES_PASSWORD: nestory
       POSTGRES_DB: nestory
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - nestory-pg-data:/var/lib/postgresql/data
     healthcheck:

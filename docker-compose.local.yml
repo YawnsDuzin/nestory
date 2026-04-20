@@ -1,0 +1,19 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: nestory-postgres-local
+    environment:
+      POSTGRES_USER: nestory
+      POSTGRES_PASSWORD: nestory
+      POSTGRES_DB: nestory
+    ports:
+      - "5433:5432"
+    volumes:
+      - nestory-pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nestory -d nestory"]
+      interval: 5s
+      retries: 10
+
+volumes:
+  nestory-pg-data:
