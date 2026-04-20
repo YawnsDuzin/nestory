@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}홈 · Nestory{% endblock %}
+{% block content %}
+<section class="space-y-4">
+  <h1 class="text-3xl font-bold text-slate-900">Nestory에 오신 것을 환영합니다</h1>
+  <p class="text-slate-600">
+    전원주택 정착의 전 과정을 실거주자의 여정으로 아카이빙하는 커뮤니티입니다.
+  </p>
+  {% if current_user %}
+    <p class="rounded-md bg-emerald-50 p-4 text-emerald-800">
+      반갑습니다, <strong>@{{ current_user.username }}</strong>. 콘텐츠 작성 기능은 곧 열립니다.
+    </p>
+  {% else %}
+    <p class="rounded-md bg-slate-100 p-4 text-slate-700">
+      <a href="/auth/signup" class="font-semibold text-emerald-700 hover:underline">계정을 만들어</a>
+      관심 지역을 팔로우하세요.
+    </p>
+  {% endif %}
+</section>
+{% endblock %}
