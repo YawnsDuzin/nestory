@@ -1,0 +1,16 @@
+<nav class="sticky top-0 z-10 border-b border-slate-200 bg-white">
+  <div class="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
+    <a href="/" class="text-lg font-bold text-emerald-700">Nestory</a>
+    <div class="flex items-center gap-3 text-sm">
+      {% if current_user %}
+        <span class="text-slate-600">@{{ current_user.username }}</span>
+        <form method="post" action="/auth/logout" class="inline">
+          <button type="submit" class="text-slate-500 hover:text-slate-900">로그아웃</button>
+        </form>
+      {% else %}
+        <a href="/auth/login" class="text-slate-600 hover:text-slate-900">로그인</a>
+        <a href="/auth/signup" class="rounded-md bg-emerald-600 px-3 py-1 text-white hover:bg-emerald-700">시작하기</a>
+      {% endif %}
+    </div>
+  </div>
+</nav>
