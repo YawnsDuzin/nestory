@@ -20,3 +20,8 @@ app.add_middleware(
 @app.get("/healthz")
 async def healthz() -> dict[str, str]:
     return {"status": "ok", "env": settings.app_env}
+
+
+from app.routers import auth as auth_router
+
+app.include_router(auth_router.router)
