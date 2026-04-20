@@ -1,6 +1,9 @@
 # Full-stack test environment: app + nginx + postgres.
 # Host port 8080 -> nginx -> app(8000) -> postgres.
 # Separate from docker-compose.local.yml (which runs Postgres only on host 5433).
+# Explicit project name prevents accidental collision with the local dev stack.
+
+name: nestory-test
 
 services:
   postgres:
