@@ -6,8 +6,8 @@ from alembic import context
 
 from app.config import get_settings
 from app.db.base import Base
-# 모델은 추가되는 대로 import (autogenerate 용)
-# from app.models import user, region  # noqa: F401
+from app.models import user  # noqa: F401
+# from app.models import region  # noqa: F401  (added in Task 7)
 
 config = context.config
 config.set_main_option("sqlalchemy.url", get_settings().database_url)
