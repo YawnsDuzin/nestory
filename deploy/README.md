@@ -123,3 +123,26 @@ sudo -u nestory git checkout <PREV_TAG_OR_SHA>
 sudo -u nestory bash -lc 'uv sync --frozen && set -a; . /etc/nestory/nestory.env; set +a; uv run alembic upgrade head'
 sudo systemctl restart nestory
 ```
+
+## 모니터링
+
+- **업타임**: UptimeRobot `https://<DOMAIN>/healthz`, 5분 간격, 키워드 `"status":"ok"` 매칭, 이메일 알림
+- **에러 트래킹**: Sentry (SENTRY_DSN 설정 시 자동 활성화)
+- **로그**: `sudo journalctl -u nestory -f` 및 `sudo journalctl -u cloudflared -f`
+- **DB 상태**: `sudo -u nestory psql $DATABASE_URL -c "\l+"`
+
+## 복구 시나리오
+
+### RPi 전원 장애 후
+
+```bash
+sudo systemctl status nestory postgresql nginx cloudflared
+# 필요 시 재기동: sudo systemctl restart nestory
+```
+
+### DB 복원
+
+```bash
+gunzip -c /mnt/backup/pg/nestory-<TS>.sql.gz | sudo -u postgres psql nestory_restore
+# 검증 후 실제 DB 교체는 수동.
+```
