@@ -33,3 +33,19 @@ def configure_logging(*, env: str = "local") -> None:
         handlers=[logging.StreamHandler(sys.stdout)],
         format="%(message)s",
     )
+
+
+def init_sentry(dsn: str, env: str) -> None:
+    if not dsn:
+        return
+    import sentry_sdk
+    from sentry_sdk.integrations.fastapi import FastApiIntegration
+    from sentry_sdk.integrations.starlette import StarletteIntegration
+
+    sentry_sdk.init(
+        dsn=dsn,
+        environment=env,
+        integrations=[StarletteIntegration(), FastApiIntegration()],
+        traces_sample_rate=0.0,
+        send_default_pii=False,
+    )

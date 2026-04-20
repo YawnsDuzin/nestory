@@ -5,12 +5,13 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.config import get_settings
-from app.logging_setup import configure_logging
+from app.logging_setup import configure_logging, init_sentry
 from app.routers import auth as auth_router
 from app.routers import pages as pages_router
 
 settings = get_settings()
 configure_logging(env=settings.app_env)
+init_sentry(settings.sentry_dsn, settings.app_env)
 
 BASE_DIR = Path(__file__).resolve().parent
 
