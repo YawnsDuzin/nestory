@@ -14,18 +14,29 @@ def _ensure_db_ready() -> None:
         conn.execute(text("SELECT 1"))
 
 
-@pytest.fixture(autouse=True)
-def _cleanup_db():
-    """모든 테스트 후 모든 테이블 TRUNCATE. SQLAlchemy 메타데이터 기반 동적 수집."""
-    yield
+def _truncate_all_tables() -> None:
+    """모든 도메인 테이블의 데이터를 비운다 (alembic_version 제외).
+
+    `Base.metadata.tables.values()` 사용 — `sorted_tables` 는 순환 FK가 있을 때
+    관련 테이블을 결과에서 제외하므로(SAWarning) 데이터 누수가 생긴다.
+    TRUNCATE CASCADE 는 의존성 순서를 자체 처리하므로 정렬 불필요.
+    """
     from app.db.base import Base
-    table_names = [t.name for t in Base.metadata.sorted_tables if t.name != "alembic_version"]
+    table_names = [t.name for t in Base.metadata.tables.values() if t.name != "alembic_version"]
     if not table_names:
         return
     with SessionLocal() as session:
         joined = ", ".join(table_names)
         session.execute(text(f"TRUNCATE TABLE {joined} RESTART IDENTITY CASCADE"))
         session.commit()
+
+
+@pytest.fixture(autouse=True)
+def _cleanup_db():
+    """각 테스트 전후로 모든 테이블 TRUNCATE — 이전 세션 잔존 데이터·테스트 간 누수 모두 차단."""
+    _truncate_all_tables()
+    yield
+    _truncate_all_tables()
 
 
 @pytest.fixture
