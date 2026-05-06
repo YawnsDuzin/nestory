@@ -12,7 +12,9 @@ class Image(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     owner_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
-    post_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    post_id: Mapped[int | None] = mapped_column(
+        ForeignKey("posts.id", ondelete="SET NULL"), nullable=True, index=True
+    )
 
     file_path_orig: Mapped[str] = mapped_column(String(512))
     file_path_thumb: Mapped[str | None] = mapped_column(String(512), nullable=True)
