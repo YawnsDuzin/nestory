@@ -1,4 +1,5 @@
 import base64
+import io
 import json
 from datetime import UTC, datetime
 
@@ -77,4 +78,52 @@ def test_apply_region_invalid_id(db: Session, client: TestClient) -> None:
     user = _make_user(db)
     client.cookies.set("nestory_session", _login_cookie(user.id))
     r = client.post("/me/badge/region", data={"region_id": 99999})
+    assert r.status_code == 400
+
+
+def test_resident_form_renders(db: Session, client: TestClient) -> None:
+    user = _make_user(db)
+    client.cookies.set("nestory_session", _login_cookie(user.id))
+    r = client.get("/me/badge/resident")
+    assert r.status_code == 200
+    assert "실거주자 인증" in r.text
+
+
+def test_resident_apply_with_one_evidence(
+    db: Session, client: TestClient, tmp_path, monkeypatch
+) -> None:
+    monkeypatch.setenv("EVIDENCE_BASE_PATH", str(tmp_path / "evidence"))
+    from app.config import get_settings
+    get_settings.cache_clear()
+
+    user = _make_user(db)
+    region = Region(sido="경기", sigungu="양평군", slug="yp-resident")
+    db.add(region)
+    db.commit()
+    client.cookies.set("nestory_session", _login_cookie(user.id))
+
+    files = {"utility_bill": ("bill.jpg", io.BytesIO(b"fake"), "image/jpeg")}
+    r = client.post(
+        "/me/badge/resident",
+        data={"region_id": region.id},
+        files=files,
+        follow_redirects=False,
+    )
+    assert r.status_code == 303
+
+    apps = db.query(BadgeApplication).filter_by(user_id=user.id).all()
+    assert len(apps) == 1
+    assert apps[0].requested_level.value == "resident"
+    from app.models import BadgeEvidence
+    es = db.query(BadgeEvidence).filter_by(application_id=apps[0].id).all()
+    assert len(es) == 1
+
+
+def test_resident_apply_rejects_no_evidence(db: Session, client: TestClient) -> None:
+    user = _make_user(db)
+    region = Region(sido="경기", sigungu="양평군", slug="yp-no-ev")
+    db.add(region)
+    db.commit()
+    client.cookies.set("nestory_session", _login_cookie(user.id))
+    r = client.post("/me/badge/resident", data={"region_id": region.id})
     assert r.status_code == 400
