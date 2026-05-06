@@ -16,6 +16,7 @@ class BadgeLevel(str, enum.Enum):
     INTERESTED = "interested"
     REGION_VERIFIED = "region_verified"
     RESIDENT = "resident"
+    EX_RESIDENT = "ex_resident"
 
 
 class User(Base):
@@ -40,6 +41,15 @@ class User(Base):
         server_default=BadgeLevel.INTERESTED.value,
     )
     resident_verified_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    resident_revalidated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    ex_resident_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    anonymized_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
