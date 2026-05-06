@@ -61,5 +61,30 @@ services:
       - ./deploy/nginx.test.conf:/etc/nginx/conf.d/default.conf:ro
       - ./app/static:/srv/nestory/static:ro
 
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nestory-worker-test
+    command: ["python", "-m", "app.workers.runner"]
+    environment:
+      APP_ENV: test
+      APP_SECRET_KEY: test-secret-32bytes-test-secret-32
+      DATABASE_URL: postgresql+psycopg://nestory:nestory@postgres:5432/nestory
+      POSTGRES_HOST: postgres
+      POSTGRES_USER: nestory
+      ADMIN_EMAIL: admin@test.local
+      SESSION_COOKIE_SECURE: "false"
+      KAKAO_CLIENT_ID: test-id
+      KAKAO_CLIENT_SECRET: test-secret
+      KAKAO_REDIRECT_URI: http://localhost:8080/auth/kakao/callback
+      NESTORY_DOMAIN: localhost:8080
+    depends_on:
+      postgres:
+        condition: service_healthy
+      app:
+        condition: service_started
+    restart: unless-stopped
+
 volumes:
   nestory-pg-data-test:

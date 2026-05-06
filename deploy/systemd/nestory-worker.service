@@ -1,0 +1,22 @@
+[Unit]
+Description=Nestory background job worker (PG-based queue)
+After=network.target postgresql.service nestory.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=nestory
+Group=nestory
+WorkingDirectory=/opt/nestory
+EnvironmentFile=/etc/nestory/env
+ExecStart=/opt/nestory/.venv/bin/python -m app.workers.runner
+Restart=on-failure
+RestartSec=5s
+KillSignal=SIGTERM
+TimeoutStopSec=30s
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=nestory-worker
+
+[Install]
+WantedBy=multi-user.target
