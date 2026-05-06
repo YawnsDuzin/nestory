@@ -6,6 +6,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from app.config import get_settings
 from app.logging_setup import configure_logging, init_sentry
+from app.routers import admin as admin_router
 from app.routers import auth as auth_router
 from app.routers import me as me_router
 from app.routers import pages as pages_router
@@ -27,6 +28,7 @@ app.add_middleware(
     https_only=settings.session_cookie_secure,
 )
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
+app.include_router(admin_router.router)
 app.include_router(auth_router.router)
 app.include_router(me_router.router)
 app.include_router(pages_router.router)
