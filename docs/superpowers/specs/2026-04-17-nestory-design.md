@@ -11,6 +11,7 @@
 |---|---|---|
 | 1.0 | 2026-04-17 | 초안 — 비전·차별화 축·데이터 모델·로드맵·NFR 정리 |
 | 1.1 | 2026-05-06 | 구조적 부채·콘텐츠 갭·운영 신뢰 보강 14개 항목 반영 (A1–A4, B1–B5, C1–C5). 자세한 위치는 각 섹션 인라인 노트 `[v1.1]` 참조 |
+| 1.1.1 | 2026-05-06 | **OI-14 확정 — PostHog Cloud free 채택**. §10·§11·§14.5·§15 갱신 |
 
 #### v1.1 변경 요약 (인덱스)
 
@@ -1112,7 +1113,7 @@ INDEX (status, run_after)
 | SEO | SSR · OG 태그 · sitemap.xml · robots.txt · JSON-LD (Article·Review) |
 | 언어 | 한국어 단일 (키-값 파일 · v3+ 다국어 대응 여지) |
 | 관측성 | structlog · Sentry · UptimeRobot · /healthz · Phase 2+ Prometheus /metrics |
-| **분석 [v1.1 · C4]** | **Plausible self-host (RPi 동거)** 또는 **PostHog Cloud free** — GA 회피 (시니어 추적·쿠키 동의 부담). 핵심 이벤트 카탈로그는 §14.5 참조. 페이지뷰·세션은 자동, 커스텀 이벤트는 명시적 enum |
+| **분석 [v1.1 · C4, OI-14 확정 2026-05-06]** | **PostHog Cloud free** (1M 이벤트/월 무료) — 익명 모드(쿠키 미사용)로 시니어 동의 부담 회피. 가입 깔때기·Pillar T 응답률·콘텐츠 발견 퍼널을 박스에서 분석 가능. 데이터 미국 저장 → §11 외부 위탁 처리방침에 PostHog Inc. 명시. 핵심 이벤트 카탈로그는 §14.5 |
 
 ---
 
@@ -1125,7 +1126,8 @@ INDEX (status, run_after)
 | 14세 미만 | 약관에 "만 14세 이상" 명시 · 가입 시 생년 확인 |
 | 위치기반서비스 | v1 시군 단위는 해당 없음 · Phase 3 지도 도입 시 신고 검토 |
 | 통신판매중개 (Phase 3+) | 런칭 전 사업자등록 + 통신판매업 신고 |
-| 쿠키 | 필수만 사용 (분석 쿠키 도입 시 동의 배너) |
+| 쿠키 | 필수만 사용 (분석은 PostHog 익명 모드로 쿠키리스 — 동의 배너 미필요). |
+| **외부 위탁 처리 [v1.1, OI-14]** | 처리방침에 명시: 카카오(인증·알림톡)·Sentry(에러)·**PostHog Inc., 미국 (분석 트래킹)**·Cloudflare(DDoS·SSL)·Backblaze B2(백업). 각 위탁 항목·국외 이전 사실·항목 보관 기간을 처리방침 별표로 명시 (PIPA 제17·제28조의8). |
 | 저작권 | 사용자 소유 + 서비스 운영용 비독점 라이선스 · 탈퇴 후 처리 명시 |
 
 ---
@@ -1190,7 +1192,7 @@ INDEX (status, run_after)
 
 ### 14.5 [v1.1 · C4] 이벤트 카탈로그 (분석 트래킹)
 
-KPI를 측정 가능하게 만드는 명시적 이벤트 enum. **`app/services/analytics.py` 의 `EventName` enum 으로 강제** (자유 문자열 이벤트 금지 → 데이터 정합성 유지). PostHog/Plausible 어느 쪽을 선택해도 동일 이벤트 이름 사용.
+KPI를 측정 가능하게 만드는 명시적 이벤트 enum. **`app/services/analytics.py` 의 `EventName` enum 으로 강제** (자유 문자열 이벤트 금지 → 데이터 정합성 유지). **트래킹 도구는 PostHog Cloud free** (OI-14, 2026-05-06 확정) — 익명 모드 사용, `posthog-js` 또는 `posthog-python` SDK로 발송, `distinct_id` 는 사용자 ID의 SHA-256 해시로만 식별.
 
 **가입·인증 깔때기**:
 - `signup_started` (provider: email|kakao)
@@ -1253,7 +1255,7 @@ KPI를 측정 가능하게 만드는 명시적 이벤트 enum. **`app/services/a
 | OI-11 | Post metadata 템플릿 필드 최종 (파일럿 거주자 인터뷰) | Phase 1 초 |
 | **OI-12 [v1.1]** | **카카오 알림톡 도입 결정** — 비즈메시지 채널 등록·심사 기간·템플릿 등록·발신 비용 (건당 ~9–15원). 미도입 시 이메일+앱 내 배너로 대체 (Pillar T 응답률 영향 큼) | Phase 1 말 (Phase 2 출시 전) |
 | **OI-13 [v1.1]** | **한국어 검색 엔진 업그레이드 시점** — Phase 1은 `pg_trgm` + `simple` FTS 병행. Phase 2에 mecab-ko (Postgres extension) 도입 여부. RPi 빌드 부담 vs 검색 정밀도. | Phase 1 말 |
-| **OI-14 [v1.1]** | **Analytics 도구 선택** — Plausible self-host (RPi 부하·관리 오버헤드) vs PostHog Cloud free (10k 이벤트/월 무료, 데이터 해외 저장) vs Umami self-host. PIPA 처리방침과 정합. | Phase 0 말 |
+| **OI-14 [v1.1]** ✅ **결정 2026-05-06** | **PostHog Cloud free 채택** (1M 이벤트/월 무료, 익명 모드 쿠키리스). 미국 데이터 저장은 §11 외부 위탁 처리방침에 PostHog Inc. 명시로 해결. Plausible self-host·Umami는 §14.5의 가입 깔때기·Pillar T 응답률 퍼널 분석 부족으로 제외. | ~~Phase 0 말~~ → **확정** |
 | **OI-15 [v1.1]** | **PWA 정도** — manifest+오프라인 fallback 만 (Phase 1) vs 푸시 알림 포함 (Phase 2 — iOS 16.4+ Web Push 가능, 시니어 권한 동의율 미지) | Phase 1 |
 | **OI-16 [v1.1]** | **Cross-validation (Pillar V) 어뷰징 방어 정책** — 동일 시군 거주자 ≥ N 명일 때만 메트릭 노출 (현재 N=3 잠정). 작은 시군 익명성 vs 데이터 가시성 트레이드오프 | Phase 2 초 |
 
