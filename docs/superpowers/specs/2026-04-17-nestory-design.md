@@ -1,9 +1,35 @@
 # Nestory 제품 요구사항 문서 (PRD)
 
-**문서 버전**: 1.0
-**작성일**: 2026-04-17
+**문서 버전**: 1.1
+**작성일**: 2026-04-17 (v1.0) · **2026-05-06 갱신 (v1.1)**
 **상태**: 초안 (사용자 리뷰 대기)
 **작성**: Claude + 제품 오너 (브레인스토밍 세션)
+
+### 변경 이력
+
+| 버전 | 일자 | 주요 변경 |
+|---|---|---|
+| 1.0 | 2026-04-17 | 초안 — 비전·차별화 축·데이터 모델·로드맵·NFR 정리 |
+| 1.1 | 2026-05-06 | 구조적 부채·콘텐츠 갭·운영 신뢰 보강 14개 항목 반영 (A1–A4, B1–B5, C1–C5). 자세한 위치는 각 섹션 인라인 노트 `[v1.1]` 참조 |
+
+#### v1.1 변경 요약 (인덱스)
+
+| 코드 | 영역 | 반영 위치 |
+|---|---|---|
+| **A1** | 백그라운드 작업 큐 PG 기반 영속화 | §6.1 · §6.7 (신설) |
+| **A2** | 한국어 검색 Phase 1부터 (`pg_trgm` + 형태소 1단계) | §5.2 · §9.3 |
+| **A3** | `Post.metadata` Pydantic Discriminated Union | §5.3 · §6.2 |
+| **A4** | 알림 채널 — 카카오 알림톡 우선 | §9.4 · §15 (OI-12) |
+| **B1** | 예비자 "내 정착 계획" Post type | §2.1 · §4.2 · §5.1·§5.3 |
+| **B2** | PWA + 카카오 인앱 브라우저 호환 | §10 |
+| **B3** | Resident 재검증·이사·`ex_resident` | §5.1 · §5.4 |
+| **B4** | Pillar T 인센티브 강화 (회고 배지) | §1.5.1 |
+| **B5** | 다중 관심 지역 (`user_interest_regions`) | §5.1 |
+| **C1** | 후기 cross-validation (거주자 동의/이의) | §1.5.4 (신설) · §5.1 |
+| **C2** | 권한 가드 표준 패턴 (`require_badge`) | §6.2 · §4.3 |
+| **C3** | Soft delete 일관성·탈퇴 시 익명화 정책 | §5.1 · §8.3 (신설) |
+| **C4** | Analytics 도구·이벤트 카탈로그 | §10 · §14 |
+| **C5** | Phase 게이트에 스키마 안정성 게이트 | §9.6 |
 
 ---
 
@@ -51,19 +77,119 @@
 | **실거주 은퇴자** | 경험이 사라지지 않는 아카이브 + 지역 연결 | 오프라인 카페보다 구조화·검색성·영속성 |
 | **관리자** | 품질과 신뢰를 지키는 도구 | 배지 시스템으로 자연스러운 품질 계층 |
 
+### 1.5 차별화 축 (Differentiation Pillars)
+
+핵심 경쟁자(네이버 카페·호갱노노·오늘의집·당근)가 구조적으로 추격하기 어려운 3개 축. PRD 전반의 데이터 모델·UX 결정은 이 축을 강화하는 방향으로 정렬한다.
+
+#### 1.5.1 Time-lag Review · 시간차 회고 (Pillar T)
+
+**정의**: 1년차 입주 후기 작성자에게 동일 항목 템플릿을 재작성하도록 알리고, 1년차/3년차 응답을 *동일 사용자·동일 집* 단위로 비교하는 페이지를 자동 생성.
+
+**왜 차별점인가**:
+- 카페·블로그는 "지금 글"만 보여줌. 동일 인물의 시간 경과 변화는 추적 불가.
+- 호갱노노·오늘의집은 단발성 후기 구조 — 시계열 자산 없음.
+- "1년차 만족도 9 → 3년차 6, 가장 후회한 결정: 보일러 연료" 같은 콘텐츠가 의사결정 임팩트 가장 큼.
+
+**구현 윤곽**:
+- `Post`(type=review)에 `review_year_offset INT NOT NULL` 추가. 1년차=1, 3년차=3.
+- `parent_review_id` 자가참조로 동일 집의 후속 후기 연결.
+- 1년차 작성 +24개월 시점 알림 큐(`scheduled_notification` 테이블) — 3년차 재작성 유도.
+- `/review/{id}/timelapse` 라우트: 1년차/3년차 동일 항목 좌우 비교 뷰.
+- 데이터 충분 시 시군 허브에 "1→3년차 만족도 변화 분포" 차트 노출.
+
+**[v1.1 · B4] 응답률 인센티브 — 알림 단일 의존 회피**:
+
+24개월 후 알림 1회로는 응답률이 낮을 가능성이 큼 (이메일 도달률·시니어 인박스 행태 고려). 알림 외에도 **응답을 매력적으로 만드는 구조** 를 데이터·UX 양쪽에 심어 차별화 축이 데이터로 살아남도록 한다.
+
+- **3년차 회고 작성자 전용 배지**: `🌳 3년차 회고` (resident 배지의 표시 속성 추가). 1→3년차 후기 쌍을 완성한 사용자에게 자동 부여.
+- **허브·프로필 상단 노출**: 3년차 회고 완료 후기는 시군 허브 후기 탭 상단에 "검증된 시계열" 라벨로 우선 노출 (정렬 가중치 +).
+- **알림 다채널화**: §9.4 카카오 알림톡(A4) 우선 + 이메일·앱 내 배너 동시 발송. 24·26개월 시점 2회 리마인더 + 작성 시작 후 14일 임시저장 만료 알림.
+- **응답 시점 1·3년 외 보강 옵션**: 6개월·1년·3년차 3시점 입력으로 확장 가능 (`review_year_offset` 값만 늘리면 됨, 스키마 변경 불필요).
+- **성공 메트릭**: 1년차 작성자 중 3년차 재작성률 ≥ 25% (Phase 3 초기 게이트). 미달 시 인센티브 재설계.
+
+**마일스톤**: Phase 2(데이터 모델 + 1년차 후기 작성) → **Phase 3(2027 하반기, 1년차 누적 시점)에 알림·비교 뷰 활성화**. 데이터가 쌓이지 않은 초기엔 코드만 준비.
+
+#### 1.5.2 Regret Cost Aggregator · 후회 비용 정량화 (Pillar C)
+
+**정의**: 후기·Journey 작성 시 *"이 결정으로 추가 발생한 손실 추정액·시간"* 을 항목별 선택 입력. 시군·결정 카테고리별로 통계 집계.
+
+**왜 차별점인가**:
+- 단일 후기보다 *합산된 후회 통계* 가 예비자의 의사결정 임팩트 큼.
+- 카페·블로그는 자유 서술이라 합산 불가.
+- "양평 평균 후회 비용 1,200만 원, 1위 항목: 진입로 포장(40%)" 같은 메트릭은 정성 후기가 도달 못 하는 수준의 신뢰를 제공.
+
+**구현 윤곽**:
+- `Post.metadata` JSONB에 `regret_items: [{category, cost_krw_band, time_months_band, free_text}]` 추가.
+- `cost_krw_band`는 라디오 선택지(밴드: ~100만 / 100–500만 / 500–2000만 / 2000만+) — 정확한 금액 노출 회피, 통계 산출에 충분.
+- `regret_category`는 enum(`land`/`design`/`build`/`move`/`life`/`region`).
+- 시군 허브에 `/hub/{slug}/regret` 통계 페이지: 카테고리별 후회 비용 분포.
+- 안티패턴: "투자 손실"·"시세 하락"은 카테고리에서 제외 — 정착 결정 회고에만 적용 (안티패턴 OI에 명시).
+
+**마일스톤**: Phase 2(후기 템플릿 v1과 함께 출시). 통계 페이지는 후기 50건 누적 후 시군 허브에 표시.
+
+#### 1.5.3 Region Match Wizard · 지역 매칭 위저드 (Pillar R)
+
+**정의**: 신규 가입자에게 5문항(은퇴 후 활동 / 의료 우선도 / 자녀 방문 빈도 / 농사 의향 / 예산 밴드)을 단계별 위저드로 묻고 *"당신에게 맞는 시군 Top 3"* 를 즉시 제시. 시니어 친화 UX(큰 글씨·1문항 1화면·단계 인디케이터).
+
+**왜 차별점인가**:
+- 신규 예비자의 **콜드 스타트 문제**(섹션 14 리스크 표 참조) 해결의 핵심 진입점.
+- 카페는 "어디 시군이 좋아요?" 질문 글에 의존 — 답변 비균질·광고 혼재.
+- Phase 1 출시 시점부터 즉시 가치 제공 가능. 지역 인증·후기 누적 전이라도 작동.
+
+**구현 윤곽**:
+- 라이프스타일 가중치 설정은 `RegionScoringWeight` 시드 테이블(시군 × 5축 점수) — Phase 1 초기엔 관리자 수기 입력, Phase 3에서 사용자 후기 기반 보정.
+- 위저드 라우트 `/match/wizard` (HTMX 단계 전환) → 결과 `/match/result?...`.
+- 결과 페이지에 시군 허브 링크 + "이 시군에 사는 거주자 N명 후기" 동시 노출 — 다음 행동 유도.
+- 비로그인도 사용 가능, 결과 저장은 로그인 후.
+
+**마일스톤**: **Phase 1 MVP 포함** — 콜드 스타트 해결이 핵심.
+
+#### 1.5.4 Peer Validation · 거주자 상호 검증 (Pillar V) [v1.1 · C1]
+
+**정의**: 같은 시군의 다른 실거주자가 후기·Journey 에피소드에 **"내용 정확함"·"이의 있음"** 을 표시할 수 있는 cross-validation 메커니즘. 광고성·허위 후기의 자정 작용을 만드는 신뢰 레이어.
+
+**왜 차별점인가**:
+- 단일 모더레이터(관리자 1인) 병목을 분산 — §12 리스크표의 "관리자 1인 병목"·"광고성 위장 후기" 두 항목 동시 완화.
+- 카페·블로그는 같은 동네 거주자라도 댓글·반박 외엔 구조화된 검증 수단 없음. 통계 집계 불가.
+- "양평 입주자 7명 중 6명이 정확하다고 표시" 같은 메트릭은 단일 평점보다 신뢰도 큼.
+
+**구현 윤곽**:
+- `post_validations(post_id, validator_user_id, vote ENUM('confirm','dispute'), note TEXT NULLABLE, created_at)` 테이블.
+- 검증 권한: `validator_user_id`가 해당 시군의 `badge_level='resident'` 이고 `post.author_id` 와 다를 것. 동일 시군 거주자만 투표 가능.
+- 후기 카드에 "거주자 N명 동의 / M명 이의" 배지 노출. 이의 ≥ 2건이면 관리자 큐(`/admin/reports`)에 자동 진입 (별도 reason='peer_dispute').
+- 자기 후기에 대한 셀프 어뷰징 방지: 동일 시군 내 거주자가 ≥ 3명일 때만 메트릭 표시 (작은 시군은 익명성 보호).
+- 어뷰징 방어: 한 사용자당 하루 dispute 상한 5회. 반복 dispute 후 미채택 시 가중치 감소.
+
+**안티패턴 (의도적 제외)**:
+- 좋아요·인기 투표가 아님 (이건 일반 사용자 `post_likes` 가 담당).
+- 평점·별점 시스템이 아님 — Pillar C(Regret Cost) 가 정량 메트릭 담당.
+
+**마일스톤**: **Phase 2** — 모더레이션 워크플로우와 함께 출시. Phase 1엔 데이터 모델만 준비 (`post_validations` 테이블).
+
+#### 1.5.5 차별화 축 → 경쟁자 비교
+
+| 축 | 네이버 카페 | 호갱노노 | 오늘의집 | 당근 | Nestory |
+|---|---|---|---|---|---|
+| Time-lag (T) | ✗ | ✗ | ✗ | ✗ | **✓ (Phase 3+)** |
+| Regret Cost (C) | ✗ (서술뿐) | △ (실거래가만) | ✗ | ✗ | **✓ (Phase 2)** |
+| Match Wizard (R) | ✗ | △ (지도 필터) | ✗ | ✗ | **✓ (Phase 1 MVP)** |
+| **Peer Validation (V)** | △ (댓글뿐) | ✗ | ✗ | △ (매너온도) | **✓ (Phase 2)** |
+
+네 축 중 **하나라도 모방하려면 데이터 모델·온보딩·운영을 모두 재설계**해야 함 → 구조적 해자.
+
 ---
 
 ## 2. 사용자 (Personas)
 
 ### 2.1 주요 페르소나
 
-#### P1. 예비 은퇴자 (Prospect) — 주요 수요자
+#### P1. 예비 은퇴자 (Prospect) — 주요 수요자 + **보조 공급자 [v1.1 · B1]**
 
 - 연령: 50–65세
 - 상태: 전원주택 이주를 검토 중이거나 준비 초기
-- 니즈: "실패 사례를 먼저 알고 싶다", "시행착오 비용 줄이기"
+- 니즈: "실패 사례를 먼저 알고 싶다", "시행착오 비용 줄이기", **"내 정착 계획을 공개하고 거주자 조언을 받고 싶다"**
 - 기기: 모바일 우선, 카카오톡 상시, 네이버 검색 주력
-- 앱 내 행동: 후기 탐색·스크랩, Journey 팔로우, Q&A 작성, 지역 허브 방문
+- 앱 내 행동: 후기 탐색·스크랩, Journey 팔로우, Q&A 작성, 지역 허브 방문, **"내 정착 계획" 작성 (콜드 스타트 시 콘텐츠 보조 공급)**
 
 #### P2. 실거주 은퇴자 (Resident) — 주요 공급자
 
@@ -160,6 +286,7 @@ Journey에 묶기 (선택) → 공개 → 댓글·질문 응답
 ├── /write/review      🔒🏡        후기 작성 (실거주자 배지 필요)
 ├── /write/journey     🔒🏡        Journey 생성/편집
 ├── /write/question    🔒          Q&A 작성 (로그인만)
+├── /write/plan        🔒          [v1.1 · B1] 내 정착 계획 작성 (예비자, 로그인만)
 │
 ├── /u/{username}                  공개 프로필
 │   ├── /u/{username}/posts
@@ -194,9 +321,21 @@ Journey에 묶기 (선택) → 공개 → 댓글·질문 응답
 | 레벨 | 대상 페이지 | 특징 |
 |---|---|---|
 | Public | `/`, `/feed`, `/discover`, `/hub/*`, `/post/*`, `/journey/*`, `/question/*`, `/u/*` | SEO·공유·검색 유입 대상. 로그인 유도 CTA. |
-| 🔒 로그인 | `/me`, `/me/*`, `/notifications`, `/write/question` | 이메일 또는 카카오 로그인 후 접근. |
+| 🔒 로그인 | `/me`, `/me/*`, `/notifications`, `/write/question`, `/write/plan` | 이메일 또는 카카오 로그인 후 접근. |
 | 🏡 실거주자 배지 | `/write/review`, `/write/journey` | 관리자 승인된 배지 소유자만. 미획득 시 `/me/badge`로 유도. |
 | 🛡 관리자 | `/admin/*` | `users.role = 'admin'`. 초기엔 ENV로 지정, v2에 세분화. |
+
+**[v1.1 · C2] 권한 가드 표준 패턴**: 위 매트릭스는 코드에서 FastAPI Depends 의존성으로 강제한다. §6.2 디렉토리 구조의 `app/deps.py` 에 표준 가드 정의:
+
+```python
+# app/deps.py — 권한 가드 표준 패턴
+def require_login(...) -> User: ...                      # 🔒
+def require_badge(level: BadgeLevel) -> Callable: ...    # 🏡 등 — Depends 팩토리
+def require_admin(...) -> User: ...                      # 🛡
+def require_resident_in_region(region_id: int) -> ...    # Pillar V cross-validation 투표 권한
+```
+
+라우트 정의 시 위 가드 외 다른 인증 검사 금지 (코드 리뷰 체크리스트 항목). 미사용 시 PR 리뷰에서 차단.
 
 ### 4.4 시군 허브 페이지 구성
 
@@ -231,12 +370,25 @@ username UNIQUE            -- URL 슬러그용
 display_name
 bio, profile_image_id FK → images
 role ENUM('user','admin')
-badge_level ENUM('interested','region_verified','resident')
+badge_level ENUM('interested','region_verified','resident','ex_resident')  -- [v1.1 · B3]
 primary_region_id FK → regions NULLABLE
 resident_verified_at TIMESTAMPTZ NULLABLE
+resident_revalidated_at TIMESTAMPTZ NULLABLE   -- [v1.1 · B3] 마지막 재검증 시점
+ex_resident_at TIMESTAMPTZ NULLABLE            -- [v1.1 · B3] 이주/탈거 시점
 last_login_at
 created_at, updated_at, deleted_at (soft delete)
+anonymized_at TIMESTAMPTZ NULLABLE              -- [v1.1 · C3] PIPA 탈퇴 후 익명화 처리 완료 시점
 ```
+
+#### user_interest_regions [v1.1 · B5]
+```
+user_id FK → users
+region_id FK → regions
+priority INT             -- 1=top, 2, 3 (Match Wizard 결과 저장용)
+created_at
+PRIMARY KEY (user_id, region_id)
+```
+검토 중인 예비자가 양평·가평·춘천 등 여러 시군을 동시에 관심 등록 가능. Match Wizard 결과 자동 저장 + 알림 다중 시군 적용.
 
 #### regions
 ```
@@ -255,16 +407,31 @@ author_id FK → users
 region_id FK → regions
 journey_id FK → journeys NULLABLE
 parent_post_id FK → posts NULLABLE   -- 답변이 질문을 참조
-type ENUM('review','journey_episode','question','answer')
+type ENUM('review','journey_episode','question','answer','plan')  -- [v1.1 · B1]
 episode_no INT NULLABLE              -- Journey 내 순서
 title
 body TEXT                            -- 마크다운
-metadata JSONB                       -- 타입별 구조화 필드 (5.3)
+metadata JSONB                       -- 타입별 구조화 필드 (5.3) — Pydantic Discriminated Union 검증
 status ENUM('draft','published','hidden')
 view_count INT DEFAULT 0
 published_at TIMESTAMPTZ NULLABLE
 created_at, updated_at
+deleted_at TIMESTAMPTZ NULLABLE       -- [v1.1 · C3] soft delete 일관성
 ```
+
+> **[v1.1 · C3] Soft delete 일관성**: `users` 외에도 `posts`·`journeys`·`comments` 모두 `deleted_at` 컬럼을 가진다. 모든 조회 쿼리는 `deleted_at IS NULL` 필터를 강제하기 위해 SQLAlchemy의 `with_loader_criteria` 또는 베이스 쿼리 mixin을 통해 적용한다. raw SQL 금지 (§8.1 항목과 일치).
+
+#### post_validations [v1.1 · C1]
+```
+id PK
+post_id FK → posts
+validator_user_id FK → users          -- 동일 시군 resident 만
+vote ENUM('confirm','dispute')
+note TEXT NULLABLE
+created_at
+UNIQUE (post_id, validator_user_id)   -- 동일 사용자 1회만
+```
+거주자 cross-validation (Pillar V) 데이터 저장. 권한 체크는 §6.2 `require_resident_in_region` 가드에서 수행.
 
 #### journeys
 ```
@@ -321,6 +488,7 @@ parent_id FK → comments NULLABLE     -- 스레디드
 body TEXT
 status ENUM('visible','hidden')
 created_at, updated_at
+deleted_at TIMESTAMPTZ NULLABLE       -- [v1.1 · C3] soft delete 일관성
 ```
 
 #### tags, post_tags
@@ -387,11 +555,18 @@ published_at
 - `posts (author_id, published_at DESC)` — 프로필
 - `posts (type, status, published_at DESC)` — 전체 피드
 - GIN `posts.metadata` — JSONB 필드 필터
-- GIN `to_tsvector(title || body)` — 전문 검색 (한국어는 Phase 2+ mecab)
+- **GIN `posts (title || body) gin_trgm_ops`** — [v1.1 · A2] **Phase 1부터** `pg_trgm` 기반 부분일치·오타 허용 검색 (한국어 공백 분할 약점 보완)
+- GIN `to_tsvector('simple', title || body)` — Phase 1: `simple` 컨피그 (공백 토크나이즈) + 위 trgm 보조. **Phase 2+: mecab-ko / korean unaccent** 도입하여 형태소 기반 정밀도 향상
 - `notifications (user_id, is_read, created_at DESC)` — 알림 큐
 - `badge_applications (status, applied_at)` — 관리자 큐
+- `post_validations (post_id, vote)` — [v1.1 · C1] Pillar V 통계 집계
+- `user_interest_regions (region_id, priority)` — [v1.1 · B5] 다중 관심 지역 알림
 
-### 5.3 Post.metadata JSONB 스키마 (type=review/journey_episode)
+> **[v1.1 · A2] Phase 1 검색 전략**: PostgreSQL FTS의 한국어 처리는 기본 토크나이저(공백 분할)로는 거의 작동하지 않음 — "양평군"·"양평", "단열재"·"단열" 매칭 실패. mecab 형태소 분석은 RPi에서 빌드 부담 큼. 따라서 **Phase 1은 `pg_trgm` 부분일치 + `simple` FTS 병행** 으로 시작하고, **Phase 2에 mecab-ko 도입을 OI-13으로 결정**. 검색 라우트는 trgm 결과 ∪ FTS 결과를 합쳐 ranking.
+
+### 5.3 Post.metadata JSONB 스키마 (type별)
+
+#### 5.3.1 type=review / journey_episode
 
 ```json
 {
@@ -410,14 +585,63 @@ published_at
   "regrets": ["단열", "부지 선정"],
   "highlights": ["마당", "자연광"],
   "builder_info": { "name": "**건축", "verified": false },
+  "regret_items": [                     // Pillar C (Regret Cost Aggregator)
+    {
+      "category": "land|design|build|move|life|region",
+      "cost_krw_band": "<100|100-500|500-2000|2000+",
+      "time_months_band": "<1|1-3|3-6|6+",
+      "free_text": "진입로 포장 비용 추가 발생"
+    }
+  ],
   "journey_ep_meta": {
     "phase": "터|건축|입주|1년차|3년차",
     "period_label": "2024 봄"
-  }
+  },
+  "review_year_offset": 1               // Pillar T — 1년차/3년차 비교용
 }
 ```
 
-JSONB로 시작. 안정화되면 자주 조회되는 필드는 컬럼으로 승격. 최종 템플릿 필드는 파일럿 거주자 인터뷰로 검증 (OI-11).
+#### 5.3.2 type=plan (예비자 정착 계획) [v1.1 · B1]
+
+```json
+{
+  "interest_regions": [12, 27],         // region_id 리스트 (Top 3)
+  "target_move_year": 2027,
+  "household_size": 2,
+  "budget_total_manwon_band": "10000-20000",
+  "must_have": ["채소밭", "도서관 30분 내"],
+  "nice_to_have": ["계곡 인접"],
+  "concerns": ["겨울 난방비", "병원 거리"],
+  "construction_intent": "self_build|buy_existing|rent_first|undecided",
+  "open_to_advice": true                // 거주자 답글 받기 동의
+}
+```
+
+#### 5.3.3 [v1.1 · A3] Pydantic Discriminated Union 검증 강제
+
+`Post.metadata`는 **자유 JSONB가 아니다**. type별 Pydantic 모델로 타이트하게 검증한다:
+
+```python
+# app/schemas/post_metadata.py
+class ReviewMetadata(BaseModel):
+    model_config = ConfigDict(extra='forbid')   # 정의되지 않은 필드 거부
+    house_type: Literal['단독', '타운하우스', '듀플렉스']
+    size_pyeong: PositiveInt
+    # ... (위 5.3.1 필드)
+
+class PlanMetadata(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    # ... (위 5.3.2 필드)
+
+PostMetadata = Annotated[
+    Union[ReviewMetadata, JourneyEpisodeMetadata, QuestionMetadata, AnswerMetadata, PlanMetadata],
+    Field(discriminator='__post_type__')   # Post.type 와 매칭
+]
+```
+
+- 모든 쓰기 경로 (`POST /write/*`, HTMX 파샬, 어드민) 는 `PostMetadata` 검증 통과 후에만 DB 저장.
+- `extra='forbid'` 로 클라이언트의 임의 필드 주입 차단 → Pillar C 통계가 깨지지 않음.
+- 마이그레이션 시: 자주 조회되는 필드는 컬럼으로 승격 (예: `regret_total_cost_krw_band`). 점진 진행 — 컬럼 추가 → backfill → switch read → switch write → metadata 키 제거. 최종 템플릿 필드는 파일럿 거주자 인터뷰로 검증 (OI-11).
 
 ### 5.4 배지 상태 머신
 
@@ -438,11 +662,41 @@ primary_region_id = X
   ▼ approved
 badge_level='resident' 🏡
 resident_verified_at = now()
+resident_revalidated_at = now()
 → 후기·Journey 작성 권한 부여
   │
   │ 시간 경과 (일배치 계산)
   ▼
 🌳 N년차 표시 속성 (resident_verified_at + 365d / 3y / 5y)
+🌳 3년차 회고 표시 속성 ([v1.1 · B4] 1→3년차 후기 쌍 완성 시)
+```
+
+#### 5.4.1 [v1.1 · B3] 재검증·이사·탈거 분기
+
+**연 1회 재검증** (§12 리스크 표 "광고성 위장 후기" 항목 충족):
+```
+resident_verified_at + 365d 경과
+  → maintenance worker 가 알림 발송 ("거주 상태 재확인 부탁드립니다")
+  → 사용자 응답
+    ├─ '계속 거주 중' (소극적 확인) → resident_revalidated_at = now()
+    ├─ 14일 무응답 → '경고' 상태 (UI 배지 흐림 처리, 작성 권한 유지)
+    └─ 60일 무응답 → resident → ex_resident 자동 전환
+```
+
+**이사 (region 이전)**:
+```
+사용자가 /me/badge 에서 "이사했습니다" 신청
+  → 새 region 증빙 업로드 → 관리자 검토 → 승인
+  → primary_region_id 갱신 / resident_verified_at 유지 / resident_revalidated_at = now()
+  (기존 시군 후기는 익명 표시 변경 없이 유지 — 시계열 자산 보존)
+```
+
+**탈거 (전원주택 → 도시 복귀)**:
+```
+사용자 자발 신청 OR 60일 무응답 자동 전환
+  → badge_level = 'ex_resident', ex_resident_at = now()
+  → 작성 권한 박탈, 기존 콘텐츠 유지 (UI에 "이전 거주자" 표기)
+  → Pillar V 검증 권한 박탈 (현재 거주자만 cross-validation 가능)
 ```
 
 ### 5.5 증빙 유형
@@ -474,7 +728,7 @@ resident_verified_at = now()
 | 프론트엔드 인터랙션 | HTMX + Alpine.js | 빌드 단계 없음 |
 | 인증 | itsdangerous 서명 쿠키 + argon2-cffi | 카카오 OAuth 2.0 |
 | 이미지 처리 | Pillow + pillow-heif | WebP 지원 |
-| 백그라운드 태스크 | FastAPI BackgroundTasks (v1) | v2+ ARQ 검토 |
+| 백그라운드 태스크 | **PostgreSQL 기반 미니 큐 (`pgmq` 또는 LISTEN/NOTIFY + jobs 테이블)** [v1.1 · A1] | 영속성 보장. Redis 의존성 회피. v3+ 트래픽 증가 시 ARQ/Redis 검토 |
 | 호스팅 | Raspberry Pi (OS Bookworm 64) | 프로토타입 |
 | 외부 노출 | Cloudflare Tunnel (cloudflared) | DDoS·SSL 위임 |
 | CSS | Tailwind CSS (CDN 시작 → Build 전환) | OI-4에서 최종 결정 |
@@ -519,7 +773,10 @@ nestory/
 │   │   ├── css/
 │   │   ├── js/                   # htmx.min.js, alpine.min.js, app.js
 │   │   └── icons/
-│   ├── workers/                  # BackgroundTasks
+│   ├── workers/                  # [v1.1 · A1] PG 기반 작업 큐 (jobs 테이블 + LISTEN/NOTIFY)
+│   │   ├── queue.py              # enqueue/dequeue/retry, advisory lock
+│   │   ├── handlers/             # image_resize, notification_send, scheduled_revalidation
+│   │   └── runner.py             # systemd 워커 프로세스 (별도 systemd unit)
 │   └── tests/ (unit · integration · e2e)
 ├── alembic.ini
 ├── pyproject.toml                # uv 또는 poetry
@@ -612,6 +869,51 @@ RPi 성능 주의: 동시 업로드 세마포어 2–3. 10MB 사진 1장 ~1.5–
 
 클라이언트 상태관리 라이브러리 없음. Alpine.js는 드롭다운·토글 등 소규모 UI에만.
 
+### 6.7 [v1.1 · A1] 백그라운드 작업 큐 — PostgreSQL 기반
+
+**왜 별도 큐?** FastAPI의 `BackgroundTasks` 는 인메모리 — 프로세스 재시작·크래시 시 작업 유실. 이미지 변환, 알림 발송, Pillar T 24개월 알림, resident 재검증 일배치 등 핵심 작업이 사라지면 **차별화 축이 데이터로 살아남지 못함**. 따라서 영속화된 큐를 Phase 1부터 도입한다.
+
+**구조**:
+
+```
+┌──────────────────────┐  enqueue   ┌────────────────────────┐
+│ FastAPI route /htmx  │ ─────────▶ │  jobs 테이블 (Postgres)│
+│ /upload, /publish    │            │  + LISTEN/NOTIFY 채널   │
+└──────────────────────┘            └────┬───────────────────┘
+                                          │ NOTIFY
+                                          ▼
+                                  ┌────────────────────────┐
+                                  │ workers/runner.py      │
+                                  │  · advisory lock       │
+                                  │  · 핸들러 디스패치     │
+                                  │  · 실패 재시도 backoff │
+                                  │  (별도 systemd unit:   │
+                                  │   nestory-worker.service)
+                                  └────────────────────────┘
+```
+
+**`jobs` 테이블**:
+```
+id PK
+kind ENUM('image_resize','notification','revalidation_check','timelapse_remind','export')
+payload JSONB
+status ENUM('queued','running','succeeded','failed','dead')
+attempts INT DEFAULT 0
+max_attempts INT DEFAULT 5
+run_after TIMESTAMPTZ DEFAULT now()    -- 지연/예약 작업
+locked_at, locked_by               -- 워커 ID
+last_error TEXT
+created_at, completed_at
+INDEX (status, run_after)
+```
+
+- 워커는 `SELECT ... FOR UPDATE SKIP LOCKED` 로 동시성 안전하게 작업 픽업.
+- LISTEN/NOTIFY 로 즉시 깨우기 + 폴링 fallback (1초 간격, 빈 큐일 때).
+- 실패 시 지수 백오프 (`run_after = now() + 2^attempts * 1min`), `max_attempts` 초과 시 `dead` 상태로 보관 (관리자 확인 후 수동 재시도).
+- 핵심 작업: 이미지 리사이즈 (§6.4 Step 5), 카카오 알림톡 발송 (§9.4), Pillar T 24개월 알림 발송, resident 연 1회 재검증 알림, 백업 검증, audit_log 비동기 기록.
+
+**deploy 추가**: `deploy/systemd/nestory-worker.service` (Uvicorn과 별도 프로세스). RPi 코어가 충분하므로 워커 1개로 시작, 부하 증가 시 N개로 확장.
+
 ---
 
 ## 7. 배포 및 운영
@@ -641,8 +943,9 @@ RPi 성능 주의: 동시 업로드 세마포어 2–3. 10MB 사진 1장 ~1.5–
 ### 7.4 systemd 유닛
 
 - `nestory.service` — Uvicorn
+- `nestory-worker.service` — [v1.1 · A1] PG 기반 작업 큐 워커 (별도 프로세스, 재시작 시 큐 유실 없음)
 - `nestory-backup.timer` — 백업 일배치
-- `nestory-maintenance.timer` — 증빙 파일 만료 삭제·N년차 승급 계산
+- `nestory-maintenance.timer` — 증빙 파일 만료 삭제·N년차 승급 계산·resident 재검증 알림 (jobs 테이블에 enqueue)
 
 ---
 
@@ -669,6 +972,20 @@ RPi 성능 주의: 동시 업로드 세마포어 2–3. 10MB 사진 1장 ~1.5–
 - 필수: 이메일 또는 카카오 ID, 표시명
 - 선택: 프로필 이미지, 소개, 주요 시군 (배지용)
 - 민감: 증빙 파일 → 승인 30일 후 자동 삭제, 비공개 저장소
+
+### 8.3 [v1.1 · C3] 탈퇴 처리·콘텐츠 익명화 정책
+
+회원 탈퇴 시 사용자 식별정보는 파기하지만, **공개된 후기·Journey·Q&A는 커뮤니티 자산** 으로 가치가 있다 (Pillar T·V의 시계열 자산). 따라서 콘텐츠는 **익명화 후 유지** 하는 것이 기본. 사용자가 명시적으로 "내 콘텐츠 전체 삭제"를 요청한 경우만 hard delete.
+
+| 단계 | 처리 |
+|---|---|
+| **D+0 (탈퇴 신청)** | `users.deleted_at = now()`. 즉시 로그아웃·세션 만료. UI에서 작성자 표시는 "탈퇴한 사용자". 7일 유예 — 본인이 복구 가능 |
+| **D+7 (확정)** | 식별정보 파기: `email`·`kakao_id`·`username`·`display_name`·`bio`·`profile_image_id` → NULL 또는 무작위 해시. `password_hash` 폐기. `anonymized_at = now()`. 증빙 파일 즉시 삭제. |
+| **콘텐츠 기본** | `posts`·`journeys`·`comments` 의 `author_id` 는 유지 (FK 무결성), 표시는 "탈퇴한 사용자"로 렌더 |
+| **콘텐츠 명시적 삭제 요청 시** | `posts.deleted_at` 일괄 설정 → 30일 후 hard delete (백업에서도 다음 사이클에 정리) |
+| **법정 보존 항목** | 신고·수사 협조 기록 등 법령상 의무 보존 항목은 별도 테이블에 익명 ID로 보존 (PIPA 제21조) |
+
+**조회 쿼리는 항상 `deleted_at IS NULL` 필터 강제** (§5.1 Soft delete 일관성 노트와 일치). 베이스 mixin 또는 SQLAlchemy `with_loader_criteria` 사용.
 
 ---
 
@@ -709,33 +1026,39 @@ RPi 성능 주의: 동시 업로드 세마포어 2–3. 10MB 사진 1장 ~1.5–
 
 **포함 기능**
 - 배지 3단계 (관심자·지역인증·실거주자). 신청·증빙·관리자 승인 큐
-- Post CRUD (type=review). 구조화 템플릿 · 초안/발행
-- 이미지 파이프라인 (EXIF 제거 · 3단 리사이즈 · WebP)
+- Post CRUD (type=review, **type=plan [v1.1 · B1]**). 구조화 템플릿 · Pydantic Discriminated Union 검증 · 초안/발행
+- 이미지 파이프라인 (EXIF 제거 · 3단 리사이즈 · WebP) — **PG 기반 작업 큐 [v1.1 · A1]**
+- **Region Match Wizard `/match/wizard` (Pillar R · MVP)** — `user_interest_regions` 자동 저장 [v1.1 · B5]
 - 시군 허브 페이지 `/hub/{slug}` (후기 목록·필터·정렬)
 - 후기 상세 `/post/{id}` + 스크랩·좋아요·댓글
-- 검색 (PostgreSQL FTS 기본 · 지역·평수·예산 필터)
+- 검색 — **`pg_trgm` + `simple` FTS 병행 [v1.1 · A2]** (지역·평수·예산 필터)
 - 홈 피드 (비로그인/로그인 분기)
 - 프로필 `/u/{username}` · `/me`
-- 알림 (bell UI)
+- 알림 (bell UI · 인앱)
 - 관리자 v1 (배지 승인 · 콘텐츠 숨김 · 사용자 조회)
-- 반응형 UI
+- 반응형 UI · **PWA manifest + 카카오 인앱 브라우저 호환성 검증 [v1.1 · B2]**
+- **Analytics 트래킹 [v1.1 · C4]** — PostHog/Plausible self-host + 핵심 이벤트 카탈로그 (§14)
+- **데이터 모델 준비**: `post_validations`·`user_interest_regions`·`jobs` 테이블 (사용은 Phase 2부터)
 
-**성공 기준**: 파일럿 지역에서 실거주자 10명 · 후기 30건. 주간 활성 사용자 100+. TTFB p95 ≤ 600ms.
+**성공 기준**: 파일럿 지역에서 실거주자 10명 · 후기 30건 · **type=plan 작성 20건 [v1.1 · B1]** · 주간 활성 사용자 100+ · TTFB p95 ≤ 600ms · 검색 결과 첫 페이지 LCP ≤ 2.5s.
 
 ### 9.4 Phase 2 · Journey + 커뮤니티 (Week 12–19)
 
 **포함 기능**
 - Journey CRUD · 에피소드 순서 · phase 라벨 · 타임라인 뷰
 - Journey 팔로우 + 새 에피소드 알림
-- N년차 배지 자동 계산
+- N년차 배지 자동 계산 + **resident 연 1회 재검증 일배치 [v1.1 · B3]**
 - Q&A (type=question/answer) · 허브 내 섹션 · 태그
 - User follow · 개인화 피드 가중치
+- **Pillar V 활성화 [v1.1 · C1]** — `post_validations` 투표 UI · 시군 허브 메트릭 · 이의 ≥ 2건 자동 큐잉
+- **Pillar C 출시** — 후기 템플릿에 `regret_items` 입력 + 시군 허브 `/hub/{slug}/regret` 통계 (50건 누적 후 활성화)
 - 신고 · 모더레이션 워크플로우
 - 공지사항 (`/admin/announcements`)
-- 관리자 v2 (KPI 대시보드 · 신고 처리 이력)
-- 이메일 알림 (주간 다이제스트 · 배지 승인)
+- 관리자 v2 (KPI 대시보드 · 신고 처리 이력 · cross-validation 분쟁 큐)
+- **알림 채널 [v1.1 · A4]**: 카카오 알림톡(비즈메시지) **우선 채널** + 이메일 보조 + 앱 내 배너. 50–65세 도달률 고려. 비용·심사 리스크는 OI-12에서 결정.
+- 이주·탈거 처리 흐름 (`ex_resident` 전환) [v1.1 · B3]
 
-**성공 기준**: Journey 5건 이상 진행 중 · 팔로우 100+ · 주간 재방문율 40% · Q&A 답변률 60%+.
+**성공 기준**: Journey 5건 이상 진행 중 · 팔로우 100+ · 주간 재방문율 40% · Q&A 답변률 60%+ · cross-validation 투표 200건 누적 · 알림톡 도달률 ≥ 85%.
 
 ### 9.5 Phase 3 · 플랫폼 확장 (Week 20–27)
 
@@ -755,9 +1078,12 @@ RPi 성능 주의: 동시 업로드 세마포어 2–3. 10MB 사진 1장 ~1.5–
 
 | Phase | 게이트 질문 | 미달 시 대응 |
 |---|---|---|
-| 1 종료 | 파일럿 지역에서 콘텐츠 30건·사용자 100명 확보됐는가? | Phase 2 대신 콘텐츠 시딩 스프린트 (오프라인·파트너십) |
-| 2 종료 | Journey가 실제로 쓰이는가? 재방문율 상승? | Journey UX 재설계 · Phase 3 지연 |
-| 3 종료 | RPi가 현재 트래픽을 감당하는가? | CCU 50 넘으면 VPS 이관 · 미디어 R2 분리 |
+| 1 종료 (메트릭) | 파일럿 지역에서 콘텐츠 30건·사용자 100명 확보됐는가? | Phase 2 대신 콘텐츠 시딩 스프린트 (오프라인·파트너십) |
+| 1 종료 (스키마) [v1.1 · C5] | `Post.metadata` Pydantic 스키마가 실제 사용 데이터로 안정화됐는가? `regret_items`·`builder_info`·이미지 컬럼 후보 정리됐는가? | 마이그레이션 회고 → 컬럼 승격/스키마 freeze 결정. Phase 2 진입 전 1주 스키마 보강 스프린트 |
+| 2 종료 (메트릭) | Journey가 실제로 쓰이는가? 재방문율 상승? cross-validation 투표 200건 도달? | Journey UX 재설계 · Pillar V 인센티브 재검토 · Phase 3 지연 |
+| 2 종료 (스키마) [v1.1 · C5] | `jobs`·`post_validations` 테이블 운영 데이터로 인덱스·파티셔닝 필요성 확인됐는가? | 인덱스 추가·아카이브 정책 · `audit_logs` 분리 검토 |
+| 3 종료 | RPi가 현재 트래픽을 감당하는가? | CCU 50 넘으면 VPS 이관 (§12 런북) · 미디어 R2 분리 |
+| 3 종료 (Pillar T) [v1.1 · B4] | 1년차 후기 작성자 중 3년차 재작성률 ≥ 25% 달성됐는가? | 인센티브 재설계 · 회고 배지 노출 강화 또는 차별화 축 우선순위 재조정 |
 
 ### 9.7 오프-로드맵
 
@@ -778,12 +1104,15 @@ RPi 성능 주의: 동시 업로드 세마포어 2–3. 10MB 사진 1장 ~1.5–
 | 성능 | TTFB p95 ≤ 600ms (허브·홈) · LCP ≤ 2.5s (4G) · 20 CCU 목표 / 50 CCU 상한 |
 | 가용성 | 월 99% (월 약 7h 다운타임 허용) · VPS 이관 후 99.5% |
 | 백업·복구 | RPO 24h · RTO 4h · 월 1회 복원 리허설 의무 |
-| 접근성 | WCAG 2.1 AA · 최소 폰트 16px · 버튼 44×44px · 대비 4.5:1 |
+| 접근성 | WCAG 2.1 AA · 최소 폰트 16px · 버튼 44×44px · 대비 4.5:1 · **rem 기반 폰트 + 사용자 브라우저 폰트 크기 설정 존중** |
 | 브라우저 | Chrome/Safari/Edge/Samsung Internet 최근 2버전 · 구형은 graceful degradation |
+| **카톡 인앱 브라우저 [v1.1 · B2]** | **카카오톡 인앱 브라우저(WebKit/WebView 기반)에서 정상 작동 필수** — 시니어 진입 경로 1순위. CI에 카톡 인앱 시뮬레이션 (User-Agent + WebView 제약) 수동 체크리스트 추가. 외부 브라우저 강제 오픈 hint 노출 (`?from=kakao` 시) |
+| **PWA [v1.1 · B2]** | `manifest.webmanifest` + 최소 service worker (오프라인 fallback 페이지 + 정적 자산 캐싱) · "홈 화면에 추가" 가능. iOS/Android 모두 검증. Phase 1 출시 |
 | 반응형 | 모바일(375–414px) · 태블릿(768px) · 데스크톱(1280px) |
 | SEO | SSR · OG 태그 · sitemap.xml · robots.txt · JSON-LD (Article·Review) |
 | 언어 | 한국어 단일 (키-값 파일 · v3+ 다국어 대응 여지) |
 | 관측성 | structlog · Sentry · UptimeRobot · /healthz · Phase 2+ Prometheus /metrics |
+| **분석 [v1.1 · C4]** | **Plausible self-host (RPi 동거)** 또는 **PostHog Cloud free** — GA 회피 (시니어 추적·쿠키 동의 부담). 핵심 이벤트 카탈로그는 §14.5 참조. 페이지뷰·세션은 자동, 커스텀 이벤트는 명시적 enum |
 
 ---
 
@@ -791,7 +1120,7 @@ RPi 성능 주의: 동시 업로드 세마포어 2–3. 10MB 사진 1장 ~1.5–
 
 | 항목 | 처리 |
 |---|---|
-| 개인정보보호법 (PIPA) | 처리방침 페이지 · 증빙 파일 30일 자동 삭제 · 탈퇴 7일 유예 후 파기 |
+| 개인정보보호법 (PIPA) | 처리방침 페이지 · 증빙 파일 30일 자동 삭제 · 탈퇴 7일 유예 후 식별정보 파기·콘텐츠 익명화 (상세 §8.3) |
 | 정보통신망법 | 카카오 OAuth로 본인확인 간접 충족 · 마케팅 이메일 별도 동의 |
 | 14세 미만 | 약관에 "만 14세 이상" 명시 · 가입 시 생년 확인 |
 | 위치기반서비스 | v1 시군 단위는 해당 없음 · Phase 3 지도 도입 시 신고 검토 |
@@ -859,6 +1188,52 @@ RPi 성능 주의: 동시 업로드 세마포어 2–3. 10MB 사진 1장 ~1.5–
 - 시공사 온보딩 수
 - 월 리드 수 · 유료 전환율
 
+### 14.5 [v1.1 · C4] 이벤트 카탈로그 (분석 트래킹)
+
+KPI를 측정 가능하게 만드는 명시적 이벤트 enum. **`app/services/analytics.py` 의 `EventName` enum 으로 강제** (자유 문자열 이벤트 금지 → 데이터 정합성 유지). PostHog/Plausible 어느 쪽을 선택해도 동일 이벤트 이름 사용.
+
+**가입·인증 깔때기**:
+- `signup_started` (provider: email|kakao)
+- `signup_completed`
+- `login_succeeded` (provider)
+- `region_match_wizard_started`
+- `region_match_wizard_completed` (top_regions: [int])
+
+**콘텐츠 발견**:
+- `hub_viewed` (sigungu)
+- `post_viewed` (post_id, post_type, region_id)
+- `post_scrapped` / `post_unscrapped`
+- `journey_followed` / `unfollowed`
+- `search_executed` (query_len, result_count, has_filter)
+
+**콘텐츠 생성**:
+- `write_started` (post_type)
+- `write_published` (post_type, has_images, body_length_band)
+- `plan_published` (interest_region_count) — [B1]
+- `regret_item_added` (category, cost_band) — Pillar C 데이터 누적 추적
+
+**신뢰·검증**:
+- `badge_application_submitted` (requested_level, evidence_types)
+- `badge_application_approved` / `rejected` (latency_hours)
+- `peer_validation_voted` (vote: confirm|dispute) — Pillar V
+- `revalidation_responded` (response_days_after_prompt) — [B3]
+
+**Pillar T (시계열 회고)**:
+- `timelapse_review_prompt_sent` (channel: alimtalk|email|inapp)
+- `timelapse_review_completed` (year_offset, days_after_prompt)
+- `timelapse_view_opened` (parent_review_id)
+
+**알림·도달**:
+- `notification_sent` (channel, kind)
+- `notification_opened` (channel, kind)
+- `notification_failed` (channel, error_type)
+
+**모더레이션**:
+- `report_submitted` (target_type, reason)
+- `report_resolved` (resolution, latency_hours)
+
+이벤트 페이로드는 PII 미포함 원칙 — `user_id`는 익명 해시로만, IP·이메일·실주소 절대 포함 금지. 코드 리뷰 체크리스트 항목.
+
 ---
 
 ## 15. 오픈 아이템 (미결정)
@@ -876,6 +1251,11 @@ RPi 성능 주의: 동시 업로드 세마포어 2–3. 10MB 사진 1장 ~1.5–
 | OI-9 | 브랜드 · 로고 · 톤앤매너 · 컬러 팔레트 | Phase 0 |
 | OI-10 | 도메인 · SNS 계정 등록 (nestory.kr? 동명 체크) | Phase 0 |
 | OI-11 | Post metadata 템플릿 필드 최종 (파일럿 거주자 인터뷰) | Phase 1 초 |
+| **OI-12 [v1.1]** | **카카오 알림톡 도입 결정** — 비즈메시지 채널 등록·심사 기간·템플릿 등록·발신 비용 (건당 ~9–15원). 미도입 시 이메일+앱 내 배너로 대체 (Pillar T 응답률 영향 큼) | Phase 1 말 (Phase 2 출시 전) |
+| **OI-13 [v1.1]** | **한국어 검색 엔진 업그레이드 시점** — Phase 1은 `pg_trgm` + `simple` FTS 병행. Phase 2에 mecab-ko (Postgres extension) 도입 여부. RPi 빌드 부담 vs 검색 정밀도. | Phase 1 말 |
+| **OI-14 [v1.1]** | **Analytics 도구 선택** — Plausible self-host (RPi 부하·관리 오버헤드) vs PostHog Cloud free (10k 이벤트/월 무료, 데이터 해외 저장) vs Umami self-host. PIPA 처리방침과 정합. | Phase 0 말 |
+| **OI-15 [v1.1]** | **PWA 정도** — manifest+오프라인 fallback 만 (Phase 1) vs 푸시 알림 포함 (Phase 2 — iOS 16.4+ Web Push 가능, 시니어 권한 동의율 미지) | Phase 1 |
+| **OI-16 [v1.1]** | **Cross-validation (Pillar V) 어뷰징 방어 정책** — 동일 시군 거주자 ≥ N 명일 때만 메트릭 노출 (현재 N=3 잠정). 작은 시군 익명성 vs 데이터 가시성 트레이드오프 | Phase 2 초 |
 
 ---
 
@@ -914,13 +1294,18 @@ RPi 성능 주의: 동시 업로드 세마포어 2–3. 10MB 사진 1장 ~1.5–
 ## 부록 B · 용어집
 
 - **Nest + Story**: 제품명 (둥지 + 이야기)
-- **Prospect**: 예비 은퇴자 (검토자)
+- **Prospect**: 예비 은퇴자 (검토자) — v1.1부터 `type=plan` 으로 보조 콘텐츠 공급도 가능
 - **Resident**: 실거주 은퇴자 (콘텐츠 공급자)
+- **Ex-resident** [v1.1]: 이주·탈거로 더이상 거주하지 않는 이전 거주자. 작성 권한 박탈, 기존 콘텐츠는 유지
 - **Journey**: 터잡기→건축→입주→N년차로 이어지는 여정형 연작 콘텐츠 컨테이너
-- **Post**: 모든 콘텐츠 단위 (type 필드로 review/episode/question/answer 구분)
+- **Post**: 모든 콘텐츠 단위 (type 필드로 review/episode/question/answer/**plan** 구분)
+- **Plan** [v1.1]: 예비자가 작성하는 정착 계획 (관심 시군·예산·우려·필수 조건)
 - **Hub**: 시군 단위 지역 허브 페이지 (`/hub/{slug}`)
-- **Badge**: 4단계 신뢰 인증 시스템 (관심자 🌱 / 지역인증 📍 / 실거주자 🏡 / N년차 🌳)
+- **Badge**: 신뢰 인증 시스템 (관심자 🌱 / 지역인증 📍 / 실거주자 🏡 / N년차 🌳 / 3년차 회고 🌳 [v1.1])
 - **Evidence**: 배지 신청 증빙 파일 (승인 30일 후 자동 삭제)
+- **Pillar T/C/R/V** [v1.1]: 차별화 4축 — Time-lag review, Regret Cost, Region match wizard, **Peer Validation** (cross-validation)
+- **Cross-validation / Peer Validation** [v1.1]: 같은 시군 거주자가 후기에 "정확함/이의" 표시하는 자정 메커니즘
+- **`jobs` 큐** [v1.1]: PostgreSQL 기반 영속화 작업 큐 (이미지 변환·알림 발송·재검증 등)
 - **OI**: Open Item — 브레인스토밍 중 미결정 사항
 
 ---
