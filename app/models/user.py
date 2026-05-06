@@ -1,7 +1,7 @@
 import enum
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, String, func
+from sqlalchemy import DateTime, Enum, ForeignKey, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -39,6 +39,9 @@ class User(Base):
         Enum(BadgeLevel, name="badge_level", values_callable=lambda x: [e.value for e in x]),
         default=BadgeLevel.INTERESTED,
         server_default=BadgeLevel.INTERESTED.value,
+    )
+    primary_region_id: Mapped[int | None] = mapped_column(
+        ForeignKey("regions.id", ondelete="SET NULL"), nullable=True, index=True
     )
     resident_verified_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
