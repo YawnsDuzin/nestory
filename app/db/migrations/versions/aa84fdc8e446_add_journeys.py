@@ -49,4 +49,5 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_journeys_region_id'), table_name='journeys')
     op.drop_index(op.f('ix_journeys_author_id'), table_name='journeys')
     op.drop_table('journeys')
+    op.execute("DROP TYPE journey_status")
     # ### end Alembic commands ###
