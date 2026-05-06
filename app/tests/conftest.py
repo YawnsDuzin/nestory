@@ -3,6 +3,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+import app.models  # noqa: F401  # Base.metadata에 모든 모델 등록
 from app.db.session import SessionLocal, engine
 from app.main import app
 
@@ -15,10 +16,15 @@ def _ensure_db_ready() -> None:
 
 @pytest.fixture(autouse=True)
 def _cleanup_db():
-    """모든 테스트 후 테이블 TRUNCATE. TestClient 경유 데이터도 정리됨."""
+    """모든 테스트 후 모든 테이블 TRUNCATE. SQLAlchemy 메타데이터 기반 동적 수집."""
     yield
+    from app.db.base import Base
+    table_names = [t.name for t in Base.metadata.sorted_tables if t.name != "alembic_version"]
+    if not table_names:
+        return
     with SessionLocal() as session:
-        session.execute(text("TRUNCATE TABLE users, regions RESTART IDENTITY CASCADE"))
+        joined = ", ".join(table_names)
+        session.execute(text(f"TRUNCATE TABLE {joined} RESTART IDENTITY CASCADE"))
         session.commit()
 
 
