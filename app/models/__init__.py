@@ -1,3 +1,4 @@
+from app.models.badge_application import BadgeApplication, BadgeEvidence
 from app.models.comment import Comment
 from app.models.image import Image
 from app.models.interest_region import UserInterestRegion
@@ -9,6 +10,8 @@ from app.models.tag import Tag
 from app.models.user import BadgeLevel, User, UserRole
 
 __all__ = [
+    "BadgeApplication",
+    "BadgeEvidence",
     "BadgeLevel",
     "Comment",
     "Image",
