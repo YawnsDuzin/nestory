@@ -15,3 +15,4 @@ __pycache__/
 *.db
 .DS_Store
 Thumbs.db
+media-private/

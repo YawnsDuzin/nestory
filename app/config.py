@@ -24,6 +24,8 @@ class Settings(BaseSettings):
     nestory_domain: str = "localhost:8000"
     session_cookie_secure: bool = False
 
+    evidence_base_path: str = "./media-private/evidence"
+
 
 @lru_cache
 def get_settings() -> Settings:
