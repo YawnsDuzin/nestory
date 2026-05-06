@@ -1,25 +1,12 @@
-from datetime import UTC, datetime
-
 from sqlalchemy.orm import Session
 
-from app.models import Notification, User
+from app.models import Notification
 from app.models._enums import NotificationType
-
-
-def _make_user(db: Session) -> User:
-    u = User(
-        email=f"t{int(datetime.now(UTC).timestamp() * 1_000_000)}@example.com",
-        username=f"u{int(datetime.now(UTC).timestamp() * 1_000_000)}",
-        display_name="테스터",
-        password_hash="x",
-    )
-    db.add(u)
-    db.flush()
-    return u
+from app.tests.factories import UserFactory
 
 
 def test_create_unread_notification(db: Session) -> None:
-    u = _make_user(db)
+    u = UserFactory()
     n = Notification(
         user_id=u.id,
         type=NotificationType.BADGE_APPROVED,
@@ -33,7 +20,7 @@ def test_create_unread_notification(db: Session) -> None:
 
 
 def test_mark_as_read(db: Session) -> None:
-    u = _make_user(db)
+    u = UserFactory()
     n = Notification(user_id=u.id, type=NotificationType.SYSTEM)
     db.add(n)
     db.flush()

@@ -1,25 +1,12 @@
-from datetime import UTC, datetime
-
 from sqlalchemy.orm import Session
 
-from app.models import Image, User
+from app.models import Image
 from app.models._enums import ImageStatus
-
-
-def _make_user(db: Session) -> User:
-    u = User(
-        email=f"t{int(datetime.now(UTC).timestamp() * 1_000_000)}@example.com",
-        username=f"u{int(datetime.now(UTC).timestamp() * 1_000_000)}",
-        display_name="테스터",
-        password_hash="x",
-    )
-    db.add(u)
-    db.flush()
-    return u
+from app.tests.factories import UserFactory
 
 
 def test_create_image_defaults_to_processing(db: Session) -> None:
-    u = _make_user(db)
+    u = UserFactory()
     img = Image(owner_id=u.id, file_path_orig="/media/orig/2026/05/abc.jpg")
     db.add(img)
     db.flush()
@@ -32,7 +19,7 @@ def test_create_image_defaults_to_processing(db: Session) -> None:
 
 
 def test_image_can_have_all_size_paths(db: Session) -> None:
-    u = _make_user(db)
+    u = UserFactory()
     img = Image(
         owner_id=u.id,
         file_path_orig="/media/orig/x.jpg",

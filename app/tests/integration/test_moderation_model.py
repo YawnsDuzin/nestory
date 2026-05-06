@@ -1,25 +1,12 @@
-from datetime import UTC, datetime
-
 from sqlalchemy.orm import Session
 
-from app.models import Announcement, AuditLog, Report, User
+from app.models import Announcement, AuditLog, Report
 from app.models._enums import AuditAction, ReportReason, ReportStatus
-
-
-def _make_user(db: Session) -> User:
-    u = User(
-        email=f"t{int(datetime.now(UTC).timestamp() * 1_000_000)}@example.com",
-        username=f"u{int(datetime.now(UTC).timestamp() * 1_000_000)}",
-        display_name="테스터",
-        password_hash="x",
-    )
-    db.add(u)
-    db.flush()
-    return u
+from app.tests.factories import UserFactory
 
 
 def test_create_report_pending(db: Session) -> None:
-    u = _make_user(db)
+    u = UserFactory()
     r = Report(
         reporter_id=u.id,
         target_type="post",
@@ -33,7 +20,7 @@ def test_create_report_pending(db: Session) -> None:
 
 
 def test_audit_log_action(db: Session) -> None:
-    u = _make_user(db)
+    u = UserFactory()
     a = AuditLog(
         actor_id=u.id,
         action=AuditAction.BADGE_APPROVED,
@@ -47,7 +34,7 @@ def test_audit_log_action(db: Session) -> None:
 
 
 def test_pinned_announcement(db: Session) -> None:
-    u = _make_user(db)
+    u = UserFactory()
     a = Announcement(
         author_id=u.id,
         title="베타 오픈 안내",

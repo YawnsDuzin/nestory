@@ -1,26 +1,13 @@
-from datetime import UTC, datetime
-
 from sqlalchemy.orm import Session
 
-from app.models import Post, Region, User
+from app.models import Post
 from app.models._enums import PostStatus, PostType
-
-
-def _seed(db: Session) -> tuple[User, Region]:
-    u = User(
-        email=f"t{int(datetime.now(UTC).timestamp() * 1_000_000)}@example.com",
-        username=f"u{int(datetime.now(UTC).timestamp() * 1_000_000)}",
-        display_name="테스터",
-        password_hash="x",
-    )
-    r = Region(sido="경기", sigungu="양평군", slug=f"yp-{u.username}")
-    db.add_all([u, r])
-    db.flush()
-    return u, r
+from app.tests.factories import RegionFactory, UserFactory
 
 
 def test_create_review_post_with_metadata(db: Session) -> None:
-    u, r = _seed(db)
+    u = UserFactory()
+    r = RegionFactory()
     p = Post(
         author_id=u.id,
         region_id=r.id,
@@ -38,7 +25,8 @@ def test_create_review_post_with_metadata(db: Session) -> None:
 
 
 def test_plan_post_type(db: Session) -> None:
-    u, r = _seed(db)
+    u = UserFactory()
+    r = RegionFactory()
     p = Post(
         author_id=u.id,
         region_id=r.id,
@@ -53,7 +41,8 @@ def test_plan_post_type(db: Session) -> None:
 
 
 def test_question_with_parent_link(db: Session) -> None:
-    u, r = _seed(db)
+    u = UserFactory()
+    r = RegionFactory()
     q = Post(author_id=u.id, region_id=r.id, type=PostType.QUESTION, title="Q", body="?")
     db.add(q)
     db.flush()
