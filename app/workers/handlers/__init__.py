@@ -38,4 +38,8 @@ def registered_kinds() -> set[JobKind]:
 
 def import_handlers() -> None:
     """Import all handler modules so decorators register them."""
-    from app.workers.handlers import image_resize, notification  # noqa: F401
+    from app.workers.handlers import (  # noqa: F401
+        evidence_cleanup,
+        image_resize,
+        notification,
+    )
