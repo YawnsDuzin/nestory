@@ -48,14 +48,6 @@ def db() -> Session:
         session.close()
 
 
-@pytest.fixture(autouse=True)
-def _bind_factories(db):
-    """Bind factory-boy session to the per-test db session."""
-    from app.tests.factories import bind_session
-    bind_session(db)
-    yield
-
-
 @pytest.fixture
 def client() -> TestClient:
     return TestClient(app)

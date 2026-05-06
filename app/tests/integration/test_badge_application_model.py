@@ -2,18 +2,29 @@ from datetime import UTC, datetime, timedelta
 
 from sqlalchemy.orm import Session
 
-from app.models import BadgeApplication, BadgeEvidence
+from app.models import BadgeApplication, BadgeEvidence, Region, User
 from app.models._enums import (
     BadgeApplicationStatus,
     BadgeRequestedLevel,
     EvidenceType,
 )
-from app.tests.factories import RegionFactory, UserFactory
+
+
+def _seed(db: Session) -> tuple[User, Region]:
+    u = User(
+        email=f"t{int(datetime.now(UTC).timestamp() * 1_000_000)}@example.com",
+        username=f"u{int(datetime.now(UTC).timestamp() * 1_000_000)}",
+        display_name="테스터",
+        password_hash="x",
+    )
+    r = Region(sido="경기", sigungu="양평군", slug=f"yp-{u.username}")
+    db.add_all([u, r])
+    db.flush()
+    return u, r
 
 
 def test_create_resident_application_pending(db: Session) -> None:
-    u = UserFactory()
-    r = RegionFactory()
+    u, r = _seed(db)
     app = BadgeApplication(
         user_id=u.id,
         requested_level=BadgeRequestedLevel.RESIDENT,
@@ -27,8 +38,7 @@ def test_create_resident_application_pending(db: Session) -> None:
 
 
 def test_attach_evidence_with_scheduled_delete(db: Session) -> None:
-    u = UserFactory()
-    r = RegionFactory()
+    u, r = _seed(db)
     app = BadgeApplication(
         user_id=u.id,
         requested_level=BadgeRequestedLevel.RESIDENT,
