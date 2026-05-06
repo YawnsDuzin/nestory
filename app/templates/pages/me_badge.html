@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}내 배지 · Nestory{% endblock %}
+{% block content %}
+<section class="mx-auto max-w-2xl p-6 space-y-6">
+  <h1 class="text-2xl font-bold">내 배지</h1>
+
+  <div class="rounded border p-4">
+    <p class="text-sm text-slate-600">현재 배지</p>
+    <div class="mt-2">
+      {% with badge_level = user.badge_level.value %}
+        {% include "components/badge.html" %}
+      {% endwith %}
+    </div>
+  </div>
+
+  {% if pending %}
+    <div class="rounded border-2 border-amber-200 bg-amber-50 p-4">
+      <p class="font-semibold">신청 대기 중</p>
+      <p class="text-sm">관리자 승인 대기 — 평균 48시간 이내 처리됩니다.</p>
+    </div>
+  {% else %}
+    {% if user.badge_level.value == "interested" %}
+      <form method="post" action="/me/badge/region" class="rounded border p-4 space-y-3">
+        <h2 class="font-semibold">📍 지역 인증 신청</h2>
+        <p class="text-sm text-slate-600">관심 시군을 선택하세요. 관리자가 승인하면 그 지역의 커뮤니티에 글을 쓸 수 있습니다.</p>
+        <select name="region_id" required class="w-full rounded border p-2">
+          <option value="">— 시군 선택 —</option>
+          {% for r in regions %}
+            <option value="{{ r.id }}">{{ r.sido }} {{ r.sigungu }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit" class="rounded bg-emerald-600 text-white px-4 py-2">신청</button>
+      </form>
+    {% endif %}
+
+    {% if user.badge_level.value in ("region_verified", "interested") %}
+      <a href="/me/badge/resident" class="block rounded border p-4 hover:bg-slate-50">
+        <h2 class="font-semibold">🏡 실거주자 인증 신청 →</h2>
+        <p class="text-sm text-slate-600">증빙 파일(공과금·계약서·건축물대장 등)을 업로드합니다.</p>
+      </a>
+    {% endif %}
+  {% endif %}
+</section>
+{% endblock %}

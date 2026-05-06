@@ -1,0 +1,12 @@
+{# Reusable badge display — input: badge_level (BadgeLevel enum value as string) #}
+{% set labels = {
+    "interested": ("🌱", "관심자"),
+    "region_verified": ("📍", "지역 인증"),
+    "resident": ("🏡", "실거주자"),
+    "ex_resident": ("🌿", "이전 거주자"),
+} %}
+{% set emoji, label = labels.get(badge_level, ("❔", "알 수 없음")) %}
+<span class="inline-flex items-center gap-1 rounded bg-emerald-50 px-2 py-1 text-sm">
+  <span aria-hidden="true">{{ emoji }}</span>
+  <span>{{ label }}</span>
+</span>

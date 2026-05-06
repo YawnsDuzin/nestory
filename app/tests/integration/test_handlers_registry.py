@@ -20,4 +20,4 @@ def test_dispatch_invokes_registered_handler(caplog) -> None:
 def test_dispatch_unknown_kind_raises() -> None:
     import_handlers()
     with pytest.raises(RuntimeError, match="No handler registered"):
-        dispatch(JobKind.EVIDENCE_CLEANUP, {})
+        dispatch(JobKind.REVALIDATION_CHECK, {})

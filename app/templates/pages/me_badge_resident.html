@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}실거주자 인증 신청 · Nestory{% endblock %}
+{% block content %}
+<section class="mx-auto max-w-2xl p-6 space-y-4">
+  <h1 class="text-2xl font-bold">🏡 실거주자 인증 신청</h1>
+  <p class="text-sm text-slate-600">최소 1개 증빙 파일이 필요합니다. 모든 파일은 비공개 저장되며 승인 30일 후 자동 삭제됩니다.</p>
+
+  <form method="post" action="/me/badge/resident" enctype="multipart/form-data" class="space-y-4 rounded border p-4">
+    <label class="block">
+      <span class="text-sm font-medium">시군 선택</span>
+      <select name="region_id" required class="mt-1 w-full rounded border p-2">
+        <option value="">— 시군 선택 —</option>
+        {% for r in regions %}
+          <option value="{{ r.id }}">{{ r.sido }} {{ r.sigungu }}</option>
+        {% endfor %}
+      </select>
+    </label>
+
+    <fieldset class="space-y-3">
+      <legend class="text-sm font-medium">증빙 파일 (jpg/jpeg/png/pdf/heic, ≤ 10MB)</legend>
+      <label class="block">
+        <span class="text-sm">전기·수도·가스 고지서 (utility_bill)</span>
+        <input type="file" name="utility_bill" accept=".jpg,.jpeg,.png,.pdf,.heic" class="block">
+      </label>
+      <label class="block">
+        <span class="text-sm">매매·건축 계약서 (contract)</span>
+        <input type="file" name="contract" accept=".jpg,.jpeg,.png,.pdf,.heic" class="block">
+      </label>
+      <label class="block">
+        <span class="text-sm">건축물대장 (building_cert)</span>
+        <input type="file" name="building_cert" accept=".jpg,.jpeg,.png,.pdf,.heic" class="block">
+      </label>
+      <label class="block">
+        <span class="text-sm">집 앞 셀카 + GPS (geo_selfie)</span>
+        <input type="file" name="geo_selfie" accept=".jpg,.jpeg,.png,.heic" class="block">
+      </label>
+    </fieldset>
+
+    <button type="submit" class="rounded bg-emerald-600 text-white px-4 py-2">신청</button>
+  </form>
+</section>
+{% endblock %}

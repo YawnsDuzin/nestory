@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}배지 신청 큐 · 관리자{% endblock %}
+{% block content %}
+<section class="mx-auto max-w-4xl p-6 space-y-4">
+  <h1 class="text-2xl font-bold">🛡 배지 신청 큐</h1>
+  <p class="text-sm text-slate-600">대기 중인 신청 {{ rows|length }}건. 오래된 순.</p>
+  {% if not rows %}
+    <p class="rounded border p-6 text-center text-slate-500">대기 중인 신청이 없습니다.</p>
+  {% else %}
+    <table class="w-full border-collapse">
+      <thead><tr class="bg-slate-100">
+        <th class="border p-2 text-left">#</th>
+        <th class="border p-2 text-left">신청자</th>
+        <th class="border p-2 text-left">레벨</th>
+        <th class="border p-2 text-left">시군</th>
+        <th class="border p-2 text-left">신청일</th>
+        <th class="border p-2"></th>
+      </tr></thead>
+      <tbody>
+      {% for row in rows %}
+        <tr>
+          <td class="border p-2">{{ row.app.id }}</td>
+          <td class="border p-2">@{{ row.applicant.username }}</td>
+          <td class="border p-2">{{ row.app.requested_level.value }}</td>
+          <td class="border p-2">{{ row.region.sido }} {{ row.region.sigungu }}</td>
+          <td class="border p-2">{{ row.app.applied_at.strftime("%Y-%m-%d") }}</td>
+          <td class="border p-2"><a href="/admin/badge-queue/{{ row.app.id }}" class="text-emerald-700 underline">상세</a></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+</section>
+{% endblock %}
