@@ -1,0 +1,12 @@
+# /etc/cloudflared/config.yml (실제 배포 시 복사 후 값 채움)
+tunnel: <TUNNEL_UUID>
+credentials-file: /etc/cloudflared/<TUNNEL_UUID>.json
+
+ingress:
+  - hostname: ${NESTORY_DOMAIN}
+    service: http://127.0.0.1:80
+    originRequest:
+      noTLSVerify: false
+      connectTimeout: 30s
+      keepAliveConnections: 100
+  - service: http_status:404
