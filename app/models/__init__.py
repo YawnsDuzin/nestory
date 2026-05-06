@@ -9,6 +9,7 @@ from app.models.interaction import (  # noqa: F401  # Table 객체 — metadata 
 )
 from app.models.interest_region import UserInterestRegion
 from app.models.journey import Journey
+from app.models.moderation import Announcement, AuditLog, Report
 from app.models.notification import Notification
 from app.models.post import Post
 from app.models.post_validation import PostValidation
@@ -17,6 +18,8 @@ from app.models.tag import Tag  # post_tags Table 객체는 tag 모듈 로드 �
 from app.models.user import BadgeLevel, User, UserRole
 
 __all__ = [
+    "Announcement",
+    "AuditLog",
     "BadgeApplication",
     "BadgeEvidence",
     "BadgeLevel",
@@ -27,6 +30,7 @@ __all__ = [
     "Post",
     "PostValidation",
     "Region",
+    "Report",
     "Tag",
     "User",
     "UserInterestRegion",
