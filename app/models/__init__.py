@@ -5,6 +5,7 @@ from app.models.journey import Journey
 from app.models.post import Post
 from app.models.post_validation import PostValidation
 from app.models.region import Region
+from app.models.tag import Tag
 from app.models.user import BadgeLevel, User, UserRole
 
 __all__ = [
@@ -15,6 +16,7 @@ __all__ = [
     "Post",
     "PostValidation",
     "Region",
+    "Tag",
     "User",
     "UserInterestRegion",
     "UserRole",
