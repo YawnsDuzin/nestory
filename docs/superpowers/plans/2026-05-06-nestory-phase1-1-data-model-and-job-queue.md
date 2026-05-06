@@ -538,7 +538,11 @@ class Image(Base):
     uploaded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 ```
 
-> **NOTE**: `post_id` FK가 `posts` 테이블을 참조하지만 Post 모델은 Task 6에서 추가됨. Alembic 마이그레이션 생성 시 `images` 테이블이 `posts` 보다 먼저 생성되면 FK 제약이 깨지므로 — 이 Task에서는 `post_id` 컬럼만 만들고 **FK 제약은 Task 6의 Post 마이그레이션에서 추가**한다. 아래 Step 2 마이그레이션 스크립트에서 FK 부분 제거.
+> **NOTE [v1.1.1 patched 2026-05-06]**: `post_id` FK가 `posts` 테이블을 참조하지만 Post 모델은 Task 6에서 추가됨. **SQLAlchemy 2.0의 `Base.metadata.sorted_tables`** (Task 1 conftest 동적 TRUNCATE에서 호출) 가 모든 ForeignKey를 즉시 resolve 시도하므로, 모델에 `ForeignKey("posts.id")` 를 두면 `NoReferencedTableError` 가 발생한다. **따라서 모델·마이그레이션 양쪽 모두에서 FK를 보류**:
+> - 모델 (`image.py`): `post_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)` — `ForeignKey` 없이 plain Integer.
+> - 마이그레이션: 아래 Step 2와 같이 ForeignKeyConstraint 라인 제거, 컬럼만 생성.
+>
+> Task 6에서 Post 모델 추가 후 (a) `image.py` 에 `ForeignKey("posts.id", ondelete="SET NULL")` 추가, (b) 마이그레이션에 `op.create_foreign_key(...)` 추가하여 동시 정합. 자세한 내용은 메모리의 "SQLAlchemy 2.0 forward FK gotcha" 참조.
 
 - [ ] **Step 2: 마이그레이션 작성 (FK 보류)**
 
@@ -850,20 +854,32 @@ class Post(Base):
 
 > **NOTE**: 컬럼 속성 이름은 `metadata_` (Python attribute) 이지만 DB 컬럼 이름은 `metadata` (mapping 첫 인자). SQLAlchemy `Base.metadata` 와 충돌 회피.
 
+- [ ] **Step 1.5 [v1.1.1 patched 2026-05-06]: image.py 의 post_id FK 복구**
+
+Task 4에서 `post_id` 를 plain `Integer` 로 두었다 (forward reference 충돌 회피). Post 모델이 이제 존재하므로 `app/models/image.py` 의 `post_id` 라인을 다음으로 갱신:
+
+```python
+post_id: Mapped[int | None] = mapped_column(
+    ForeignKey("posts.id", ondelete="SET NULL"), nullable=True, index=True
+)
+```
+
+(`from sqlalchemy import ForeignKey` import는 이미 owner_id에서 사용 중이므로 추가 import 불필요.)
+
 - [ ] **Step 2: 마이그레이션 작성**
 
 Run: `alembic revision --autogenerate -m "add posts and link images.post_id fk"` 
 
-생성된 마이그레이션의 `upgrade()` 끝에 Task 4에서 보류한 FK 제약 추가:
+autogenerate는 위 Step 1.5 의 모델 변경을 schema diff로 검출하여 ALTER TABLE에 fk constraint 추가를 자동 생성한다. 생성된 마이그레이션 검토:
 
 ```python
 def upgrade() -> None:
     # autogenerate가 만든 posts 테이블 생성, 인덱스 등 그대로 유지
     # ... (생략) ...
 
-    # Task 4에서 보류한 images.post_id FK
+    # Step 1.5의 모델 변경에 따라 autogenerate가 만든 fk constraint
     op.create_foreign_key(
-        "fk_images_post_id_posts",
+        op.f("fk_images_post_id_posts"),  # 또는 명시적 이름
         "images",
         "posts",
         ["post_id"],
@@ -873,9 +889,11 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_constraint("fk_images_post_id_posts", "images", type_="foreignkey")
+    op.drop_constraint(op.f("fk_images_post_id_posts"), "images", type_="foreignkey")
     # ... posts drop ...
 ```
+
+만약 autogenerate가 fk constraint를 검출하지 못했다면 위 `op.create_foreign_key` 를 수동으로 추가.
 
 Run: `alembic upgrade head`
 
