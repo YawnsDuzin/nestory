@@ -9,6 +9,7 @@ from app.models.interaction import (  # noqa: F401  # Table 객체 — metadata 
 )
 from app.models.interest_region import UserInterestRegion
 from app.models.journey import Journey
+from app.models.notification import Notification
 from app.models.post import Post
 from app.models.post_validation import PostValidation
 from app.models.region import Region
@@ -22,6 +23,7 @@ __all__ = [
     "Comment",
     "Image",
     "Journey",
+    "Notification",
     "Post",
     "PostValidation",
     "Region",
