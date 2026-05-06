@@ -8,6 +8,7 @@ from app.models.interaction import (  # noqa: F401  # Table 객체 — metadata 
     user_follows,
 )
 from app.models.interest_region import UserInterestRegion
+from app.models.job import Job
 from app.models.journey import Journey
 from app.models.moderation import Announcement, AuditLog, Report
 from app.models.notification import Notification
@@ -25,6 +26,7 @@ __all__ = [
     "BadgeLevel",
     "Comment",
     "Image",
+    "Job",
     "Journey",
     "Notification",
     "Post",
