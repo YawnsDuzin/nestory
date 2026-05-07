@@ -6,9 +6,9 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
-from app.deps import get_db, require_badge, require_user
+from app.deps import get_current_user, get_db, require_badge, require_user
 from app.models import Post, Region, User
-from app.models._enums import PostType
+from app.models._enums import PostStatus, PostType
 from app.models.user import BadgeLevel
 from app.schemas.post_metadata import PlanMetadata, QuestionMetadata, ReviewMetadata
 from app.services import posts as posts_service
@@ -177,4 +177,71 @@ def submit_answer(
     db.commit()
     return RedirectResponse(
         f"/question/{question_id}", status_code=status.HTTP_303_SEE_OTHER
+    )
+
+
+@router.get("/post/{post_id}", response_class=HTMLResponse)
+def post_detail(
+    request: Request,
+    post_id: int,
+    db: Session = Depends(get_db),
+) -> HTMLResponse:
+    post = db.get(Post, post_id)
+    if (
+        post is None
+        or post.deleted_at is not None
+        or post.status != PostStatus.PUBLISHED
+        or post.type == PostType.JOURNEY_EPISODE  # those use /journey/.../ep/.. route
+    ):
+        raise HTTPException(status.HTTP_404_NOT_FOUND)
+    posts_service.increment_view_count(db, post)
+    db.commit()
+    db.refresh(post)
+    author = db.get(User, post.author_id)
+    region = db.get(Region, post.region_id)
+    return templates.TemplateResponse(
+        request, "pages/detail/post.html",
+        {"post": post, "author": author, "region": region},
+    )
+
+
+@router.get("/question/{question_id}", response_class=HTMLResponse)
+def question_detail(
+    request: Request,
+    question_id: int,
+    user: User | None = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> HTMLResponse:
+    question = db.get(Post, question_id)
+    if (
+        question is None
+        or question.deleted_at is not None
+        or question.type != PostType.QUESTION
+        or question.status != PostStatus.PUBLISHED
+    ):
+        raise HTTPException(status.HTTP_404_NOT_FOUND)
+    posts_service.increment_view_count(db, question)
+    db.commit()
+    db.refresh(question)
+    author = db.get(User, question.author_id)
+    region = db.get(Region, question.region_id)
+    answers = (
+        db.query(Post)
+        .filter(
+            Post.parent_post_id == question.id,
+            Post.type == PostType.ANSWER,
+            Post.deleted_at.is_(None),
+        )
+        .order_by(Post.published_at.asc())
+        .all()
+    )
+    # Eager-load answer authors for template
+    for ans in answers:
+        ans.author = db.get(User, ans.author_id)
+    return templates.TemplateResponse(
+        request, "pages/detail/question.html",
+        {
+            "question": question, "author": author, "region": region,
+            "answers": answers, "user": user,
+        },
     )

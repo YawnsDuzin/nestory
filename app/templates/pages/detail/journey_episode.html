@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}{{ post.title }} · {{ journey.title }} · Nestory{% endblock %}
+{% block content %}
+<article class="mx-auto max-w-2xl p-6 space-y-4">
+  <p class="text-sm">
+    <a href="/journey/{{ journey.id }}" class="text-emerald-600 hover:underline">← {{ journey.title }}</a>
+  </p>
+  <header>
+    <h1 class="text-2xl font-bold">{{ post.episode_no }}화 · {{ post.title }}</h1>
+    <p class="text-xs text-slate-500 mt-1">
+      {{ post.published_at.strftime("%Y-%m-%d") if post.published_at }} · 조회 {{ post.view_count }}
+    </p>
+  </header>
+  {% include "pages/detail/_meta_card_journey_ep.html" %}
+  <div class="prose max-w-none">{{ post.body | markdown | safe }}</div>
+  <nav class="flex justify-between pt-4 border-t">
+    {% if prev_ep %}
+      <a href="/journey/{{ journey.id }}/ep/{{ prev_ep.episode_no }}" class="text-sm text-emerald-600">← {{ prev_ep.episode_no }}화</a>
+    {% else %}<span></span>{% endif %}
+    {% if next_ep %}
+      <a href="/journey/{{ journey.id }}/ep/{{ next_ep.episode_no }}" class="text-sm text-emerald-600">{{ next_ep.episode_no }}화 →</a>
+    {% endif %}
+  </nav>
+</article>
+{% endblock %}

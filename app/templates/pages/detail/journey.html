@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}{{ journey.title }} · Nestory{% endblock %}
+{% block content %}
+<section class="mx-auto max-w-2xl p-6 space-y-6">
+  <header class="rounded border bg-white p-4">
+    <h1 class="text-2xl font-bold">🗺️ {{ journey.title }}</h1>
+    <p class="text-xs text-slate-500 mt-1">
+      {{ author.display_name }} · {{ region.sido }} {{ region.sigungu }}
+      {% if journey.start_date %}· 시작 {{ journey.start_date }}{% endif %}
+    </p>
+    {% if journey.description %}
+      <p class="mt-3 text-sm">{{ journey.description }}</p>
+    {% endif %}
+  </header>
+  <section class="space-y-3">
+    <h2 class="text-lg font-semibold">에피소드 {{ episodes|length }}개</h2>
+    {% for ep in episodes %}
+      <a href="/journey/{{ journey.id }}/ep/{{ ep.episode_no }}"
+         class="block rounded border bg-white p-4 hover:bg-slate-50">
+        <p class="text-xs text-slate-500">{{ ep.episode_no }}화 · {{ ep.metadata_.journey_ep_meta.phase if ep.metadata_.journey_ep_meta else '' }}</p>
+        <p class="font-semibold mt-1">{{ ep.title }}</p>
+      </a>
+    {% endfor %}
+  </section>
+</section>
+{% endblock %}

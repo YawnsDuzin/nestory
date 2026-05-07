@@ -8,7 +8,8 @@ from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
 from app.deps import get_db, require_badge
-from app.models import Journey, Region, User
+from app.models import Journey, Post, Region, User
+from app.models._enums import PostStatus, PostType
 from app.models.user import BadgeLevel
 from app.schemas.post_metadata import JourneyEpisodeMetadata, JourneyEpMeta
 from app.services import posts as posts_service
@@ -105,4 +106,86 @@ def submit_episode(
     return RedirectResponse(
         f"/journey/{journey_id}/ep/{post.episode_no}",
         status_code=status.HTTP_303_SEE_OTHER,
+    )
+
+
+@router.get("/journey/{journey_id}", response_class=HTMLResponse)
+def journey_detail(
+    request: Request,
+    journey_id: int,
+    db: Session = Depends(get_db),
+) -> HTMLResponse:
+    journey = db.get(Journey, journey_id)
+    if journey is None or journey.deleted_at is not None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND)
+    author = db.get(User, journey.author_id)
+    region = db.get(Region, journey.region_id)
+    episodes = (
+        db.query(Post)
+        .filter(
+            Post.journey_id == journey_id,
+            Post.type == PostType.JOURNEY_EPISODE,
+            Post.deleted_at.is_(None),
+            Post.status == PostStatus.PUBLISHED,
+        )
+        .order_by(Post.episode_no.asc())
+        .all()
+    )
+    return templates.TemplateResponse(
+        request, "pages/detail/journey.html",
+        {"journey": journey, "author": author, "region": region, "episodes": episodes},
+    )
+
+
+@router.get("/journey/{journey_id}/ep/{ep_no}", response_class=HTMLResponse)
+def journey_episode_detail(
+    request: Request,
+    journey_id: int,
+    ep_no: int,
+    db: Session = Depends(get_db),
+) -> HTMLResponse:
+    journey = db.get(Journey, journey_id)
+    if journey is None or journey.deleted_at is not None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND)
+    post = (
+        db.query(Post)
+        .filter(
+            Post.journey_id == journey_id,
+            Post.episode_no == ep_no,
+            Post.type == PostType.JOURNEY_EPISODE,
+            Post.deleted_at.is_(None),
+            Post.status == PostStatus.PUBLISHED,
+        )
+        .first()
+    )
+    if post is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND)
+    posts_service.increment_view_count(db, post)
+    db.commit()
+    db.refresh(post)
+    prev_ep = (
+        db.query(Post)
+        .filter(
+            Post.journey_id == journey_id,
+            Post.episode_no < ep_no,
+            Post.type == PostType.JOURNEY_EPISODE,
+            Post.deleted_at.is_(None),
+        )
+        .order_by(Post.episode_no.desc())
+        .first()
+    )
+    next_ep = (
+        db.query(Post)
+        .filter(
+            Post.journey_id == journey_id,
+            Post.episode_no > ep_no,
+            Post.type == PostType.JOURNEY_EPISODE,
+            Post.deleted_at.is_(None),
+        )
+        .order_by(Post.episode_no.asc())
+        .first()
+    )
+    return templates.TemplateResponse(
+        request, "pages/detail/journey_episode.html",
+        {"journey": journey, "post": post, "prev_ep": prev_ep, "next_ep": next_ep},
     )
