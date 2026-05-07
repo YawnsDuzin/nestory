@@ -9,11 +9,13 @@ from app.logging_setup import configure_logging, init_sentry
 from app.routers import admin as admin_router
 from app.routers import auth as auth_router
 from app.routers import content as content_router
+from app.routers import feed as feed_router
 from app.routers import hub as hub_router
 from app.routers import images as images_router
 from app.routers import journey as journey_router
 from app.routers import me as me_router
 from app.routers import pages as pages_router
+from app.routers import search as search_router
 
 settings = get_settings()
 configure_logging(env=settings.app_env)
@@ -35,11 +37,13 @@ app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 app.include_router(admin_router.router)
 app.include_router(auth_router.router)
 app.include_router(content_router.router)
+app.include_router(feed_router.router)
 app.include_router(hub_router.router)
 app.include_router(images_router.router)
 app.include_router(journey_router.router)
 app.include_router(me_router.router)
 app.include_router(pages_router.router)
+app.include_router(search_router.router)
 
 
 @app.get("/healthz")
