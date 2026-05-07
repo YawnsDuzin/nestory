@@ -103,3 +103,27 @@ def test_post_write_review_400_on_pydantic_validation_error(
     assert r.status_code == 400
     text = r.text.lower()
     assert "satisfaction" in text or "less than" in text or "validation" in text
+
+
+def test_post_write_review_400_on_body_too_long(
+    client: TestClient, db: Session, login,
+) -> None:
+    """Body > 50KB UTF-8 must reject with 400 to prevent abuse."""
+    user = ResidentUserFactory()
+    region = RegionFactory()
+    db.commit()
+    login(user.id)
+    huge_body = "가" * 30_000  # 30K Korean chars * 3 bytes/char = 90KB > 50KB cap
+    r = client.post(
+        "/write/review",
+        data={
+            "title": "x",
+            "body": huge_body,
+            "region_id": str(region.id),
+            "house_type": "단독",
+            "size_pyeong": "30",
+            "satisfaction_overall": "4",
+        },
+    )
+    assert r.status_code == 400
+    assert "본문" in r.text or "최대" in r.text

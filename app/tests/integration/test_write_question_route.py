@@ -33,3 +33,23 @@ def test_post_creates_question(client: TestClient, db: Session, login) -> None:
 def test_anonymous_blocked(client: TestClient) -> None:
     r = client.get("/write/question")
     assert r.status_code == 401
+
+
+def test_post_write_question_400_on_body_too_long(
+    client: TestClient, db: Session, login,
+) -> None:
+    """Body > 50KB UTF-8 must reject with 400."""
+    user = UserFactory()
+    region = RegionFactory()
+    db.commit()
+    login(user.id)
+    huge_body = "가" * 30_000  # 90KB > 50KB cap
+    r = client.post(
+        "/write/question",
+        data={
+            "title": "Q?", "body": huge_body,
+            "region_id": str(region.id), "tags": "",
+        },
+    )
+    assert r.status_code == 400
+    assert "본문" in r.text or "최대" in r.text

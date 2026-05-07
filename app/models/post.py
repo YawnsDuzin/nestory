@@ -9,6 +9,7 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
+    UniqueConstraint,
     func,
 )
 from sqlalchemy.dialects.postgresql import JSONB
@@ -26,7 +27,7 @@ class Post(Base):
     __tablename__ = "posts"
     __table_args__ = (
         Index("ix_posts_region_published", "region_id", "published_at"),
-        Index("ix_posts_journey_episode", "journey_id", "episode_no"),
+        UniqueConstraint("journey_id", "episode_no", name="uq_posts_journey_episode"),
         Index("ix_posts_author_published", "author_id", "published_at"),
         Index("ix_posts_type_status_published", "type", "status", "published_at"),
         Index("ix_posts_metadata_gin", "metadata", postgresql_using="gin"),

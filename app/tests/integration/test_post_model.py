@@ -1,10 +1,15 @@
+import pytest
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.models._enums import PostStatus, PostType
 from app.tests.factories import (
     AnswerPostFactory,
+    JourneyEpisodePostFactory,
+    JourneyFactory,
     PlanPostFactory,
     QuestionPostFactory,
+    ResidentUserFactory,
     ReviewPostFactory,
 )
 
@@ -40,3 +45,35 @@ def test_question_with_parent_link(db: Session) -> None:
         body="!",
     )
     assert a.parent_post_id == q.id
+
+
+def test_journey_episode_no_unique_constraint(db: Session) -> None:
+    """Two episodes with same (journey_id, episode_no) raises IntegrityError.
+
+    Replaces the previous non-unique ix_posts_journey_episode index with a
+    UNIQUE constraint to fight the create_journey_episode race (max+1 then
+    INSERT).
+    """
+    user = ResidentUserFactory()
+    journey = JourneyFactory(author=user)
+    JourneyEpisodePostFactory(
+        author=user, region_id=journey.region_id,
+        journey_id=journey.id, episode_no=1, title="1화", body="x",
+    )
+    db.flush()
+
+    # Factory's create() calls db.flush() internally — IntegrityError raises there.
+    with pytest.raises(IntegrityError):
+        JourneyEpisodePostFactory(
+            author=user, region_id=journey.region_id,
+            journey_id=journey.id, episode_no=1, title="dup", body="y",
+        )
+    db.rollback()
+
+
+def test_journey_episode_no_uniqueness_does_not_block_null_journey(db: Session) -> None:
+    """Non-journey posts (journey_id=NULL) can share NULL — Postgres NULL semantics."""
+    # Two REVIEW posts both have journey_id=NULL — must not collide
+    ReviewPostFactory(title="r1", body="x")
+    ReviewPostFactory(title="r2", body="y")
+    db.flush()  # no IntegrityError

@@ -55,6 +55,7 @@ def submit_review(
     region = db.get(Region, region_id)
     if region is None:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Invalid region")
+    posts_service.validate_body_length(body)
     try:
         meta = ReviewMetadata(
             house_type=house_type, size_pyeong=size_pyeong,
@@ -99,6 +100,7 @@ def submit_question(
     region = db.get(Region, region_id)
     if region is None:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Invalid region")
+    posts_service.validate_body_length(body)
     tag_list = [t.strip() for t in tags.split(",") if t.strip()][:10]
     try:
         meta = QuestionMetadata(tags=tag_list)
@@ -146,6 +148,7 @@ def submit_plan(
     region = db.get(Region, region_id)
     if region is None:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Invalid region")
+    posts_service.validate_body_length(body)
     try:
         meta = PlanMetadata(
             target_move_year=target_move_year,
@@ -173,6 +176,7 @@ def submit_answer(
         or question.deleted_at is not None
     ):
         raise HTTPException(status.HTTP_404_NOT_FOUND)
+    posts_service.validate_body_length(body)
     posts_service.create_answer(db, user, question, body)
     db.commit()
     return RedirectResponse(

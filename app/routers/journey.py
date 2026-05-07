@@ -95,6 +95,7 @@ def submit_episode(
         raise HTTPException(status.HTTP_404_NOT_FOUND)
     if journey.author_id != user.id:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Not your journey")
+    posts_service.validate_body_length(body)
     try:
         meta = JourneyEpisodeMetadata(
             journey_ep_meta=JourneyEpMeta(phase=phase, period_label=period_label)

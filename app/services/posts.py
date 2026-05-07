@@ -6,6 +6,7 @@ via model_dump and pops type_tag (discriminator lives in Post.type column).
 """
 from datetime import UTC, date, datetime
 
+from fastapi import HTTPException, status
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -18,6 +19,17 @@ from app.schemas.post_metadata import (
     QuestionMetadata,
     ReviewMetadata,
 )
+
+BODY_MAX_LENGTH = 50_000  # ~50KB markdown — abuse prevention
+
+
+def validate_body_length(body: str) -> None:
+    """Raise HTTP 400 if body exceeds BODY_MAX_LENGTH bytes (UTF-8)."""
+    if len(body.encode("utf-8")) > BODY_MAX_LENGTH:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            f"본문이 너무 깁니다 (최대 {BODY_MAX_LENGTH:,} 바이트)",
+        )
 
 
 def _meta_to_jsonb(payload) -> dict:
@@ -130,6 +142,7 @@ def increment_view_count(db: Session, post: Post) -> None:
 
 
 __all__ = [
+    "BODY_MAX_LENGTH",
     "create_answer",
     "create_journey",
     "create_journey_episode",
@@ -137,4 +150,5 @@ __all__ = [
     "create_question",
     "create_review",
     "increment_view_count",
+    "validate_body_length",
 ]
