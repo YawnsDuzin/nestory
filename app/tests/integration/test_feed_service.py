@@ -209,7 +209,7 @@ def test_global_feed_pagination(db: Session) -> None:
 
     assert total_p1 == total_p2
     assert total_p1 >= 22
-    assert len(posts_p1) == 20
+    assert len(posts_p1) == feed_service.PAGE_SIZE
     assert len(posts_p2) >= 2
 
     p1_ids = {p.id for p in posts_p1}

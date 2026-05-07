@@ -56,7 +56,7 @@ def hub_overview(db: Session, region: Region) -> HubOverview:
         or 0
     )
 
-    def _top(post_type: PostType, by: str = "view") -> list[Post]:
+    def _top(post_type: PostType, by: Literal["view", "latest"] = "view") -> list[Post]:
         stmt = (
             select(Post)
             .where(

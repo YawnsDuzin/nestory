@@ -407,8 +407,6 @@
       return list(db.scalars(base).all()), total
   ```
 
-- [x] **Step 3: feed service 구현** ✅ `app/services/feed.py` — HomeData dataclass + home_data + global_feed
-
 - [x] **Step 4: ruff clean** ✅ `uv run ruff check app/` — All checks passed. pytest deferred (Docker unavailable).
 
 - [x] **Step 5: Commit** ✅ SHA `d1317dc` — `feat(hub): hub overview + tab posts + home/global feed services`
