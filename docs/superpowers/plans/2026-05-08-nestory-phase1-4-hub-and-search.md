@@ -616,9 +616,9 @@
 - Create: `app/tests/integration/test_discover_route.py` · `test_hub_routes.py`
 - Modify: `app/main.py` (router 등록)
 
-- [ ] **Step 1: 실패 테스트 작성**
+- [x] **Step 1: 실패 테스트 작성**
 
-- [ ] **Step 2: 라우터 작성**
+- [x] **Step 2: 라우터 작성**
   ```python
   # app/routers/hub.py
   from fastapi import APIRouter, Depends, HTTPException, Request
@@ -683,11 +683,11 @@
                                        {"region": region, "neighbors": neighbors, "current_user": current_user})
   ```
 
-- [ ] **Step 3: 템플릿 작성** — Tailwind, post_card partial 재사용. 4-tab 네비는 `_tabs.html`로 추출.
+- [x] **Step 3: 템플릿 작성** — Tailwind, post_card partial 재사용. 4-tab 네비는 `_tabs.html`로 추출.
 
-- [ ] **Step 4: main.py에 등록**
+- [x] **Step 4: main.py에 등록**
 
-- [ ] **Step 5: 테스트 통과 + Commit** — `feat(hub): /discover + /hub/{slug} home + 4 tab routes`
+- [x] **Step 5: 테스트 통과 + Commit** — `feat(hub): /discover + /hub/{slug} home + 4 tab routes`
 
 ---
 
