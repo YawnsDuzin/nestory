@@ -136,3 +136,36 @@ def test_post_factory_override_metadata_field(db: Session) -> None:
         metadata_={"house_type": "단독", "size_pyeong": 30, "satisfaction_overall": 1}
     )
     assert p.metadata_["satisfaction_overall"] == 1
+
+
+def test_comment_factory(db: Session) -> None:
+    from app.models._enums import CommentStatus
+    from app.tests.factories import CommentFactory
+
+    c = CommentFactory()
+    assert c.id is not None
+    assert c.post_id is not None
+    assert c.author_id is not None
+    assert c.status == CommentStatus.VISIBLE
+
+
+def test_journey_factory(db: Session) -> None:
+    from app.models._enums import JourneyStatus
+    from app.tests.factories import JourneyFactory
+
+    j = JourneyFactory()
+    assert j.id is not None
+    assert j.author_id is not None
+    assert j.region_id is not None
+    assert j.status == JourneyStatus.IN_PROGRESS
+
+
+def test_image_factory(db: Session) -> None:
+    from app.models._enums import ImageStatus
+    from app.tests.factories import ImageFactory
+
+    img = ImageFactory()
+    assert img.id is not None
+    assert img.owner_id is not None
+    assert img.file_path_orig.startswith("images/")
+    assert img.status == ImageStatus.READY

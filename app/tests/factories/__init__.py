@@ -1,3 +1,6 @@
+from app.tests.factories.comment import CommentFactory
+from app.tests.factories.image import ImageFactory
+from app.tests.factories.journey import JourneyFactory
 from app.tests.factories.post import (
     AnswerPostFactory,
     JourneyEpisodePostFactory,
@@ -17,7 +20,10 @@ from app.tests.factories.user import (
 __all__ = [
     "AdminUserFactory",
     "AnswerPostFactory",
+    "CommentFactory",
+    "ImageFactory",
     "JourneyEpisodePostFactory",
+    "JourneyFactory",
     "PilotRegionFactory",
     "PlanPostFactory",
     "PostFactory",
