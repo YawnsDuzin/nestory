@@ -191,7 +191,8 @@ def post_detail(
         post is None
         or post.deleted_at is not None
         or post.status != PostStatus.PUBLISHED
-        or post.type == PostType.JOURNEY_EPISODE  # those use /journey/.../ep/.. route
+        or post.type in (PostType.JOURNEY_EPISODE, PostType.ANSWER)
+        # JOURNEY_EPISODE uses /journey/.../ep/.., ANSWER renders inside /question/{id}
     ):
         raise HTTPException(status.HTTP_404_NOT_FOUND)
     posts_service.increment_view_count(db, post)
