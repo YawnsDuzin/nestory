@@ -1,14 +1,14 @@
 import base64
 import io
 import json
-from datetime import UTC, datetime
 
 from fastapi.testclient import TestClient
 from itsdangerous import TimestampSigner
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
-from app.models import BadgeApplication, Region, User
+from app.models import BadgeApplication
+from app.tests.factories import RegionFactory, UserFactory
 
 
 def _login_cookie(user_id: int) -> str:
@@ -19,27 +19,14 @@ def _login_cookie(user_id: int) -> str:
     return signer.sign(data).decode("utf-8")
 
 
-def _make_user(db: Session) -> User:
-    ts = int(datetime.now(UTC).timestamp() * 1_000_000)
-    u = User(
-        email=f"t{ts}@example.com",
-        username=f"u{ts}",
-        display_name="테스터",
-        password_hash="x",
-    )
-    db.add(u)
-    db.flush()
-    db.commit()
-    return u
-
-
 def test_badge_page_requires_login(client: TestClient) -> None:
     r = client.get("/me/badge")
     assert r.status_code == 401
 
 
 def test_badge_page_renders_for_logged_in_user(db: Session, client: TestClient) -> None:
-    user = _make_user(db)
+    user = UserFactory()
+    db.commit()
     client.cookies.set("nestory_session", _login_cookie(user.id))
     r = client.get("/me/badge")
     assert r.status_code == 200
@@ -48,9 +35,8 @@ def test_badge_page_renders_for_logged_in_user(db: Session, client: TestClient) 
 
 
 def test_apply_region_creates_pending_application(db: Session, client: TestClient) -> None:
-    user = _make_user(db)
-    region = Region(sido="경기", sigungu="양평군", slug="yp-me-test")
-    db.add(region)
+    user = UserFactory()
+    region = RegionFactory(slug="yp-me-test")
     db.commit()
 
     client.cookies.set("nestory_session", _login_cookie(user.id))
@@ -64,9 +50,8 @@ def test_apply_region_creates_pending_application(db: Session, client: TestClien
 
 
 def test_apply_region_blocks_duplicate_pending(db: Session, client: TestClient) -> None:
-    user = _make_user(db)
-    region = Region(sido="경기", sigungu="양평군", slug="yp-dup")
-    db.add(region)
+    user = UserFactory()
+    region = RegionFactory(slug="yp-dup")
     db.commit()
     client.cookies.set("nestory_session", _login_cookie(user.id))
     client.post("/me/badge/region", data={"region_id": region.id})
@@ -75,14 +60,16 @@ def test_apply_region_blocks_duplicate_pending(db: Session, client: TestClient) 
 
 
 def test_apply_region_invalid_id(db: Session, client: TestClient) -> None:
-    user = _make_user(db)
+    user = UserFactory()
+    db.commit()
     client.cookies.set("nestory_session", _login_cookie(user.id))
     r = client.post("/me/badge/region", data={"region_id": 99999})
     assert r.status_code == 400
 
 
 def test_resident_form_renders(db: Session, client: TestClient) -> None:
-    user = _make_user(db)
+    user = UserFactory()
+    db.commit()
     client.cookies.set("nestory_session", _login_cookie(user.id))
     r = client.get("/me/badge/resident")
     assert r.status_code == 200
@@ -96,9 +83,8 @@ def test_resident_apply_with_one_evidence(
     from app.config import get_settings
     get_settings.cache_clear()
 
-    user = _make_user(db)
-    region = Region(sido="경기", sigungu="양평군", slug="yp-resident")
-    db.add(region)
+    user = UserFactory()
+    region = RegionFactory(slug="yp-resident")
     db.commit()
     client.cookies.set("nestory_session", _login_cookie(user.id))
 
@@ -120,9 +106,8 @@ def test_resident_apply_with_one_evidence(
 
 
 def test_resident_apply_rejects_no_evidence(db: Session, client: TestClient) -> None:
-    user = _make_user(db)
-    region = Region(sido="경기", sigungu="양평군", slug="yp-no-ev")
-    db.add(region)
+    user = UserFactory()
+    region = RegionFactory(slug="yp-no-ev")
     db.commit()
     client.cookies.set("nestory_session", _login_cookie(user.id))
     r = client.post("/me/badge/resident", data={"region_id": region.id})
