@@ -4,6 +4,12 @@ from app.tests.factories.badge_application import (
 )
 from app.tests.factories.comment import CommentFactory
 from app.tests.factories.image import ImageFactory
+from app.tests.factories.interaction import (  # noqa: F401  # helper functions
+    add_journey_follow,
+    add_post_like,
+    add_post_scrap,
+    add_user_follow,
+)
 from app.tests.factories.interest_region import UserInterestRegionFactory
 from app.tests.factories.job import JobFactory
 from app.tests.factories.journey import JourneyFactory
@@ -57,4 +63,8 @@ __all__ = [
     "TagFactory",
     "UserFactory",
     "UserInterestRegionFactory",
+    "add_journey_follow",
+    "add_post_like",
+    "add_post_scrap",
+    "add_user_follow",
 ]

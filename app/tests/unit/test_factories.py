@@ -282,3 +282,69 @@ def test_post_validation_factory(db: Session) -> None:
     assert pv.post_id is not None
     assert pv.validator_user_id is not None
     assert pv.vote == ValidationVote.CONFIRM
+
+
+def test_add_post_like_helper(db: Session) -> None:
+    from sqlalchemy import select
+
+    from app.models.interaction import post_likes
+    from app.tests.factories import PostFactory, UserFactory, add_post_like
+
+    post = PostFactory()
+    user = UserFactory()
+    add_post_like(db, user, post)
+
+    rows = db.execute(
+        select(post_likes).where(post_likes.c.post_id == post.id)
+    ).all()
+    assert len(rows) == 1
+    assert rows[0].user_id == user.id
+
+
+def test_add_post_scrap_helper(db: Session) -> None:
+    from sqlalchemy import select
+
+    from app.models.interaction import post_scraps
+    from app.tests.factories import PostFactory, UserFactory, add_post_scrap
+
+    post = PostFactory()
+    user = UserFactory()
+    add_post_scrap(db, user, post)
+
+    rows = db.execute(
+        select(post_scraps).where(post_scraps.c.post_id == post.id)
+    ).all()
+    assert len(rows) == 1
+
+
+def test_add_journey_follow_helper(db: Session) -> None:
+    from sqlalchemy import select
+
+    from app.models.interaction import journey_follows
+    from app.tests.factories import JourneyFactory, UserFactory, add_journey_follow
+
+    journey = JourneyFactory()
+    user = UserFactory()
+    add_journey_follow(db, user, journey)
+
+    rows = db.execute(
+        select(journey_follows).where(journey_follows.c.journey_id == journey.id)
+    ).all()
+    assert len(rows) == 1
+
+
+def test_add_user_follow_helper(db: Session) -> None:
+    from sqlalchemy import select
+
+    from app.models.interaction import user_follows
+    from app.tests.factories import UserFactory, add_user_follow
+
+    follower = UserFactory()
+    following = UserFactory()
+    add_user_follow(db, follower, following)
+
+    rows = db.execute(
+        select(user_follows).where(user_follows.c.follower_id == follower.id)
+    ).all()
+    assert len(rows) == 1
+    assert rows[0].following_id == following.id
