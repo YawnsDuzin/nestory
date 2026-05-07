@@ -1,3 +1,3 @@
-from app.services import analytics, images, posts
+from app.services import analytics, images, posts, search
 
-__all__ = ["analytics", "images", "posts"]
+__all__ = ["analytics", "images", "posts", "search"]
