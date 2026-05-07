@@ -1,0 +1,24 @@
+<div class="rounded border bg-white p-4 space-y-3">
+  <label class="block">
+    <span class="text-sm font-semibold">제목</span>
+    <input type="text" name="title" required maxlength="300"
+           class="mt-1 w-full rounded border p-2"
+           value="{{ form.title if form else '' }}">
+  </label>
+  <label class="block">
+    <span class="text-sm font-semibold">본문 (마크다운)</span>
+    <textarea name="body" id="body-textarea" required rows="10"
+              class="mt-1 w-full rounded border p-2 font-mono text-sm">{{ form.body if form else '' }}</textarea>
+  </label>
+  <div>
+    <label class="inline-block rounded bg-slate-100 px-3 py-2 text-sm cursor-pointer hover:bg-slate-200">
+      📎 이미지 첨부
+      <input type="file" accept="image/jpeg,image/png,image/webp" class="hidden"
+             hx-post="/htmx/image/upload"
+             hx-trigger="change"
+             hx-encoding="multipart/form-data"
+             hx-on::after-request="if (event.detail.successful) { const d = JSON.parse(event.detail.xhr.responseText); document.getElementById('body-textarea').value += '\n\n![](' + d.url + ')'; }">
+    </label>
+    <p class="text-xs text-slate-500 mt-1">JPEG/PNG/WebP, 최대 10MB</p>
+  </div>
+</div>

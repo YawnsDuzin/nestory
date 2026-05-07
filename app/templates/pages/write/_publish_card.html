@@ -1,0 +1,18 @@
+<div class="rounded border bg-white p-4 space-y-3">
+  {% if regions %}
+    <label class="block">
+      <span class="text-sm font-semibold">지역</span>
+      <select name="region_id" required class="mt-1 w-full rounded border p-2">
+        {% for r in regions %}
+          <option value="{{ r.id }}"
+                  {% if form and form.region_id == r.id %}selected{% endif %}>
+            {{ r.sido }} {{ r.sigungu }}
+          </option>
+        {% endfor %}
+      </select>
+    </label>
+  {% endif %}
+  <button type="submit" class="w-full rounded bg-emerald-600 text-white px-4 py-3 font-semibold hover:bg-emerald-700">
+    발행
+  </button>
+</div>
