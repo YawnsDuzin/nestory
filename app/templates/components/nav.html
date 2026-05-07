@@ -4,6 +4,11 @@
       <img src="{{ url_for('static', path='/img/logo-c-full.svg') }}" alt="Nestory — 전원주택 정착 커뮤니티" class="h-8 w-auto hidden sm:block">
       <img src="{{ url_for('static', path='/img/logo-c-mark.svg') }}" alt="Nestory" class="h-8 w-8 sm:hidden">
     </a>
+    <div class="hidden sm:flex items-center gap-4 text-sm text-slate-600">
+      <a href="/feed" class="hover:text-slate-900">피드</a>
+      <a href="/discover" class="hover:text-slate-900">탐색</a>
+      <a href="/search" class="hover:text-slate-900">검색</a>
+    </div>
     <div class="flex items-center gap-3 text-sm">
       {% if current_user %}
         <div x-data="{ open: false }" class="relative">
