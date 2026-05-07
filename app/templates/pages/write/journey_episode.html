@@ -1,0 +1,9 @@
+{% extends "pages/write/_base.html" %}
+{% block meta_fields %}
+  {% include "pages/write/_meta_journey_episode.html" %}
+{% endblock %}
+{% block publish_card %}
+  <div class="rounded border bg-white p-4">
+    <button type="submit" class="w-full rounded bg-emerald-600 text-white px-4 py-3 font-semibold hover:bg-emerald-700">에피소드 발행</button>
+  </div>
+{% endblock %}
