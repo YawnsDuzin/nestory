@@ -1,10 +1,11 @@
 from sqlalchemy.orm import Session
 
+from app.models import Image
 from app.models._enums import ImageStatus
-from app.tests.factories import ImageFactory
+from app.tests.factories import ImageFactory, UserFactory
 
 
-def test_create_image_defaults_to_processing(db: Session) -> None:
+def test_create_image_with_processing_status(db: Session) -> None:
     img = ImageFactory(
         file_path_orig="/media/orig/2026/05/abc.jpg",
         status=ImageStatus.PROCESSING,
@@ -15,6 +16,17 @@ def test_create_image_defaults_to_processing(db: Session) -> None:
     assert img.order_idx == 0
     assert img.uploaded_at is not None
     assert img.post_id is None
+
+
+def test_image_status_defaults_to_processing(db: Session) -> None:
+    """Verify the model-level `default=ImageStatus.PROCESSING` is applied
+    when status is not provided. Direct constructor bypasses factory's
+    `status=ImageStatus.READY` default."""
+    u = UserFactory()
+    img = Image(owner_id=u.id, file_path_orig="test/path.jpg")
+    db.add(img)
+    db.flush()
+    assert img.status == ImageStatus.PROCESSING
 
 
 def test_image_can_have_all_size_paths(db: Session) -> None:
