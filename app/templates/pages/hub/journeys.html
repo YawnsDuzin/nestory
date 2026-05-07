@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}{{ region.sigungu }} · Journey · Nestory{% endblock %}
+{% block content %}
+<section class="space-y-6">
+  {% include "pages/hub/_header.html" %}
+  {% with active = "journeys" %}{% include "pages/hub/_tabs.html" %}{% endwith %}
+
+  <div class="flex items-center justify-between">
+    <p class="text-sm text-slate-500">{{ total }}건</p>
+    <div class="text-sm">
+      <a href="?sort=latest" class="{{ 'font-semibold text-emerald-700' if sort == 'latest' else 'text-slate-500 hover:text-slate-900' }}">최신</a>
+      <span class="mx-1 text-slate-300">·</span>
+      <a href="?sort=popular" class="{{ 'font-semibold text-emerald-700' if sort == 'popular' else 'text-slate-500 hover:text-slate-900' }}">인기</a>
+    </div>
+  </div>
+
+  {% if posts %}
+    <ul class="grid gap-3 sm:grid-cols-2">
+      {% for post in posts %}<li>{% include "partials/post_card.html" %}</li>{% endfor %}
+    </ul>
+    {% with base_url = "/hub/" ~ region.slug ~ "/journeys", page_size = 20, query_params = {"sort": sort} %}
+      {% include "partials/pagination.html" %}
+    {% endwith %}
+  {% else %}
+    <p class="rounded border border-dashed bg-white p-6 text-center text-sm text-slate-500">아직 Journey 에피소드가 없습니다.</p>
+  {% endif %}
+</section>
+{% endblock %}
