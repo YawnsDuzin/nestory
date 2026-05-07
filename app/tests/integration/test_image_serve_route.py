@@ -69,3 +69,9 @@ def test_serve_includes_cache_header(client: TestClient, db: Session) -> None:
     img_id, _ = _make_real_image_files(db)
     r = client.get(f"/img/{img_id}/orig")
     assert "max-age" in r.headers.get("cache-control", "")
+
+
+def test_serve_invalid_variant_returns_404(client: TestClient, db: Session) -> None:
+    img_id, _ = _make_real_image_files(db)
+    r = client.get(f"/img/{img_id}/large")  # not in whitelist
+    assert r.status_code == 404

@@ -37,21 +37,22 @@ def serve_image(
     if img is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
 
-    rel_path = {
+    variant_path = {
         "orig": img.file_path_orig,
-        "thumb": img.file_path_thumb or img.file_path_orig,
-        "medium": img.file_path_medium or img.file_path_orig,
-        "webp": img.file_path_webp or img.file_path_orig,
+        "thumb": img.file_path_thumb,
+        "medium": img.file_path_medium,
+        "webp": img.file_path_webp,
     }[variant]
+    fallback_used = variant_path is None
+    rel_path = variant_path or img.file_path_orig
 
     full = Path(get_settings().image_base_path) / rel_path
     if not full.exists():
         raise HTTPException(status.HTTP_404_NOT_FOUND)
 
+    # Long cache only when serving the requested variant; short cache during fallback
+    # so clients re-fetch once the worker fills in the variant.
+    cache_value = "public, max-age=60" if fallback_used else "public, max-age=86400"
+
     media_type = mimetypes.guess_type(str(full))[0] or "application/octet-stream"
-    return FileResponse(full, media_type=media_type, headers={
-        "Cache-Control": "public, max-age=86400",
-    })
-
-
-__all__ = ["router"]
+    return FileResponse(full, media_type=media_type, headers={"Cache-Control": cache_value})
