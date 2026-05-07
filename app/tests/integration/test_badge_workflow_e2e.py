@@ -14,9 +14,10 @@ from itsdangerous import TimestampSigner
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
-from app.models import BadgeApplication, BadgeEvidence, Region, User
+from app.models import BadgeApplication, BadgeEvidence, User
 from app.models._enums import BadgeApplicationStatus, JobKind
-from app.models.user import BadgeLevel, UserRole
+from app.models.user import BadgeLevel
+from app.tests.factories import AdminUserFactory, RegionFactory
 from app.workers.handlers import dispatch, import_handlers
 
 
@@ -39,15 +40,8 @@ def _login_cookie(user_id: int) -> str:
 def test_full_badge_workflow(db: Session, client: TestClient) -> None:
     # Seed admin + region
     ts = int(datetime.now(UTC).timestamp() * 1_000_000)
-    admin = User(
-        email=f"adm{ts}@x.com",
-        username=f"adm{ts}",
-        display_name="관리자",
-        password_hash="x",
-        role=UserRole.ADMIN,
-    )
-    region = Region(sido="경기", sigungu="양평군", slug=f"yp-e2e-{ts}")
-    db.add_all([admin, region])
+    admin = AdminUserFactory(display_name="관리자")
+    region = RegionFactory(sigungu="양평군", slug=f"yp-e2e-{ts}")
     db.commit()
 
     # User signup via auth route
