@@ -472,9 +472,9 @@
 - Create: `app/services/comments.py`
 - Create: `app/tests/integration/test_comments_service.py`
 
-- [ ] **Step 1: 테스트** — create / list (ordered) / 1단 reply / deleted 제외
+- [x] **Step 1: 테스트** — create / list (ordered) / 1단 reply / deleted 제외
 
-- [ ] **Step 2: 구현**
+- [x] **Step 2: 구현**
   ```python
   # app/services/comments.py
   from sqlalchemy import select
@@ -510,7 +510,7 @@
       ).all())
   ```
 
-- [ ] **Step 3: 테스트 + Commit** — `feat(comments): create/list service with 1-level replies`
+- [x] **Step 3: 테스트 + Commit** — `feat(comments): create/list service with 1-level replies`
 
 ---
 
