@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 PRD는 `docs/superpowers/specs/2026-04-17-nestory-design.md` (v1.1.1, OI-14 PostHog 확정). 변경 시 반드시 인라인 `[v1.1]` / `[v1.1.1]` 라벨로 추적. 차별화 4축(T·C·R·V — Time-lag·Regret Cost·Region Match·Peer Validation)이 PRD §1.5에 정의되어 있고 모든 데이터 모델·UX 결정은 이 축을 강화해야 함.
 
-진행 중 phase: Phase 1.1 완료 (데이터 모델 + 작업 큐 인프라). 다음 sub-plan은 `docs/superpowers/plans/` 에 작성. 사용자 화면 라우트는 P1.3부터 본격 추가 — 현재 구현된 페이지는 home·login·signup 3개뿐.
+진행 중 phase: Phase 1.1·1.2 완료 (데이터 모델 + 작업 큐 인프라 + 배지·권한 가드 + factory-boy 테스트 인프라). 다음 sub-plan은 `docs/superpowers/plans/` 에 작성. 사용자 화면 라우트는 P1.3부터 본격 추가 — 현재 구현된 페이지는 home·login·signup·me/badge·admin/badge-queue 등.
 
 ## Commands
 
@@ -107,17 +107,89 @@ Phase 0의 `app/models/user.py` 패턴을 그대로 복제 — 새 idiom 도입 
 
 PostHog Cloud free 익명 모드. SHA-256 해시 distinct_id. 이벤트는 `app/services/analytics.py`의 `EventName` enum으로 강제 (자유 문자열 금지). 35개 이벤트 카탈로그는 PRD §14.5 참조. PII 절대 미포함 — 코드 리뷰 체크 항목.
 
+### 테스트 데이터 (factory-boy)
+
+`app/tests/factories/`에 14 도메인 모델별 factory + 4 M:N junction Table 헬퍼. **모든 통합·단위 테스트는 factory 우선**. 직접 `Model(...)` 생성자 호출은 다음 3 경우에만 허용:
+
+1. **IntegrityError 검증** — `sqlalchemy_get_or_create` 또는 SubFactory 캐싱이 duplicate를 가려서 UNIQUE 위반을 잡을 수 없을 때 (예: `test_tag_model.py`, `test_interest_region_model.py`)
+2. **모델 default 검증** — factory default가 model default와 의도적으로 다른 경우 모델 default 자체를 검증 (예: `test_image_model.py::test_image_status_defaults_to_processing` — `ImageFactory.status=READY`인데 model default는 `PROCESSING`)
+3. **생성 service/queue API 자체가 SUT** — `create_user_with_password`·`queue.enqueue` 같은 row 생성 service 자체를 테스트 (예: `test_auth_service_db.py`, `test_job_queue.py`)
+
+위 3 경우 외 직접 생성자 사용 시 **코드 리뷰 차단**.
+
+**핵심 패턴 (반드시 준수 — 신규 factory 추가 시 기존 파일 복제)**:
+
+- `class XFactory(BaseFactory)` + `Meta.model = X` + `Meta.exclude = ("relation",)` (관계 객체는 ORM 인스턴스로 받고 `_id` 컬럼만 모델에 전달)
+- `relation = SubFactory(XFactory)` + `relation_id = SelfAttribute("relation.id")` 트리오 (모든 FK)
+- 자연키 재사용은 `Meta.sqlalchemy_get_or_create=("slug",)` (Region·Tag만)
+- PostFactory는 `@factory.lazy_attribute`로 `_default_metadata(self.type)` 반환 — JSONB 항상 `PostMetadata` Pydantic 검증 통과 보장 (P1.3+ 신규 type 추가 시 `app/tests/factories/post.py:_default_metadata`에 분기 추가 필수)
+- 사용자 변형: `UserFactory` / `AdminUserFactory` / `RegionVerifiedUserFactory` / `ResidentUserFactory` — 권한 가드 테스트 시 그대로 사용 (직접 `User(role=ADMIN, ...)` 금지)
+
+**M:N junction (Table 객체)**: ORM이 아니라 `app/tests/factories/interaction.py`의 helper 함수 (`add_post_like(db, user, post)` 등 4개) 사용. 신규 junction 추가 시 helper도 추가.
+
+**신규 factory 추가 워크플로**:
+1. `app/tests/factories/<snake_name>.py` 작성 (기존 패턴 복제)
+2. `app/tests/factories/__init__.py` alphabetical re-export
+3. `app/tests/unit/test_factories.py`에 sanity test 1개 추가 (row 생성 + 핵심 invariant 1-2개 assertion)
+4. conftest 수정 불필요 (`_bind_factories`가 `BaseFactory.__subclasses__()` 동적 탐색)
+
+**`persistence="flush"` 선택 이유**: factory가 commit하지 않음 → 기존 `_cleanup_db` autouse TRUNCATE CASCADE 패턴과 양립. session은 `db` fixture가 `_bind_factories`로 런타임 주입.
+
+**자세한 설계 결정**: `docs/superpowers/specs/2026-05-07-nestory-test-factories-design.md`.
+
+## 네이티브 확장 대비 (Backend reusability)
+
+향후 Capacitor 하이브리드 또는 풀 네이티브(RN/Flutter) 전환 가능성을 염두에 두고 **백엔드 코드는 처음부터 양쪽에서 재사용 가능하게** 설계한다. 현재 SSR + HTMX는 그대로 진행하되, P1.2 이후 모든 신규 코드는 다음 4원칙을 준수.
+
+1. **services 레이어 엄격 분리** — 라우트 함수는 ① 입력 검증 ② service 호출 ③ 응답 포맷팅(템플릿 렌더 또는 redirect)만. ORM 직접 쿼리·도메인 규칙·권한 분기는 모두 `app/services/<domain>.py`에. P1.1의 `app/workers/queue.py`가 기준.
+2. **services는 `User` 객체를 인자로 받음** — `request.session` / `Cookie` / `Request`를 service 내부에서 직접 읽지 말 것. 라우트가 `Depends(require_user)`로 받은 User를 service에 그대로 전달. 네이티브 토큰 인증 도입 시 service 코드 수정 불필요.
+3. **응답 표시 필드 셋 = Pydantic Read 스키마와 동일** — 템플릿이 ORM 객체를 받더라도, 실제 표시되는 필드는 `app/schemas/<domain>.py`의 `XxxRead`와 일치해야 함. 추후 같은 service 호출에 대해 JSON API 라우트가 `response_model=XxxRead`에 그대로 꽂힘.
+4. **권한 판단은 service/guard, 템플릿은 표시만** — "이 사용자가 X 할 수 있나?"를 템플릿 `{% if user.role == ... %}`에서만 분기하지 말 것. service 또는 가드가 `HTTPException`을 던지고 템플릿은 결과만 렌더.
+
+### 인증 가드 dual 시그니처 (P1.2 도입 시 1줄)
+
+`app/deps.py:get_current_user`는 처음부터 Bearer 토큰 파라미터를 시그니처에만 선언 (P1.2엔 사용 안 함, P2 시점 분기 로직 추가):
+
+```python
+async def get_current_user(
+    request: Request,
+    db: Session = Depends(get_db),
+    authorization: str | None = Header(None),  # P2 Bearer용 — 현재는 미사용
+) -> User | None:
+    user_id = request.session.get("user_id")
+    # P2: authorization 분기 추가 예정
+    ...
+```
+
+이 1줄을 미리 잡아두면 추후 모든 가드를 다시 손질하는 비용을 막는다. **추가 비용 0 / 미적용 시 P2에서 모든 가드 재작성**.
+
+### 안티패턴 (코드 리뷰 차단 사유)
+
+- 라우트 함수에서 ORM 직접 쿼리 (`db.query(Post).filter(...).all()`)
+- service 내부에서 `request.session` / `Cookie` / `Request` 접근
+- 권한 분기를 템플릿 `{% if %}`에서만 처리 (service에 동일 가드 없음)
+- 에러를 HTML flash 메시지로만 처리 (도메인 예외 클래스 미정의)
+- 이미지 업로드 라우트가 `path` 문자열만 반환 (ID·URL 없음 → JSON API 추가 시 응답 재설계 필요)
+
+### 두 경로 모두 백엔드 재사용 ≥ 90%
+
+- **Capacitor 하이브리드** (WebView가 SSR HTML 그대로 렌더): 라우트·템플릿 100% 재사용. 추가는 `device_tokens` 테이블 + `JobKind.PUSH_SEND` 핸들러 + `POST /api/devices` 라우트 3개뿐.
+- **풀 네이티브 (RN/Flutter)**: services·models·workers·schemas 100% 재사용. `app/api/v1/` 별도 prefix로 JSON 라우트만 추가 — 같은 service 호출.
+
+전체 비교 분석은 `_docs/prompts/20260507_prompt.md` 참조.
+
 ## Working conventions
 
 - **일관성 절대 우선** — Phase 0의 user.py 패턴, 파일 구조, 커밋 prefix(`feat(models):` / `feat(workers):` / `feat(deploy):` / `docs(prd):` / `fix:` / `style:` / `test:`)를 모든 신규 작업에서 그대로 유지. 새 패턴 도입은 정당한 이유 + 메모리 ref 동반.
 - **단계적 변경** — testfile 다수 일괄 변경 시 회귀 진단이 어려워짐. 1-2개씩 변경 + 사이마다 풀 pytest 검증.
 - **destructive 작업 명시 confirm** — `git reset --hard`, `git push --force`, `git branch -D`, `DROP SCHEMA` 등은 user 명시 요청에만. 단 본인이 만든 미커밋 변경 revert는 진행 가능.
 - **테스트 격리** — `conftest.py`의 `_cleanup_db` autouse fixture가 each-test 전후로 모든 도메인 테이블 TRUNCATE CASCADE. 신규 모델 추가 시 conftest 수정 불필요 (메타데이터 기반 동적).
+- **테스트 데이터** — factory-boy 우선. 직접 `Model(...)` 생성자 사용은 IntegrityError·모델 default·생성 SUT 3경우만 (자세히는 `## Architecture > 테스트 데이터 (factory-boy)` 참조).
 - **메모리 시스템** — `~/.claude/projects/d---dzp-VIBE-CODING-nestory/memory/`에 user/feedback/project/reference 메모리. 세션 시작 시 `MEMORY.md` 자동 로드. 재개 시 `project_nestory_handoff.md`를 먼저 확인 — 다음 작업 진입점·잔여 OI·기술 부채가 기록됨.
 
 ## Branch state (참고 — git log로 항상 검증)
 
-기본 작업 브랜치는 `dev` (origin/dev push됨). `main`은 origin/main과 1 commit 차이로 머지 보류 중 (Phase 0 Foundation plan만 머지된 상태). 일반적으로 dev에서 작업 후 P1 전체 완료 시점에 dev → main 머지 검토.
+기본 작업 브랜치는 `dev` (origin/dev push됨). PR #2로 P1.2까지 main 머지됨. dev는 그 위에 factory-boy 13 commit + 사용자 미커밋 변경 누적. 일반적으로 dev에서 작업 후 P1 전체 완료 시점에 dev → main 일괄 머지 검토.
 
 ## Open Items (PRD §15 — 결정 필요한 항목)
 
