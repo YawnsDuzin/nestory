@@ -48,11 +48,25 @@ def _infer_mime(file: UploadFile) -> str:
 
 
 def validate_upload(file: UploadFile) -> tuple[bytes, str, int, int]:
-    """Return (raw_bytes, mime, width, height) or raise 400."""
+    """Return (raw_bytes, mime, width, height) or raise 400.
+
+    Reads the body in 64KB chunks and aborts as soon as total exceeds
+    max_upload_size — prevents memory exhaustion from a multi-GB streamed body.
+    """
     settings = get_settings()
-    raw = file.file.read()
-    if len(raw) > settings.max_upload_size:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "File too large")
+    max_size = settings.max_upload_size
+    chunks: list[bytes] = []
+    total = 0
+    chunk_size = 64 * 1024  # 64KB
+    while True:
+        chunk = file.file.read(chunk_size)
+        if not chunk:
+            break
+        total += len(chunk)
+        if total > max_size:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "File too large")
+        chunks.append(chunk)
+    raw = b"".join(chunks)
     if len(raw) < 16:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "File too small")
     mime = _infer_mime(file)

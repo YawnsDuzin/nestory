@@ -90,3 +90,14 @@ def test_upload_image_full_pipeline(db: Session) -> None:
     assert img.id is not None and img.status == ImageStatus.PROCESSING
     job = db.query(Job).filter(Job.kind == JobKind.IMAGE_RESIZE).one()
     assert job.payload == {"image_id": img.id}
+
+
+def test_validate_upload_aborts_early_on_oversize_streaming() -> None:
+    """Streaming a body larger than max_upload_size aborts before full read."""
+    settings = get_settings()
+    # Build a stream that's 2x the limit but reports as one big blob
+    huge = b"\xff\xd8\xff" + b"\x00" * (settings.max_upload_size + 100)
+    f = UploadFile(filename="huge.jpg", file=BytesIO(huge), size=len(huge))
+    with pytest.raises(HTTPException) as exc:
+        images_service.validate_upload(f)
+    assert exc.value.status_code == 400
