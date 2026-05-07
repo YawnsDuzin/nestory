@@ -1,16 +1,16 @@
 import io
-from datetime import UTC, datetime
 
 import pytest
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
-from app.models import BadgeApplication, BadgeEvidence, Region, User
+from app.models import BadgeEvidence
 from app.models._enums import (
     BadgeRequestedLevel,
     EvidenceType,
 )
 from app.services import evidence_storage
+from app.tests.factories import BadgeApplicationFactory, BadgeEvidenceFactory
 from app.workers.handlers import dispatch, import_handlers
 from app.workers.handlers.evidence_cleanup import handle_evidence_cleanup
 
@@ -24,17 +24,7 @@ def _isolate_evidence_dir(tmp_path, monkeypatch):
 
 
 def _make_application_with_files(db: Session) -> int:
-    ts = int(datetime.now(UTC).timestamp() * 1_000_000)
-    user = User(email=f"t{ts}@x.com", username=f"u{ts}", display_name="t", password_hash="x")
-    region = Region(sido="경기", sigungu="양평군", slug=f"yp-{ts}")
-    db.add_all([user, region])
-    db.flush()
-    app_obj = BadgeApplication(
-        user_id=user.id,
-        requested_level=BadgeRequestedLevel.RESIDENT,
-        region_id=region.id,
-    )
-    db.add(app_obj)
+    app_obj = BadgeApplicationFactory(requested_level=BadgeRequestedLevel.RESIDENT)
     db.flush()
 
     # Real files
@@ -52,18 +42,16 @@ def _make_application_with_files(db: Session) -> int:
         now_year=2026,
         now_month=5,
     )
-    db.add_all([
-        BadgeEvidence(
-            application_id=app_obj.id,
-            evidence_type=EvidenceType.UTILITY_BILL,
-            file_path=p1,
-        ),
-        BadgeEvidence(
-            application_id=app_obj.id,
-            evidence_type=EvidenceType.CONTRACT,
-            file_path=p2,
-        ),
-    ])
+    BadgeEvidenceFactory(
+        application=app_obj,
+        evidence_type=EvidenceType.UTILITY_BILL,
+        file_path=p1,
+    )
+    BadgeEvidenceFactory(
+        application=app_obj,
+        evidence_type=EvidenceType.CONTRACT,
+        file_path=p2,
+    )
     db.commit()
     return app_obj.id
 

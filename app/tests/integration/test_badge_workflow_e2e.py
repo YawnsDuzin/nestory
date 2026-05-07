@@ -3,20 +3,18 @@
 Scenario: signup → resident 신청(증빙 업로드) → 관리자 승인
           → User.badge_level=RESIDENT → cleanup 잡 dispatch → 파일·행 삭제.
 """
-import base64
 import io
-import json
 from datetime import UTC, datetime
 
 import pytest
 from fastapi.testclient import TestClient
-from itsdangerous import TimestampSigner
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
-from app.models import BadgeApplication, BadgeEvidence, Region, User
+from app.models import BadgeApplication, BadgeEvidence, User
 from app.models._enums import BadgeApplicationStatus, JobKind
-from app.models.user import BadgeLevel, UserRole
+from app.models.user import BadgeLevel
+from app.tests.factories import AdminUserFactory, RegionFactory
 from app.workers.handlers import dispatch, import_handlers
 
 
@@ -28,26 +26,11 @@ def _isolate_evidence_dir(tmp_path, monkeypatch):
     get_settings.cache_clear()
 
 
-def _login_cookie(user_id: int) -> str:
-    """Construct a Starlette-compatible session cookie for the given user_id."""
-    secret = get_settings().app_secret_key
-    data = base64.b64encode(json.dumps({"user_id": user_id}).encode("utf-8"))
-    signer = TimestampSigner(secret)
-    return signer.sign(data).decode("utf-8")
-
-
-def test_full_badge_workflow(db: Session, client: TestClient) -> None:
+def test_full_badge_workflow(db: Session, client: TestClient, login) -> None:
     # Seed admin + region
     ts = int(datetime.now(UTC).timestamp() * 1_000_000)
-    admin = User(
-        email=f"adm{ts}@x.com",
-        username=f"adm{ts}",
-        display_name="관리자",
-        password_hash="x",
-        role=UserRole.ADMIN,
-    )
-    region = Region(sido="경기", sigungu="양평군", slug=f"yp-e2e-{ts}")
-    db.add_all([admin, region])
+    admin = AdminUserFactory(display_name="관리자")
+    region = RegionFactory(sigungu="양평군", slug=f"yp-e2e-{ts}")
     db.commit()
 
     # User signup via auth route
@@ -66,7 +49,7 @@ def test_full_badge_workflow(db: Session, client: TestClient) -> None:
     assert user.badge_level == BadgeLevel.INTERESTED
 
     # Step 1: user applies for resident with evidence
-    client.cookies.set("nestory_session", _login_cookie(user.id))
+    login(user.id)
     r = client.post(
         "/me/badge/resident",
         data={"region_id": region.id},
@@ -80,7 +63,7 @@ def test_full_badge_workflow(db: Session, client: TestClient) -> None:
     assert len(evidences) == 1
 
     # Step 2: admin approves
-    client.cookies.set("nestory_session", _login_cookie(admin.id))
+    login(admin.id)
     r = client.post(
         f"/admin/badge-queue/{app_obj.id}/approve",
         data={"note": "OK"},

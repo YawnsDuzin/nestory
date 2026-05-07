@@ -7,6 +7,16 @@ from sqlalchemy.orm import Session
 from app.models.user import User
 
 _hasher = PasswordHasher()
+_dummy_hash_cache: str | None = None
+
+
+def _get_dummy_hash() -> str:
+    """Cached dummy argon2 hash used to keep verify_password timing constant
+    when no real hash is available (user not found, or kakao-only user)."""
+    global _dummy_hash_cache
+    if _dummy_hash_cache is None:
+        _dummy_hash_cache = _hasher.hash(secrets.token_urlsafe(32))
+    return _dummy_hash_cache
 
 
 def hash_password(password: str) -> str:
@@ -16,13 +26,18 @@ def hash_password(password: str) -> str:
 
 
 def verify_password(password: str, hashed: str | None) -> bool:
-    if not hashed:
-        return False
+    """Constant-time password verification.
+
+    Always invokes argon2.verify exactly once (using a precomputed dummy
+    hash when hashed is None) so login response time is indistinguishable
+    between "user doesn't exist" and "user exists, wrong password".
+    """
+    target = hashed if hashed else _get_dummy_hash()
     try:
-        _hasher.verify(hashed, password)
-        return True
+        _hasher.verify(target, password)
     except VerifyMismatchError:
         return False
+    return hashed is not None
 
 
 def create_user_with_password(
@@ -60,7 +75,7 @@ def upsert_user_by_kakao_id(
         placeholder_email = email or f"kakao_{kakao_id}@nestory.local"
         username = f"k_{kakao_id[:6]}_{secrets.token_hex(3)}"
         user = User(
-            email=placeholder_email.lower(),
+            email=placeholder_email.lower().strip(),
             kakao_id=kakao_id,
             username=username,
             display_name=(nickname or "카카오 사용자")[:64],
@@ -70,7 +85,7 @@ def upsert_user_by_kakao_id(
         return user
 
     if email:
-        user.email = email.lower()
+        user.email = email.lower().strip()
     if nickname:
         user.display_name = nickname[:64]
     db.flush()

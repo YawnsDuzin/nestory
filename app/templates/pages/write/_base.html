@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} · Nestory{% endblock %}
+{% block content %}
+<section class="mx-auto max-w-2xl p-6 space-y-6">
+  <header class="rounded border bg-white p-4">
+    <h1 class="text-xl font-bold">{{ page_title }}</h1>
+    {% if page_subtitle %}<p class="text-sm text-slate-600 mt-1">{{ page_subtitle }}</p>{% endif %}
+  </header>
+
+  <form method="post" action="{{ form_action }}" class="space-y-6"
+        enctype="application/x-www-form-urlencoded">
+    {% include "pages/write/_common_fields.html" %}
+    {% block meta_fields %}{% endblock %}
+    {% block publish_card %}{% include "pages/write/_publish_card.html" %}{% endblock %}
+  </form>
+</section>
+{% endblock %}

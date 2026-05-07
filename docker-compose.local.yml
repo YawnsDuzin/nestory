@@ -33,6 +33,8 @@ services:
       KAKAO_CLIENT_SECRET: local-secret
       KAKAO_REDIRECT_URI: http://localhost:8000/auth/kakao/callback
       NESTORY_DOMAIN: localhost:8000
+    volumes:
+      - ./media:/app/media
     depends_on:
       postgres:
         condition: service_healthy

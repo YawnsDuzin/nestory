@@ -1,28 +1,15 @@
-from datetime import UTC, datetime
-
 from sqlalchemy.orm import Session
 
-from app.models import Image, User
+from app.models import Image
 from app.models._enums import ImageStatus
+from app.tests.factories import ImageFactory, UserFactory
 
 
-def _make_user(db: Session) -> User:
-    u = User(
-        email=f"t{int(datetime.now(UTC).timestamp() * 1_000_000)}@example.com",
-        username=f"u{int(datetime.now(UTC).timestamp() * 1_000_000)}",
-        display_name="테스터",
-        password_hash="x",
+def test_create_image_with_processing_status(db: Session) -> None:
+    img = ImageFactory(
+        file_path_orig="/media/orig/2026/05/abc.jpg",
+        status=ImageStatus.PROCESSING,
     )
-    db.add(u)
-    db.flush()
-    return u
-
-
-def test_create_image_defaults_to_processing(db: Session) -> None:
-    u = _make_user(db)
-    img = Image(owner_id=u.id, file_path_orig="/media/orig/2026/05/abc.jpg")
-    db.add(img)
-    db.flush()
 
     assert img.id is not None
     assert img.status == ImageStatus.PROCESSING
@@ -31,10 +18,19 @@ def test_create_image_defaults_to_processing(db: Session) -> None:
     assert img.post_id is None
 
 
+def test_image_status_defaults_to_processing(db: Session) -> None:
+    """Verify the model-level `default=ImageStatus.PROCESSING` is applied
+    when status is not provided. Direct constructor bypasses factory's
+    `status=ImageStatus.READY` default."""
+    u = UserFactory()
+    img = Image(owner_id=u.id, file_path_orig="test/path.jpg")
+    db.add(img)
+    db.flush()
+    assert img.status == ImageStatus.PROCESSING
+
+
 def test_image_can_have_all_size_paths(db: Session) -> None:
-    u = _make_user(db)
-    img = Image(
-        owner_id=u.id,
+    img = ImageFactory(
         file_path_orig="/media/orig/x.jpg",
         file_path_thumb="/media/thumb/x.jpg",
         file_path_medium="/media/medium/x.jpg",
@@ -43,7 +39,5 @@ def test_image_can_have_all_size_paths(db: Session) -> None:
         width=1920,
         height=1080,
     )
-    db.add(img)
-    db.flush()
     assert img.status == ImageStatus.READY
     assert img.file_path_webp.endswith(".webp")

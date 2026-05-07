@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}{{ question.title }} · Nestory{% endblock %}
+{% block content %}
+<article class="mx-auto max-w-2xl p-6 space-y-6">
+  <header>
+    <h1 class="text-2xl font-bold">❓ {{ question.title }}</h1>
+    <p class="text-xs text-slate-500 mt-1">
+      {{ author.display_name }} · {{ region.sido }} {{ region.sigungu }}
+      {% if question.published_at %}· {{ question.published_at.strftime("%Y-%m-%d") }}{% endif %}
+      · 조회 {{ question.view_count }}
+    </p>
+    {% with post = question %}
+      {% include "pages/detail/_meta_card_question.html" %}
+    {% endwith %}
+  </header>
+  <div class="prose max-w-none">{{ question.body | markdown | safe }}</div>
+
+  <section class="space-y-4">
+    <h2 class="text-lg font-semibold">답변 {{ answers|length }}개</h2>
+    {% for ans in answers %}
+      <article class="rounded border bg-white p-4">
+        <p class="text-xs text-slate-500">{{ ans.author.display_name }} · {{ ans.published_at.strftime("%Y-%m-%d") if ans.published_at }}</p>
+        <div class="prose mt-2">{{ ans.body | markdown | safe }}</div>
+      </article>
+    {% endfor %}
+  </section>
+
+  {% if user %}
+    <form method="post" action="/question/{{ question.id }}/answer" class="rounded border bg-white p-4 space-y-3">
+      <h2 class="font-semibold text-sm">답변 작성</h2>
+      <textarea name="body" required rows="4" class="w-full rounded border p-2"></textarea>
+      <button type="submit" class="rounded bg-emerald-600 text-white px-4 py-2">답변 등록</button>
+    </form>
+  {% else %}
+    <p class="text-center text-sm text-slate-600">답변을 남기려면 <a href="/auth/login" class="text-emerald-600 underline">로그인</a> 하세요.</p>
+  {% endif %}
+</article>
+{% endblock %}

@@ -22,6 +22,25 @@
 
 ---
 
+## 네이티브 확장 대비 (Future-friendly 설계 — P1.2 반영분)
+
+> CLAUDE.md `## 네이티브 확장 대비` 섹션의 4원칙 + dual 시그니처 가이드를 P1.2에 적용. **추가 task 생성 없이 기존 task 내부 구현 시 1줄~5줄 수준의 forward-friendly 변경**만 반영.
+
+| # | P1.2 적용 지점 | 내용 |
+|---|---|---|
+| 1 | **Task 1 Step 1** — `app/deps.py:get_current_user` | 시그니처에 `authorization: str \| None = Header(None)` 파라미터 추가 (P1.2엔 unused, P2 Bearer 분기용). 가드 본문 변경 없음. |
+| 2 | **Task 2** — `app/services/badges.py` 모든 함수 | 첫 번째 인자는 `db: Session`, 두 번째는 `user: User` (또는 `actor: User`). `request.session`·`Cookie`·`Request` import 금지. |
+| 3 | **Task 3** — `app/services/evidence_storage.py` | 저장 함수는 `BadgeEvidence` row 객체 (또는 `id`·`stored_path` 둘 다 포함한 dict)를 반환. 추후 JSON API가 같은 함수로 `{"evidence_id": ..., "url": ...}` 응답 가능하게. **path 문자열 단독 반환 금지**. |
+| 4 | **Task 4·6 (라우트)** — `app/routers/me.py`·`admin.py` | 라우트 함수는 ① form 검증 ② `badge_service.X(db, user, ...)` 호출 ③ `RedirectResponse` 또는 `templates.TemplateResponse`만. ORM 쿼리·권한 분기를 라우트에 직접 넣지 말 것. 권한은 `Depends(require_badge(...))` 또는 service 내부 예외로 처리. |
+| 5 | **Task 5·6 (템플릿)** — `me_badge.html`·`admin_badge_*.html` | 사용자 액션 가능 여부를 `{% if user.role == "admin" %}` 같은 분기로 결정하지 말 것. 라우트 단의 `Depends(require_admin)` 가드를 통과한 사용자만 도달 → 템플릿은 항상 표시. (단, "이미 신청 중" 같은 **상태 표시**는 템플릿 분기 OK — 권한 판단과 다름) |
+| 6 | **Pydantic Read 스키마 부재 OK** | P1.2 라우트는 SSR만이라 `BadgeApplicationRead` 같은 스키마는 만들지 않음. 단 **Task 2 service 함수의 반환 타입은 ORM 객체 그대로** — 추후 P2 시점에 `XxxRead` 스키마를 만들어 `response_model=`에 꽂으면 됨. service 시그니처가 ORM 객체를 반환해야 dual-mode 전환이 깔끔. |
+
+위 6항목은 **task 추가나 step 추가 없이 기존 코드 작성 방향만 결정**. P1.3 이후 콘텐츠·이미지 라우트도 동일 패턴으로 작성.
+
+> **종료 시 검증**: `grep -r "request.session" app/services/` 결과가 비어 있어야 한다. 비어있지 않으면 원칙 2 위반.
+
+---
+
 ## 파일 구조 개요
 
 P1.2 종료 시 저장소에 추가/변경되는 파일:

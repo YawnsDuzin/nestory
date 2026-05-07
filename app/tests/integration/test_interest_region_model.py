@@ -1,36 +1,17 @@
-from datetime import UTC, datetime
-
+import pytest
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.models import Region, User, UserInterestRegion
-
-
-def _make_user(db: Session) -> User:
-    u = User(
-        email=f"t{int(datetime.now(UTC).timestamp() * 1_000_000)}@example.com",
-        username=f"u{int(datetime.now(UTC).timestamp() * 1_000_000)}",
-        display_name="테스터",
-        password_hash="x",
-    )
-    db.add(u)
-    db.flush()
-    return u
-
-
-def _make_region(db: Session, slug: str) -> Region:
-    r = Region(sido="경기", sigungu="양평군", slug=slug)
-    db.add(r)
-    db.flush()
-    return r
+from app.models import UserInterestRegion
+from app.tests.factories import RegionFactory, UserFactory, UserInterestRegionFactory
 
 
 def test_user_can_have_multiple_interest_regions(db: Session) -> None:
-    u = _make_user(db)
-    r1 = _make_region(db, "yangpyeong-test")
-    r2 = _make_region(db, "gapyeong-test")
-    db.add(UserInterestRegion(user_id=u.id, region_id=r1.id, priority=1))
-    db.add(UserInterestRegion(user_id=u.id, region_id=r2.id, priority=2))
-    db.flush()
+    u = UserFactory()
+    r1 = RegionFactory(slug="yangpyeong-test")
+    r2 = RegionFactory(slug="gapyeong-test")
+    UserInterestRegionFactory(user=u, region=r1, priority=1)
+    UserInterestRegionFactory(user=u, region=r2, priority=2)
 
     rows = (
         db.query(UserInterestRegion)
@@ -42,13 +23,9 @@ def test_user_can_have_multiple_interest_regions(db: Session) -> None:
 
 
 def test_duplicate_user_region_pair_rejected(db: Session) -> None:
-    import pytest
-    from sqlalchemy.exc import IntegrityError
-
-    u = _make_user(db)
-    r = _make_region(db, "yangpyeong-test")
-    db.add(UserInterestRegion(user_id=u.id, region_id=r.id, priority=1))
-    db.flush()
+    u = UserFactory()
+    r = RegionFactory(slug="yangpyeong-test")
+    UserInterestRegionFactory(user=u, region=r, priority=1)
     db.add(UserInterestRegion(user_id=u.id, region_id=r.id, priority=2))
     with pytest.raises(IntegrityError):
         db.flush()

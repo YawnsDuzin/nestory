@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import (
     DateTime,
@@ -9,20 +9,25 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
+    UniqueConstraint,
     func,
 )
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 from app.models._enums import PostStatus, PostType
+
+if TYPE_CHECKING:
+    from app.models.region import Region
+    from app.models.user import User
 
 
 class Post(Base):
     __tablename__ = "posts"
     __table_args__ = (
         Index("ix_posts_region_published", "region_id", "published_at"),
-        Index("ix_posts_journey_episode", "journey_id", "episode_no"),
+        UniqueConstraint("journey_id", "episode_no", name="uq_posts_journey_episode"),
         Index("ix_posts_author_published", "author_id", "published_at"),
         Index("ix_posts_type_status_published", "type", "status", "published_at"),
         Index("ix_posts_metadata_gin", "metadata", postgresql_using="gin"),
@@ -62,3 +67,11 @@ class Post(Base):
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    # Relationships (P1.3 deferred — added for N+1 elimination in detail/list routes)
+    author: Mapped["User"] = relationship(
+        "User", foreign_keys=[author_id], lazy="raise"
+    )
+    region: Mapped["Region"] = relationship(
+        "Region", foreign_keys=[region_id], lazy="raise"
+    )

@@ -54,3 +54,21 @@ def test_upsert_by_kakao_id_creates_then_updates(db: Session) -> None:
     assert u2.id == u1.id
     assert u2.email == "k@kakao.com"
     assert u2.display_name == "새닉"
+
+
+def test_verify_password_returns_false_for_none_hash():
+    """verify_password handles None hash without exception (kakao-only user)."""
+    from app.services.auth import verify_password
+    assert verify_password("anything", None) is False
+
+
+def test_verify_password_returns_false_for_wrong_password():
+    from app.services.auth import hash_password, verify_password
+    h = hash_password("correct_password")
+    assert verify_password("wrong_password", h) is False
+
+
+def test_verify_password_returns_true_for_correct_password():
+    from app.services.auth import hash_password, verify_password
+    h = hash_password("correct_password")
+    assert verify_password("correct_password", h) is True

@@ -42,9 +42,11 @@ async def signup(
     except IntegrityError as err:
         db.rollback()
         raise HTTPException(
-            status.HTTP_400_BAD_REQUEST, "Email or username already registered"
+            status.HTTP_400_BAD_REQUEST,
+            "가입에 실패했습니다. 다른 이메일/아이디로 시도해주세요.",
         ) from err
 
+    request.session.clear()
     request.session["user_id"] = user.id
     return RedirectResponse("/", status_code=status.HTTP_303_SEE_OTHER)
 
@@ -61,6 +63,7 @@ async def login(
     if user is None or not verify_password(form.password, user.password_hash):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Invalid credentials")
 
+    request.session.clear()
     request.session["user_id"] = user.id
     return RedirectResponse("/", status_code=status.HTTP_303_SEE_OTHER)
 
@@ -109,5 +112,6 @@ async def kakao_callback(
         db, kakao_id=profile.kakao_id, email=profile.email, nickname=profile.nickname
     )
     db.commit()
+    request.session.clear()
     request.session["user_id"] = user.id
     return RedirectResponse("/", status_code=status.HTTP_303_SEE_OTHER)

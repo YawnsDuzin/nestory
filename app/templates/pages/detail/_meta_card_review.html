@@ -1,0 +1,7 @@
+<div class="rounded border bg-slate-50 p-4 text-sm">
+  <div class="flex flex-wrap gap-3">
+    {% if post.metadata_.house_type %}<span>🏠 {{ post.metadata_.house_type }}</span>{% endif %}
+    {% if post.metadata_.size_pyeong %}<span>📐 {{ post.metadata_.size_pyeong }}평</span>{% endif %}
+    {% if post.metadata_.satisfaction_overall %}<span>⭐ {{ post.metadata_.satisfaction_overall }}/5</span>{% endif %}
+  </div>
+</div>

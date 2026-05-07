@@ -1,5 +1,3 @@
-from datetime import UTC, datetime
-
 import pytest
 from fastapi import Depends, FastAPI
 from fastapi.testclient import TestClient
@@ -12,30 +10,14 @@ from app.deps import (
     require_resident_in_region,
     require_user,
 )
-from app.models import Region, User
-from app.models.user import BadgeLevel, UserRole
-
-
-def _make_user(
-    db: Session,
-    *,
-    badge: BadgeLevel = BadgeLevel.INTERESTED,
-    role: UserRole = UserRole.USER,
-    primary_region_id: int | None = None,
-) -> User:
-    ts = int(datetime.now(UTC).timestamp() * 1_000_000)
-    u = User(
-        email=f"t{ts}@example.com",
-        username=f"u{ts}",
-        display_name="테스터",
-        password_hash="x",
-        badge_level=badge,
-        role=role,
-        primary_region_id=primary_region_id,
-    )
-    db.add(u)
-    db.flush()
-    return u
+from app.models import User
+from app.models.user import BadgeLevel
+from app.tests.factories import (
+    AdminUserFactory,
+    RegionFactory,
+    ResidentUserFactory,
+    UserFactory,
+)
 
 
 def _build_app() -> FastAPI:
@@ -84,7 +66,7 @@ def test_require_user_unauthenticated_rejects() -> None:
 
 def test_require_user_authenticated_passes(db: Session) -> None:
     test_app = _build_app()
-    user = _make_user(db)
+    user = UserFactory()
     db.commit()
     with TestClient(test_app) as c:
         c.cookies.set("session", _session_cookie(user.id))
@@ -95,7 +77,7 @@ def test_require_user_authenticated_passes(db: Session) -> None:
 
 def test_require_admin_non_admin_rejects(db: Session) -> None:
     test_app = _build_app()
-    user = _make_user(db, role=UserRole.USER)
+    user = UserFactory()
     db.commit()
     with TestClient(test_app) as c:
         c.cookies.set("session", _session_cookie(user.id))
@@ -104,7 +86,7 @@ def test_require_admin_non_admin_rejects(db: Session) -> None:
 
 def test_require_admin_admin_passes(db: Session) -> None:
     test_app = _build_app()
-    user = _make_user(db, role=UserRole.ADMIN)
+    user = AdminUserFactory()
     db.commit()
     with TestClient(test_app) as c:
         c.cookies.set("session", _session_cookie(user.id))
@@ -122,7 +104,7 @@ def test_require_admin_admin_passes(db: Session) -> None:
 )
 def test_require_badge_resident(db: Session, user_badge: BadgeLevel, expected: int) -> None:
     test_app = _build_app()
-    user = _make_user(db, badge=user_badge)
+    user = UserFactory(badge_level=user_badge)
     db.commit()
     with TestClient(test_app) as c:
         c.cookies.set("session", _session_cookie(user.id))
@@ -131,10 +113,8 @@ def test_require_badge_resident(db: Session, user_badge: BadgeLevel, expected: i
 
 def test_require_resident_in_region_match(db: Session) -> None:
     test_app = _build_app()
-    r = Region(sido="경기", sigungu="양평군", slug="yp-test-deps")
-    db.add(r)
-    db.flush()
-    user = _make_user(db, badge=BadgeLevel.RESIDENT, primary_region_id=r.id)
+    r = RegionFactory(sigungu="양평군", slug="yp-test-deps")
+    user = ResidentUserFactory(primary_region=r)
     db.commit()
     with TestClient(test_app) as c:
         c.cookies.set("session", _session_cookie(user.id))
@@ -143,11 +123,9 @@ def test_require_resident_in_region_match(db: Session) -> None:
 
 def test_require_resident_in_region_mismatch(db: Session) -> None:
     test_app = _build_app()
-    r1 = Region(sido="경기", sigungu="양평군", slug="yp-test-deps-2")
-    r2 = Region(sido="경기", sigungu="가평군", slug="gp-test-deps-2")
-    db.add_all([r1, r2])
-    db.flush()
-    user = _make_user(db, badge=BadgeLevel.RESIDENT, primary_region_id=r1.id)
+    r1 = RegionFactory(sigungu="양평군", slug="yp-test-deps-2")
+    r2 = RegionFactory(sigungu="가평군", slug="gp-test-deps-2")
+    user = ResidentUserFactory(primary_region=r1)
     db.commit()
     with TestClient(test_app) as c:
         c.cookies.set("session", _session_cookie(user.id))

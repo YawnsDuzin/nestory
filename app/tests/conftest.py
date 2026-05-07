@@ -1,9 +1,14 @@
+import base64
+import json
+
 import pytest
 from fastapi.testclient import TestClient
+from itsdangerous import TimestampSigner
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 import app.models  # noqa: F401  # Base.metadata에 모든 모델 등록
+from app.config import get_settings
 from app.db.session import SessionLocal, engine
 from app.main import app
 
@@ -39,10 +44,38 @@ def _cleanup_db():
     _truncate_all_tables()
 
 
+def _all_subclasses(cls):
+    """Return every subclass of `cls` recursively, excluding `cls` itself."""
+    seen = set()
+    stack = [cls]
+    while stack:
+        c = stack.pop()
+        for sub in c.__subclasses__():
+            if sub not in seen:
+                seen.add(sub)
+                stack.append(sub)
+                yield sub
+
+
+def _bind_factories(session: Session) -> None:
+    """Inject `session` into every BaseFactory subclass.
+
+    Importing `app.tests.factories` triggers registration of every factory
+    declared in submodules. We then walk the subclass tree and patch
+    `_meta.sqlalchemy_session` so that `Factory.create()` uses the test session.
+    """
+    import app.tests.factories  # noqa: F401  # registers all factory classes
+    from app.tests.factories._base import BaseFactory
+
+    for cls in _all_subclasses(BaseFactory):
+        cls._meta.sqlalchemy_session = session
+
+
 @pytest.fixture
 def db() -> Session:
     session = SessionLocal()
     try:
+        _bind_factories(session)
         yield session
     finally:
         session.close()
@@ -51,3 +84,24 @@ def db() -> Session:
 @pytest.fixture
 def client() -> TestClient:
     return TestClient(app)
+
+
+@pytest.fixture
+def login(client: TestClient):
+    """Test helper: log in as the given user_id. Returns a callable.
+
+    Mirrors starlette SessionMiddleware: TimestampSigner(b64(json)).
+    When session signing changes (CSRF in P1.5+), only this fixture needs an update.
+
+    Usage:
+        def test_x(client, db, login):
+            user = UserFactory()
+            login(user.id)
+            r = client.get("/me/badge")
+    """
+    def _do_login(user_id: int) -> None:
+        signer = TimestampSigner(get_settings().app_secret_key)
+        raw = base64.b64encode(json.dumps({"user_id": user_id}).encode()).decode()
+        cookie = signer.sign(raw.encode()).decode()
+        client.cookies.set("nestory_session", cookie)
+    return _do_login

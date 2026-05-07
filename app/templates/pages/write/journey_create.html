@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Journey 시작 · Nestory{% endblock %}
+{% block content %}
+<section class="mx-auto max-w-2xl p-6 space-y-6">
+  <header class="rounded border bg-white p-4">
+    <h1 class="text-xl font-bold">새 Journey 시작</h1>
+    <p class="text-sm text-slate-600 mt-1">정착 과정을 연재로 기록합니다. 첫 에피소드는 생성 후 작성.</p>
+  </header>
+  <form method="post" action="/write/journey" class="space-y-4">
+    <div class="rounded border bg-white p-4 space-y-3">
+      <label class="block">
+        <span class="text-sm font-semibold">Journey 제목</span>
+        <input type="text" name="title" required maxlength="200"
+               class="mt-1 w-full rounded border p-2">
+      </label>
+      <label class="block">
+        <span class="text-sm font-semibold">설명 (선택)</span>
+        <textarea name="description" rows="3" class="mt-1 w-full rounded border p-2"></textarea>
+      </label>
+      <label class="block">
+        <span class="text-sm font-semibold">지역</span>
+        <select name="region_id" required class="mt-1 w-full rounded border p-2">
+          {% for r in regions %}
+            <option value="{{ r.id }}">{{ r.sido }} {{ r.sigungu }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label class="block">
+        <span class="text-sm font-semibold">시작일 (선택)</span>
+        <input type="date" name="start_date" class="mt-1 w-full rounded border p-2">
+      </label>
+    </div>
+    <button type="submit" class="w-full rounded bg-emerald-600 text-white px-4 py-3 font-semibold hover:bg-emerald-700">Journey 만들기</button>
+  </form>
+</section>
+{% endblock %}

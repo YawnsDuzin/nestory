@@ -1,20 +1,206 @@
 {% extends "base.html" %}
-{% block title %}홈 · Nestory{% endblock %}
+{% block title %}{% if current_user %}홈 · Nestory{% else %}Nestory · 전원주택 정착 커뮤니티{% endif %}{% endblock %}
 {% block content %}
-<section class="space-y-4">
-  <h1 class="text-3xl font-bold text-slate-900">Nestory에 오신 것을 환영합니다</h1>
-  <p class="text-slate-600">
-    전원주택 정착의 전 과정을 실거주자의 여정으로 아카이빙하는 커뮤니티입니다.
-  </p>
-  {% if current_user %}
-    <p class="rounded-md bg-emerald-50 p-4 text-emerald-800">
-      반갑습니다, <strong>@{{ current_user.username }}</strong>. 콘텐츠 작성 기능은 곧 열립니다.
+{% if current_user %}
+  <section class="space-y-6">
+    <div class="space-y-3">
+      <h1 class="text-3xl font-bold text-slate-900">Nestory에 오신 것을 환영합니다</h1>
+      <p class="text-slate-600">
+        전원주택 정착의 전 과정을 실거주자의 여정으로 아카이빙하는 커뮤니티입니다.
+      </p>
+    </div>
+    <div class="rounded-md bg-emerald-50 p-4 text-emerald-800">
+      반갑습니다, <strong>@{{ current_user.username }}</strong>.
+    </div>
+
+    <section class="space-y-3">
+      <h2 class="text-lg font-semibold">✏️ 쓰기</h2>
+      <div class="grid gap-3 sm:grid-cols-2">
+        {% set is_resident = current_user.badge_level.value in ("resident", "ex_resident") %}
+        <a href="{{ '/write/review' if is_resident else '/me/badge' }}"
+           class="rounded border bg-white p-4 hover:bg-slate-50">
+          <p class="font-semibold">📝 후기 작성</p>
+          <p class="text-sm text-slate-600 mt-1">
+            {% if is_resident %}정착 회고를 남겨주세요{% else %}🏡 실거주자 인증 후 작성 가능{% endif %}
+          </p>
+        </a>
+        <a href="{{ '/write/journey' if is_resident else '/me/badge' }}"
+           class="rounded border bg-white p-4 hover:bg-slate-50">
+          <p class="font-semibold">🗺️ Journey 시작</p>
+          <p class="text-sm text-slate-600 mt-1">
+            {% if is_resident %}정착 과정을 연재로{% else %}🏡 실거주자 인증 후 작성 가능{% endif %}
+          </p>
+        </a>
+        <a href="/write/question" class="rounded border bg-white p-4 hover:bg-slate-50">
+          <p class="font-semibold">❓ 질문 작성</p>
+          <p class="text-sm text-slate-600 mt-1">지역에 사는 분들께 직접 물어보세요</p>
+        </a>
+        <a href="/write/plan" class="rounded border bg-white p-4 hover:bg-slate-50">
+          <p class="font-semibold">📅 정착 계획</p>
+          <p class="text-sm text-slate-600 mt-1">예비 입주자의 검토 노트</p>
+        </a>
+      </div>
+      {% if not is_resident %}
+        <p class="text-xs text-slate-500">
+          후기·Journey는 🏡 실거주자 배지가 필요합니다 →
+          <a href="/me/badge" class="text-emerald-700 hover:underline">배지 신청</a>
+        </p>
+      {% endif %}
+    </section>
+  </section>
+{% else %}
+  {# === 비로그인 방문자용 marketing landing === #}
+
+  {# 1. Hero #}
+  <section class="text-center py-10 sm:py-16">
+    <h1 class="text-4xl sm:text-5xl font-bold text-slate-900 leading-tight">
+      전원주택 정착의<br>모든 여정을 함께
+    </h1>
+    <p class="mt-6 text-lg text-slate-600 max-w-xl mx-auto">
+      예비 입주자부터 1년차·3년차 거주자까지.<br>
+      후기·Journey·Q&amp;A로 이어지는 신뢰 커뮤니티.
     </p>
-  {% else %}
-    <p class="rounded-md bg-slate-100 p-4 text-slate-700">
-      <a href="/auth/signup" class="font-semibold text-emerald-700 hover:underline">계정을 만들어</a>
-      관심 지역을 팔로우하세요.
+    <div class="mt-8 flex flex-col sm:flex-row justify-center gap-3">
+      <a href="/auth/kakao/start"
+         class="rounded-md bg-yellow-300 px-6 py-3 font-semibold text-slate-900 hover:bg-yellow-400">
+        💬 카카오로 1초 시작
+      </a>
+      <a href="/auth/signup"
+         class="rounded-md bg-emerald-600 px-6 py-3 font-semibold text-white hover:bg-emerald-700">
+        이메일로 가입
+      </a>
+    </div>
+    <p class="mt-4 text-sm text-slate-500">
+      이미 계정이 있으신가요?
+      <a href="/auth/login" class="text-emerald-700 hover:underline">로그인</a>
     </p>
-  {% endif %}
-</section>
+  </section>
+
+  {# 2. 4 Pillar #}
+  <section class="py-12 border-t border-slate-200">
+    <h2 class="text-2xl font-bold text-center text-slate-900 mb-2">
+      Nestory가 다른 이유
+    </h2>
+    <p class="text-center text-sm text-slate-600 mb-8">
+      네 가지 차별화 축으로 가짜 후기·과장 광고와 다릅니다.
+    </p>
+    <div class="grid gap-4 sm:grid-cols-2">
+      <div class="rounded-lg border bg-white p-6">
+        <p class="text-3xl">⏱️</p>
+        <h3 class="mt-3 font-bold text-slate-900">시계열 회고</h3>
+        <p class="mt-2 text-sm text-slate-600">
+          입주 1년차·3년차 시점마다 같은 사람의 회고를 추적합니다.
+          시간이 만들어낸 진짜 후회가 보입니다.
+        </p>
+      </div>
+      <div class="rounded-lg border bg-white p-6">
+        <p class="text-3xl">💸</p>
+        <h3 class="mt-3 font-bold text-slate-900">후회 비용 데이터</h3>
+        <p class="mt-2 text-sm text-slate-600">
+          "단열에서 후회"라는 한 줄이 아니라
+          카테고리·금액·기간을 정량 데이터로 누적합니다.
+        </p>
+      </div>
+      <div class="rounded-lg border bg-white p-6">
+        <p class="text-3xl">📍</p>
+        <h3 class="mt-3 font-bold text-slate-900">지역 매칭</h3>
+        <p class="mt-2 text-sm text-slate-600">
+          양평·가평·춘천 등 시군별 허브.
+          실제 그 지역에 사는 분들의 답변을 직접 받습니다.
+        </p>
+      </div>
+      <div class="rounded-lg border bg-white p-6">
+        <p class="text-3xl">✓</p>
+        <h3 class="mt-3 font-bold text-slate-900">거주자 검증</h3>
+        <p class="mt-2 text-sm text-slate-600">
+          같은 시군에 사는 거주자만 후기를 검증할 수 있습니다.
+          가짜 후기·홍보 글은 살아남지 못합니다.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  {# 3. 페르소나 #}
+  <section class="py-12 border-t border-slate-200">
+    <h2 class="text-2xl font-bold text-center text-slate-900 mb-8">
+      당신은 어떤 분이신가요?
+    </h2>
+    <div class="grid gap-4 sm:grid-cols-3">
+      <div class="rounded-lg border bg-emerald-50 p-6">
+        <p class="text-3xl">🔍</p>
+        <h3 class="mt-3 font-bold text-slate-900">예비 입주자</h3>
+        <p class="mt-2 text-sm text-slate-700">
+          정착을 검토 중이신가요? 먼저 도착한 분들의 후기로
+          시군을 비교하고, "정착 계획"을 작성해 미리 조언을 받으세요.
+        </p>
+      </div>
+      <div class="rounded-lg border bg-emerald-50 p-6">
+        <p class="text-3xl">🏡</p>
+        <h3 class="mt-3 font-bold text-slate-900">1-3년차 거주자</h3>
+        <p class="mt-2 text-sm text-slate-700">
+          겪은 일을 데이터로 남기고, 후배 정착자의
+          질문에 답하세요. 같은 지역 거주자가 당신을 검증합니다.
+        </p>
+      </div>
+      <div class="rounded-lg border bg-emerald-50 p-6">
+        <p class="text-3xl">🌳</p>
+        <h3 class="mt-3 font-bold text-slate-900">5년+ 베테랑</h3>
+        <p class="mt-2 text-sm text-slate-700">
+          Journey 연재로 정착의 전 과정을 아카이빙하세요.
+          지역의 멘토가 되어 후배에게 길을 알려주세요.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  {# 4. How it works #}
+  <section class="py-12 border-t border-slate-200">
+    <h2 class="text-2xl font-bold text-center text-slate-900 mb-8">
+      이렇게 시작하세요
+    </h2>
+    <div class="grid gap-6 sm:grid-cols-3">
+      <div class="text-center">
+        <div class="mx-auto w-12 h-12 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-lg">1</div>
+        <h3 class="mt-3 font-bold text-slate-900">회원가입</h3>
+        <p class="mt-2 text-sm text-slate-600">
+          카카오 또는 이메일로 30초 내 가입.
+        </p>
+      </div>
+      <div class="text-center">
+        <div class="mx-auto w-12 h-12 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-lg">2</div>
+        <h3 class="mt-3 font-bold text-slate-900">관심 지역 선택</h3>
+        <p class="mt-2 text-sm text-slate-600">
+          양평·가평·춘천 등 시군별 허브 탐색.
+        </p>
+      </div>
+      <div class="text-center">
+        <div class="mx-auto w-12 h-12 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-lg">3</div>
+        <h3 class="mt-3 font-bold text-slate-900">참여하기</h3>
+        <p class="mt-2 text-sm text-slate-600">
+          질문·정착계획 작성, 거주 인증 후 후기·Journey 공유.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  {# 5. Bottom CTA #}
+  <section class="mt-12 rounded-lg bg-emerald-600 py-12 px-6 text-center text-white">
+    <h2 class="text-2xl sm:text-3xl font-bold">
+      당신의 정착, 더 이상 혼자 헤매지 마세요
+    </h2>
+    <p class="mt-3 text-emerald-50">
+      먼저 도착한 사람들이 기다리고 있습니다.
+    </p>
+    <div class="mt-6 flex flex-col sm:flex-row justify-center gap-3">
+      <a href="/auth/kakao/start"
+         class="rounded-md bg-yellow-300 px-6 py-3 font-semibold text-slate-900 hover:bg-yellow-400">
+        💬 카카오로 1초 시작
+      </a>
+      <a href="/auth/signup"
+         class="rounded-md bg-white px-6 py-3 font-semibold text-emerald-700 hover:bg-slate-50">
+        이메일로 가입
+      </a>
+    </div>
+  </section>
+{% endif %}
 {% endblock %}
