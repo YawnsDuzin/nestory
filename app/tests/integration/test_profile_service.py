@@ -19,6 +19,7 @@ from app.tests.factories import (
     JourneyEpisodePostFactory,
     QuestionPostFactory,
     RegionFactory,
+    ResidentUserFactory,
     ReviewPostFactory,
     UserFactory,
     add_post_scrap,
@@ -260,7 +261,28 @@ def test_author_posts_pagination(db: Session) -> None:
 
 
 # ---------------------------------------------------------------------------
-# 12. user_scraps — orders by scrap created_at DESC
+# 12. author_posts — regression: post.author must be eager-loaded
+# ---------------------------------------------------------------------------
+
+
+def test_author_posts_loads_author_for_template_use(db: Session) -> None:
+    """Regression: post_card.html accesses post.author.username; lazy="raise" needs selectinload."""
+    user = ResidentUserFactory()
+    region = RegionFactory()
+    ReviewPostFactory(
+        author=user, region=region,
+        status=PostStatus.PUBLISHED, published_at=datetime.now(UTC),
+    )
+    db.commit()
+
+    posts = profile_service.author_posts(db, user, PostType.REVIEW)
+    assert len(posts) == 1
+    # If selectinload is missing, accessing .author here raises InvalidRequestError
+    assert posts[0].author.username == user.username
+
+
+# ---------------------------------------------------------------------------
+# 14. user_scraps — orders by scrap created_at DESC
 # ---------------------------------------------------------------------------
 
 
@@ -301,7 +323,7 @@ def test_user_scraps_orders_by_scrap_created_at_desc(db: Session) -> None:
 
 
 # ---------------------------------------------------------------------------
-# 13. user_scraps — isolates users
+# 15. user_scraps — isolates users
 # ---------------------------------------------------------------------------
 
 
@@ -324,7 +346,7 @@ def test_user_scraps_isolates_users(db: Session) -> None:
 
 
 # ---------------------------------------------------------------------------
-# 14. user_scraps — excludes drafts and soft-deleted
+# 16. user_scraps — excludes drafts and soft-deleted
 # ---------------------------------------------------------------------------
 
 

@@ -48,7 +48,7 @@ def author_posts(db: Session, user: User, post_type: PostType, *, page: int = 1)
             Post.status == PostStatus.PUBLISHED,
             Post.deleted_at.is_(None),
         )
-        .options(selectinload(Post.region))
+        .options(selectinload(Post.region), selectinload(Post.author))
         .order_by(Post.published_at.desc())
         .offset((page - 1) * PAGE_SIZE)
         .limit(PAGE_SIZE)
