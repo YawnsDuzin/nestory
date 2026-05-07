@@ -1,3 +1,7 @@
+from app.tests.factories.badge_application import (
+    BadgeApplicationFactory,
+    BadgeEvidenceFactory,
+)
 from app.tests.factories.comment import CommentFactory
 from app.tests.factories.image import ImageFactory
 from app.tests.factories.journey import JourneyFactory
@@ -20,6 +24,8 @@ from app.tests.factories.user import (
 __all__ = [
     "AdminUserFactory",
     "AnswerPostFactory",
+    "BadgeApplicationFactory",
+    "BadgeEvidenceFactory",
     "CommentFactory",
     "ImageFactory",
     "JourneyEpisodePostFactory",

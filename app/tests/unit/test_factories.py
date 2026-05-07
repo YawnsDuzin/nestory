@@ -169,3 +169,26 @@ def test_image_factory(db: Session) -> None:
     assert img.owner_id is not None
     assert img.file_path_orig.startswith("images/")
     assert img.status == ImageStatus.READY
+
+
+def test_badge_application_factory(db: Session) -> None:
+    from app.models._enums import BadgeApplicationStatus, BadgeRequestedLevel
+    from app.tests.factories import BadgeApplicationFactory
+
+    app = BadgeApplicationFactory()
+    assert app.id is not None
+    assert app.user_id is not None
+    assert app.region_id is not None
+    assert app.requested_level == BadgeRequestedLevel.REGION_VERIFIED
+    assert app.status == BadgeApplicationStatus.PENDING
+
+
+def test_badge_evidence_factory(db: Session) -> None:
+    from app.models._enums import EvidenceType
+    from app.tests.factories import BadgeEvidenceFactory
+
+    e = BadgeEvidenceFactory()
+    assert e.id is not None
+    assert e.application_id is not None
+    assert e.evidence_type == EvidenceType.UTILITY_BILL
+    assert e.file_path.startswith("evidence/")
