@@ -58,3 +58,81 @@ def test_resident_user_factory(db: Session) -> None:
     assert u.badge_level == BadgeLevel.RESIDENT
     assert u.resident_verified_at is not None
     assert u.primary_region_id is not None  # inherited from RegionVerifiedUserFactory
+
+
+def test_review_post_factory_metadata_validates(db: Session) -> None:
+    from pydantic import TypeAdapter
+
+    from app.models._enums import PostType
+    from app.schemas.post_metadata import PostMetadata
+    from app.tests.factories import ReviewPostFactory
+
+    p = ReviewPostFactory()
+    assert p.id is not None
+    assert p.type == PostType.REVIEW
+    payload = {**p.metadata_, "__post_type__": "review"}
+    TypeAdapter(PostMetadata).validate_python(payload)
+
+
+def test_journey_episode_post_factory_metadata_validates(db: Session) -> None:
+    from pydantic import TypeAdapter
+
+    from app.models._enums import PostType
+    from app.schemas.post_metadata import PostMetadata
+    from app.tests.factories import JourneyEpisodePostFactory
+
+    p = JourneyEpisodePostFactory()
+    assert p.type == PostType.JOURNEY_EPISODE
+    assert p.journey_id is not None
+    assert p.episode_no is not None
+    payload = {**p.metadata_, "__post_type__": "journey_episode"}
+    TypeAdapter(PostMetadata).validate_python(payload)
+
+
+def test_question_post_factory_metadata_validates(db: Session) -> None:
+    from pydantic import TypeAdapter
+
+    from app.models._enums import PostType
+    from app.schemas.post_metadata import PostMetadata
+    from app.tests.factories import QuestionPostFactory
+
+    p = QuestionPostFactory()
+    assert p.type == PostType.QUESTION
+    payload = {**p.metadata_, "__post_type__": "question"}
+    TypeAdapter(PostMetadata).validate_python(payload)
+
+
+def test_answer_post_factory_metadata_validates(db: Session) -> None:
+    from pydantic import TypeAdapter
+
+    from app.models._enums import PostType
+    from app.schemas.post_metadata import PostMetadata
+    from app.tests.factories import AnswerPostFactory
+
+    p = AnswerPostFactory()
+    assert p.type == PostType.ANSWER
+    assert p.parent_post_id is not None
+    payload = {**p.metadata_, "__post_type__": "answer"}
+    TypeAdapter(PostMetadata).validate_python(payload)
+
+
+def test_plan_post_factory_metadata_validates(db: Session) -> None:
+    from pydantic import TypeAdapter
+
+    from app.models._enums import PostType
+    from app.schemas.post_metadata import PostMetadata
+    from app.tests.factories import PlanPostFactory
+
+    p = PlanPostFactory()
+    assert p.type == PostType.PLAN
+    payload = {**p.metadata_, "__post_type__": "plan"}
+    TypeAdapter(PostMetadata).validate_python(payload)
+
+
+def test_post_factory_override_metadata_field(db: Session) -> None:
+    from app.tests.factories import ReviewPostFactory
+
+    p = ReviewPostFactory(
+        metadata_={"house_type": "단독", "size_pyeong": 30, "satisfaction_overall": 1}
+    )
+    assert p.metadata_["satisfaction_overall"] == 1
