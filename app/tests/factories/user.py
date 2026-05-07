@@ -35,10 +35,6 @@ class RegionVerifiedUserFactory(UserFactory):
 
 
 class ResidentUserFactory(RegionVerifiedUserFactory):
-    class Meta:
-        model = User
-        exclude = ("primary_region",)
-
     badge_level = BadgeLevel.RESIDENT
     resident_verified_at = factory.LazyFunction(
         lambda: datetime.now(UTC) - timedelta(days=30)

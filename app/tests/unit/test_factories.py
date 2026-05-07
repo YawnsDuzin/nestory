@@ -57,3 +57,4 @@ def test_resident_user_factory(db: Session) -> None:
     u = ResidentUserFactory()
     assert u.badge_level == BadgeLevel.RESIDENT
     assert u.resident_verified_at is not None
+    assert u.primary_region_id is not None  # inherited from RegionVerifiedUserFactory
