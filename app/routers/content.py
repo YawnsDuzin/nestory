@@ -4,6 +4,7 @@ from typing import Literal
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from pydantic import ValidationError
+from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from app.deps import get_current_user, get_db, require_badge, require_user
@@ -11,7 +12,9 @@ from app.models import Post, Region, User
 from app.models._enums import PostStatus, PostType
 from app.models.user import BadgeLevel
 from app.schemas.post_metadata import PlanMetadata, QuestionMetadata, ReviewMetadata
+from app.services import comments as comments_service
 from app.services import images as images_service
+from app.services import interactions as interactions_service
 from app.services import posts as posts_service
 from app.templating import templates
 
@@ -194,6 +197,7 @@ def post_detail(
     request: Request,
     post_id: int,
     db: Session = Depends(get_db),
+    current_user: User | None = Depends(get_current_user),
 ) -> HTMLResponse:
     post = (
         db.query(Post)
@@ -212,9 +216,38 @@ def post_detail(
     posts_service.increment_view_count(db, post)
     db.commit()
     db.refresh(post)
+    liked = (
+        interactions_service.is_liked_by(db, post.id, current_user.id)
+        if current_user
+        else False
+    )
+    scrapped = (
+        interactions_service.is_scrapped_by(db, post.id, current_user.id)
+        if current_user
+        else False
+    )
+    comments = comments_service.list_comments(db, post)
+    author_ids = {c.author_id for c in comments}
+    comment_authors = (
+        {u.id: u for u in db.scalars(select(User).where(User.id.in_(author_ids))).all()}
+        if author_ids
+        else {}
+    )
     return templates.TemplateResponse(
-        request, "pages/detail/post.html",
-        {"post": post, "author": post.author, "region": post.region},
+        request,
+        "pages/detail/post.html",
+        {
+            "post": post,
+            "author": post.author,
+            "region": post.region,
+            "current_user": current_user,
+            "liked": liked,
+            "like_count": interactions_service.like_count(db, post.id),
+            "scrapped": scrapped,
+            "scrap_count": interactions_service.scrap_count(db, post.id),
+            "comments": comments,
+            "comment_authors": comment_authors,
+        },
     )
 
 
@@ -252,10 +285,34 @@ def question_detail(
         .order_by(Post.published_at.asc())
         .all()
     )
+    liked = (
+        interactions_service.is_liked_by(db, question.id, user.id) if user else False
+    )
+    scrapped = (
+        interactions_service.is_scrapped_by(db, question.id, user.id) if user else False
+    )
+    comments = comments_service.list_comments(db, question)
+    author_ids = {c.author_id for c in comments}
+    comment_authors = (
+        {u.id: u for u in db.scalars(select(User).where(User.id.in_(author_ids))).all()}
+        if author_ids
+        else {}
+    )
     return templates.TemplateResponse(
-        request, "pages/detail/question.html",
+        request,
+        "pages/detail/question.html",
         {
-            "question": question, "author": question.author, "region": question.region,
-            "answers": answers, "user": user,
+            "question": question,
+            "author": question.author,
+            "region": question.region,
+            "answers": answers,
+            "user": user,
+            "current_user": user,
+            "liked": liked,
+            "like_count": interactions_service.like_count(db, question.id),
+            "scrapped": scrapped,
+            "scrap_count": interactions_service.scrap_count(db, question.id),
+            "comments": comments,
+            "comment_authors": comment_authors,
         },
     )

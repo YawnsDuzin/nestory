@@ -5,14 +5,17 @@ from typing import Literal
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from pydantic import ValidationError
+from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from app.deps import get_db, require_badge
+from app.deps import get_current_user, get_db, require_badge
 from app.models import Journey, Post, Region, User
 from app.models._enums import PostStatus, PostType
 from app.models.user import BadgeLevel
 from app.schemas.post_metadata import JourneyEpisodeMetadata, JourneyEpMeta
+from app.services import comments as comments_service
 from app.services import images as images_service
+from app.services import interactions as interactions_service
 from app.services import posts as posts_service
 from app.templating import templates
 
@@ -147,6 +150,7 @@ def journey_episode_detail(
     journey_id: int,
     ep_no: int,
     db: Session = Depends(get_db),
+    current_user: User | None = Depends(get_current_user),
 ) -> HTMLResponse:
     journey = db.get(Journey, journey_id)
     if journey is None or journey.deleted_at is not None:
@@ -190,7 +194,37 @@ def journey_episode_detail(
         .order_by(Post.episode_no.asc())
         .first()
     )
+    liked = (
+        interactions_service.is_liked_by(db, post.id, current_user.id)
+        if current_user
+        else False
+    )
+    scrapped = (
+        interactions_service.is_scrapped_by(db, post.id, current_user.id)
+        if current_user
+        else False
+    )
+    comments = comments_service.list_comments(db, post)
+    author_ids = {c.author_id for c in comments}
+    comment_authors = (
+        {u.id: u for u in db.scalars(select(User).where(User.id.in_(author_ids))).all()}
+        if author_ids
+        else {}
+    )
     return templates.TemplateResponse(
-        request, "pages/detail/journey_episode.html",
-        {"journey": journey, "post": post, "prev_ep": prev_ep, "next_ep": next_ep},
+        request,
+        "pages/detail/journey_episode.html",
+        {
+            "journey": journey,
+            "post": post,
+            "prev_ep": prev_ep,
+            "next_ep": next_ep,
+            "current_user": current_user,
+            "liked": liked,
+            "like_count": interactions_service.like_count(db, post.id),
+            "scrapped": scrapped,
+            "scrap_count": interactions_service.scrap_count(db, post.id),
+            "comments": comments,
+            "comment_authors": comment_authors,
+        },
     )

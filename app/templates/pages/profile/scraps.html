@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}@{{ profile_user.username }} · 스크랩 · Nestory{% endblock %}
+{% block content %}
+<section class="space-y-6">
+  {% with profile_active = "scraps" %}{% include "pages/profile/_header.html" %}{% endwith %}
+  {% if posts %}
+    <ul class="grid gap-3 sm:grid-cols-2">
+      {% for post in posts %}<li>{% include "partials/post_card.html" %}</li>{% endfor %}
+    </ul>
+  {% else %}
+    <p class="rounded border border-dashed bg-white p-6 text-center text-sm text-slate-500">
+      스크랩한 글이 없습니다.
+    </p>
+  {% endif %}
+</section>
+{% endblock %}
