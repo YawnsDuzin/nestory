@@ -5,7 +5,7 @@ from typing import Literal
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from pydantic import ValidationError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.deps import get_db, require_badge
 from app.models import Journey, Post, Region, User
@@ -122,6 +122,7 @@ def journey_detail(
     region = db.get(Region, journey.region_id)
     episodes = (
         db.query(Post)
+        .options(selectinload(Post.author))
         .filter(
             Post.journey_id == journey_id,
             Post.type == PostType.JOURNEY_EPISODE,
@@ -149,6 +150,7 @@ def journey_episode_detail(
         raise HTTPException(status.HTTP_404_NOT_FOUND)
     post = (
         db.query(Post)
+        .options(selectinload(Post.author), selectinload(Post.region))
         .filter(
             Post.journey_id == journey_id,
             Post.episode_no == ep_no,

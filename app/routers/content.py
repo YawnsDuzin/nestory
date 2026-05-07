@@ -4,7 +4,7 @@ from typing import Literal
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from pydantic import ValidationError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.deps import get_current_user, get_db, require_badge, require_user
 from app.models import Post, Region, User
@@ -186,7 +186,12 @@ def post_detail(
     post_id: int,
     db: Session = Depends(get_db),
 ) -> HTMLResponse:
-    post = db.get(Post, post_id)
+    post = (
+        db.query(Post)
+        .options(selectinload(Post.author), selectinload(Post.region))
+        .filter(Post.id == post_id)
+        .first()
+    )
     if (
         post is None
         or post.deleted_at is not None
@@ -198,11 +203,9 @@ def post_detail(
     posts_service.increment_view_count(db, post)
     db.commit()
     db.refresh(post)
-    author = db.get(User, post.author_id)
-    region = db.get(Region, post.region_id)
     return templates.TemplateResponse(
         request, "pages/detail/post.html",
-        {"post": post, "author": author, "region": region},
+        {"post": post, "author": post.author, "region": post.region},
     )
 
 
@@ -213,7 +216,12 @@ def question_detail(
     user: User | None = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> HTMLResponse:
-    question = db.get(Post, question_id)
+    question = (
+        db.query(Post)
+        .options(selectinload(Post.author), selectinload(Post.region))
+        .filter(Post.id == question_id)
+        .first()
+    )
     if (
         question is None
         or question.deleted_at is not None
@@ -224,10 +232,9 @@ def question_detail(
     posts_service.increment_view_count(db, question)
     db.commit()
     db.refresh(question)
-    author = db.get(User, question.author_id)
-    region = db.get(Region, question.region_id)
     answers = (
         db.query(Post)
+        .options(selectinload(Post.author))
         .filter(
             Post.parent_post_id == question.id,
             Post.type == PostType.ANSWER,
@@ -236,13 +243,10 @@ def question_detail(
         .order_by(Post.published_at.asc())
         .all()
     )
-    # Eager-load answer authors for template
-    for ans in answers:
-        ans.author = db.get(User, ans.author_id)
     return templates.TemplateResponse(
         request, "pages/detail/question.html",
         {
-            "question": question, "author": author, "region": region,
+            "question": question, "author": question.author, "region": question.region,
             "answers": answers, "user": user,
         },
     )
