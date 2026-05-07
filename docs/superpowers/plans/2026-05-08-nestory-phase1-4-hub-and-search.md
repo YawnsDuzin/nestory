@@ -520,7 +520,7 @@
 - Create: `app/services/profile.py`
 - Create: `app/tests/integration/test_profile_routes.py` (서비스 테스트는 라우터와 함께)
 
-- [ ] **Step 1: 구현**
+- [x] **Step 1: 구현**
   ```python
   # app/services/profile.py
   from dataclasses import dataclass
@@ -570,7 +570,7 @@
       ).all())
   ```
 
-- [ ] **Step 2: Commit** — `feat(profile): user profile + posts/scraps services`
+- [x] **Step 2: Commit** — `feat(profile): user profile data + author posts/scraps services`
 
 ---
 
