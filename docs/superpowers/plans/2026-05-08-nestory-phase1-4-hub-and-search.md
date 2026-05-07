@@ -585,6 +585,12 @@
 
 - [x] **Step 2: journey_card partial** — Journey listing용 별도 카드 (cover + title + episode count + author)
 
+  **Note (added 2026-05-08, post-final-review):** `partials/journey_card.html` was created
+  per Task 7 spec but is not used in any P1.4 template (hub/profile journey listings
+  render journey episodes via `post_card.html` instead). The journey_card partial is
+  intentionally retained for P1.5 when journey-level overview pages get richer treatment
+  (cover image, episode count summary, follow CTA). Not dead code — deferred consumer.
+
 - [x] **Step 3: pagination partial** — `?page=N` prev/next + 현재 페이지 표시. 총 페이지 인자 받음.
 
 - [x] **Step 4: like_button.html / scrap_button.html** — HTMX 패턴

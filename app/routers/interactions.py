@@ -47,9 +47,9 @@ def post_like(
     current_user: User = Depends(require_user),
 ) -> HTMLResponse:
     post = _post_or_404(db, post_id)
-    interactions_service.toggle_like(db, post, current_user)
+    now_liked = interactions_service.toggle_like(db, post, current_user)
     return _render_like(
-        request, post, liked=True, count=interactions_service.like_count(db, post.id)
+        request, post, liked=now_liked, count=interactions_service.like_count(db, post.id)
     )
 
 
@@ -61,9 +61,9 @@ def post_unlike(
     current_user: User = Depends(require_user),
 ) -> HTMLResponse:
     post = _post_or_404(db, post_id)
-    interactions_service.toggle_like(db, post, current_user)
+    now_liked = interactions_service.toggle_like(db, post, current_user)
     return _render_like(
-        request, post, liked=False, count=interactions_service.like_count(db, post.id)
+        request, post, liked=now_liked, count=interactions_service.like_count(db, post.id)
     )
 
 
@@ -75,11 +75,11 @@ def post_scrap(
     current_user: User = Depends(require_user),
 ) -> HTMLResponse:
     post = _post_or_404(db, post_id)
-    interactions_service.toggle_scrap(db, post, current_user)
+    now_scrapped = interactions_service.toggle_scrap(db, post, current_user)
     return _render_scrap(
         request,
         post,
-        scrapped=True,
+        scrapped=now_scrapped,
         count=interactions_service.scrap_count(db, post.id),
     )
 
@@ -92,11 +92,11 @@ def post_unscrap(
     current_user: User = Depends(require_user),
 ) -> HTMLResponse:
     post = _post_or_404(db, post_id)
-    interactions_service.toggle_scrap(db, post, current_user)
+    now_scrapped = interactions_service.toggle_scrap(db, post, current_user)
     return _render_scrap(
         request,
         post,
-        scrapped=False,
+        scrapped=now_scrapped,
         count=interactions_service.scrap_count(db, post.id),
     )
 

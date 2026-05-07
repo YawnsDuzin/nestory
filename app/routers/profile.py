@@ -44,13 +44,14 @@ def profile_posts(
     current_user: User | None = Depends(get_current_user),
 ) -> HTMLResponse:
     u = _user_or_404(db, username)
-    posts = profile_service.author_posts(db, u, PostType.REVIEW, page=page)
+    posts, total = profile_service.author_posts(db, u, PostType.REVIEW, page=page)
     return templates.TemplateResponse(
         request,
         "pages/profile/posts.html",
         {
             "profile_user": u,
             "posts": posts,
+            "total": total,
             "page": page,
             "page_size": profile_service.PAGE_SIZE,
             "current_user": current_user,
@@ -67,13 +68,14 @@ def profile_journeys(
     current_user: User | None = Depends(get_current_user),
 ) -> HTMLResponse:
     u = _user_or_404(db, username)
-    posts = profile_service.author_posts(db, u, PostType.JOURNEY_EPISODE, page=page)
+    posts, total = profile_service.author_posts(db, u, PostType.JOURNEY_EPISODE, page=page)
     return templates.TemplateResponse(
         request,
         "pages/profile/journeys.html",
         {
             "profile_user": u,
             "posts": posts,
+            "total": total,
             "page": page,
             "page_size": profile_service.PAGE_SIZE,
             "current_user": current_user,
@@ -92,13 +94,14 @@ def profile_scraps(
     u = _user_or_404(db, username)
     if current_user.id != u.id:
         raise HTTPException(403, "본인의 스크랩만 볼 수 있습니다")
-    posts = profile_service.user_scraps(db, u, page=page)
+    posts, total = profile_service.user_scraps(db, u, page=page)
     return templates.TemplateResponse(
         request,
         "pages/profile/scraps.html",
         {
             "profile_user": u,
             "posts": posts,
+            "total": total,
             "page": page,
             "page_size": profile_service.PAGE_SIZE,
             "current_user": current_user,

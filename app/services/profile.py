@@ -39,8 +39,10 @@ def profile_data(db: Session, user: User) -> ProfileData:
     )
 
 
-def author_posts(db: Session, user: User, post_type: PostType, *, page: int = 1) -> list[Post]:
-    return list(db.scalars(
+def author_posts(
+    db: Session, user: User, post_type: PostType, *, page: int = 1
+) -> tuple[list[Post], int]:
+    base = (
         select(Post)
         .where(
             Post.author_id == user.id,
@@ -49,14 +51,19 @@ def author_posts(db: Session, user: User, post_type: PostType, *, page: int = 1)
             Post.deleted_at.is_(None),
         )
         .options(selectinload(Post.region), selectinload(Post.author))
-        .order_by(Post.published_at.desc())
+    )
+    total = db.scalar(select(func.count()).select_from(base.subquery())) or 0
+    posts_stmt = (
+        base.order_by(Post.published_at.desc())
         .offset((page - 1) * PAGE_SIZE)
         .limit(PAGE_SIZE)
-    ).all())
+    )
+    posts = list(db.scalars(posts_stmt).all())
+    return posts, total
 
 
-def user_scraps(db: Session, user: User, *, page: int = 1) -> list[Post]:
-    return list(db.scalars(
+def user_scraps(db: Session, user: User, *, page: int = 1) -> tuple[list[Post], int]:
+    base = (
         select(Post)
         .join(post_scraps, post_scraps.c.post_id == Post.id)
         .where(
@@ -65,10 +72,15 @@ def user_scraps(db: Session, user: User, *, page: int = 1) -> list[Post]:
             Post.deleted_at.is_(None),
         )
         .options(selectinload(Post.author), selectinload(Post.region))
-        .order_by(post_scraps.c.created_at.desc())
+    )
+    total = db.scalar(select(func.count()).select_from(base.subquery())) or 0
+    posts_stmt = (
+        base.order_by(post_scraps.c.created_at.desc())
         .offset((page - 1) * PAGE_SIZE)
         .limit(PAGE_SIZE)
-    ).all())
+    )
+    posts = list(db.scalars(posts_stmt).all())
+    return posts, total
 
 
 __all__ = [

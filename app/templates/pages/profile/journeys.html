@@ -12,5 +12,8 @@
       아직 Journey가 없습니다.
     </p>
   {% endif %}
+  {% with base_url = "/u/" ~ profile_user.username ~ "/journeys", query_params = {} %}
+    {% include "partials/pagination.html" %}
+  {% endwith %}
 </section>
 {% endblock %}

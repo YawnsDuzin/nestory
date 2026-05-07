@@ -12,5 +12,8 @@
       스크랩한 글이 없습니다.
     </p>
   {% endif %}
+  {% with base_url = "/u/" ~ profile_user.username ~ "/scraps", query_params = {} %}
+    {% include "partials/pagination.html" %}
+  {% endwith %}
 </section>
 {% endblock %}

@@ -12,5 +12,8 @@
       아직 작성한 후기가 없습니다.
     </p>
   {% endif %}
+  {% with base_url = "/u/" ~ profile_user.username ~ "/posts", query_params = {} %}
+    {% include "partials/pagination.html" %}
+  {% endwith %}
 </section>
 {% endblock %}

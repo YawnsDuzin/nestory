@@ -1,4 +1,6 @@
 """Hub routes — /discover (region grid), /hub/{slug} (4-tab region hub)."""
+from typing import Literal
+
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from sqlalchemy import select
@@ -59,7 +61,7 @@ def hub_reviews(
     slug: str,
     request: Request,
     page: int = 1,
-    sort: str = "latest",
+    sort: Literal["latest", "popular"] = "latest",
     db: Session = Depends(get_db),
     current_user: User | None = Depends(get_current_user),
 ) -> HTMLResponse:
@@ -86,7 +88,7 @@ def hub_journeys(
     slug: str,
     request: Request,
     page: int = 1,
-    sort: str = "latest",
+    sort: Literal["latest", "popular"] = "latest",
     db: Session = Depends(get_db),
     current_user: User | None = Depends(get_current_user),
 ) -> HTMLResponse:
@@ -113,7 +115,7 @@ def hub_questions(
     slug: str,
     request: Request,
     page: int = 1,
-    sort: str = "latest",
+    sort: Literal["latest", "popular"] = "latest",
     db: Session = Depends(get_db),
     current_user: User | None = Depends(get_current_user),
 ) -> HTMLResponse:

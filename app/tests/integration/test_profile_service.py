@@ -170,7 +170,7 @@ def test_author_posts_returns_only_specified_type(db: Session) -> None:
     _published_question(region, user)
     db.flush()
 
-    posts = profile_service.author_posts(db, user, PostType.REVIEW)
+    posts, total = profile_service.author_posts(db, user, PostType.REVIEW)
     ids = [p.id for p in posts]
     assert review.id in ids
     for p in posts:
@@ -191,7 +191,7 @@ def test_author_posts_excludes_other_authors(db: Session) -> None:
     other_post = _published_review(region, other)
     db.flush()
 
-    posts = profile_service.author_posts(db, user, PostType.REVIEW)
+    posts, total = profile_service.author_posts(db, user, PostType.REVIEW)
     ids = [p.id for p in posts]
     assert other_post.id not in ids
 
@@ -209,7 +209,7 @@ def test_author_posts_excludes_drafts(db: Session) -> None:
     ReviewPostFactory(author=user, region=region, status=PostStatus.DRAFT)
     db.flush()
 
-    posts = profile_service.author_posts(db, user, PostType.REVIEW)
+    posts, total = profile_service.author_posts(db, user, PostType.REVIEW)
     ids = [p.id for p in posts]
     assert published.id in ids
     for p in posts:
@@ -229,7 +229,7 @@ def test_author_posts_orders_by_published_at_desc(db: Session) -> None:
     newer = _published_review(region, user, published_at=datetime(2026, 6, 1, tzinfo=UTC))
     db.flush()
 
-    posts = profile_service.author_posts(db, user, PostType.REVIEW)
+    posts, total = profile_service.author_posts(db, user, PostType.REVIEW)
     ids = [p.id for p in posts]
     assert newer.id in ids
     assert older.id in ids
@@ -249,8 +249,8 @@ def test_author_posts_pagination(db: Session) -> None:
         _published_review(region, user)
     db.flush()
 
-    page1 = profile_service.author_posts(db, user, PostType.REVIEW, page=1)
-    page2 = profile_service.author_posts(db, user, PostType.REVIEW, page=2)
+    page1, total1 = profile_service.author_posts(db, user, PostType.REVIEW, page=1)
+    page2, total2 = profile_service.author_posts(db, user, PostType.REVIEW, page=2)
 
     assert len(page1) == profile_service.PAGE_SIZE
     assert len(page2) == 2
@@ -261,7 +261,55 @@ def test_author_posts_pagination(db: Session) -> None:
 
 
 # ---------------------------------------------------------------------------
-# 12. author_posts — regression: post.author must be eager-loaded
+# 12. author_posts — total count is correct across all pages
+# ---------------------------------------------------------------------------
+
+
+def test_author_posts_returns_total_count(db: Session) -> None:
+    """author_posts returns total count matching number of published posts of that type."""
+    region = RegionFactory(slug="profile-total-count-region")
+    user = UserFactory()
+
+    for _ in range(3):
+        _published_review(region, user)
+    # DRAFT must NOT be counted
+    ReviewPostFactory(author=user, region=region, status=PostStatus.DRAFT)
+    db.flush()
+
+    posts, total = profile_service.author_posts(db, user, PostType.REVIEW)
+    assert total == 3
+    assert len(posts) == 3
+
+
+# ---------------------------------------------------------------------------
+# 13. user_scraps — total count is correct
+# ---------------------------------------------------------------------------
+
+
+def test_user_scraps_returns_total_count(db: Session) -> None:
+    """user_scraps returns total matching number of published scrapped posts."""
+    region = RegionFactory(slug="profile-scraps-total-region")
+    user = UserFactory()
+    author = UserFactory()
+
+    post_a = _published_review(region, author)
+    post_b = _published_review(region, author)
+    draft = ReviewPostFactory(author=author, region=region, status=PostStatus.DRAFT)
+    db.flush()
+
+    add_post_scrap(db, user, post_a)
+    add_post_scrap(db, user, post_b)
+    add_post_scrap(db, user, draft)
+    db.flush()
+
+    scraps, total = profile_service.user_scraps(db, user)
+    # draft scrap must be excluded from both list and total
+    assert total == 2
+    assert len(scraps) == 2
+
+
+# ---------------------------------------------------------------------------
+# (was 12) author_posts — regression: post.author must be eager-loaded
 # ---------------------------------------------------------------------------
 
 
@@ -275,7 +323,7 @@ def test_author_posts_loads_author_for_template_use(db: Session) -> None:
     )
     db.commit()
 
-    posts = profile_service.author_posts(db, user, PostType.REVIEW)
+    posts, total = profile_service.author_posts(db, user, PostType.REVIEW)
     assert len(posts) == 1
     # If selectinload is missing, accessing .author here raises InvalidRequestError
     assert posts[0].author.username == user.username
@@ -315,7 +363,7 @@ def test_user_scraps_orders_by_scrap_created_at_desc(db: Session) -> None:
     )
     db.flush()
 
-    scraps = profile_service.user_scraps(db, user)
+    scraps, total = profile_service.user_scraps(db, user)
     ids = [p.id for p in scraps]
     assert post_b.id in ids
     assert post_a.id in ids
@@ -340,7 +388,7 @@ def test_user_scraps_isolates_users(db: Session) -> None:
     add_post_scrap(db, user_a, post1)
     db.flush()
 
-    scraps_b = profile_service.user_scraps(db, user_b)
+    scraps_b, total = profile_service.user_scraps(db, user_b)
     ids_b = [p.id for p in scraps_b]
     assert post1.id not in ids_b
 
@@ -372,7 +420,7 @@ def test_user_scraps_excludes_drafts_and_deleted(db: Session) -> None:
     add_post_scrap(db, user, deleted_post)
     db.flush()
 
-    scraps = profile_service.user_scraps(db, user)
+    scraps, total = profile_service.user_scraps(db, user)
     ids = [p.id for p in scraps]
     assert published.id in ids
     assert draft_post.id not in ids
