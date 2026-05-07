@@ -419,9 +419,9 @@
 - Create: `app/services/interactions.py`
 - Create: `app/tests/integration/test_interactions_service.py`
 
-- [ ] **Step 1: 테스트 작성** — `toggle_like` 두 번 호출 후 unliked / 다른 사용자 좋아요 영향 없음 / count 정확
+- [x] **Step 1: 테스트 작성** — `toggle_like` 두 번 호출 후 unliked / 다른 사용자 좋아요 영향 없음 / count 정확
 
-- [ ] **Step 2: 구현**
+- [x] **Step 2: 구현**
   ```python
   # app/services/interactions.py
   from sqlalchemy import delete, func, insert, select
@@ -462,7 +462,7 @@
   # toggle_scrap, scrap_count, is_scrapped_by — 동일 패턴 with post_scraps
   ```
 
-- [ ] **Step 3: 테스트 통과 + Commit** — `feat(interactions): idempotent like/scrap toggle services`
+- [x] **Step 3: 테스트 통과 + Commit** — `feat(interactions): idempotent like/scrap toggle services`
 
 ---
 
