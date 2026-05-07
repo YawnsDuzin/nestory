@@ -1,9 +1,14 @@
 """Tests for GET·POST /write/review."""
+from io import BytesIO
+from pathlib import Path
+
+from fastapi import UploadFile
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.models import Post
 from app.models._enums import PostStatus, PostType
+from app.services import images as images_service
 from app.tests.factories import RegionFactory, ResidentUserFactory, UserFactory
 
 
@@ -127,3 +132,33 @@ def test_post_write_review_400_on_body_too_long(
     )
     assert r.status_code == 400
     assert "본문" in r.text or "최대" in r.text
+
+
+def test_post_write_review_400_on_foreign_image(
+    client: TestClient, db: Session, login,
+) -> None:
+    """Cannot embed another user's uploaded image in own review body."""
+    other_user = UserFactory()
+    other_img = images_service.upload_image(
+        db, other_user,
+        UploadFile(
+            filename="sample.jpg",
+            file=BytesIO(Path("app/tests/fixtures/sample.jpg").read_bytes()),
+        ),
+    )
+    db.commit()
+
+    author = ResidentUserFactory()
+    region = RegionFactory()
+    db.commit()
+    login(author.id)
+    body = f"text ![](/img/{other_img.id}/orig)"
+    r = client.post(
+        "/write/review",
+        data={
+            "title": "x", "body": body, "region_id": str(region.id),
+            "house_type": "단독", "size_pyeong": "30", "satisfaction_overall": "4",
+        },
+    )
+    assert r.status_code == 400
+    assert "본인이" in r.text or "이미지" in r.text

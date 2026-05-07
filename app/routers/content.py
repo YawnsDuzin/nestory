@@ -11,6 +11,7 @@ from app.models import Post, Region, User
 from app.models._enums import PostStatus, PostType
 from app.models.user import BadgeLevel
 from app.schemas.post_metadata import PlanMetadata, QuestionMetadata, ReviewMetadata
+from app.services import images as images_service
 from app.services import posts as posts_service
 from app.templating import templates
 
@@ -56,6 +57,7 @@ def submit_review(
     if region is None:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Invalid region")
     posts_service.validate_body_length(body)
+    images_service.validate_image_ownership(db, body, user)
     try:
         meta = ReviewMetadata(
             house_type=house_type, size_pyeong=size_pyeong,
@@ -101,6 +103,7 @@ def submit_question(
     if region is None:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Invalid region")
     posts_service.validate_body_length(body)
+    images_service.validate_image_ownership(db, body, user)
     tag_list = [t.strip() for t in tags.split(",") if t.strip()][:10]
     try:
         meta = QuestionMetadata(tags=tag_list)
@@ -149,6 +152,7 @@ def submit_plan(
     if region is None:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Invalid region")
     posts_service.validate_body_length(body)
+    images_service.validate_image_ownership(db, body, user)
     try:
         meta = PlanMetadata(
             target_move_year=target_move_year,
@@ -177,6 +181,7 @@ def submit_answer(
     ):
         raise HTTPException(status.HTTP_404_NOT_FOUND)
     posts_service.validate_body_length(body)
+    images_service.validate_image_ownership(db, body, user)
     posts_service.create_answer(db, user, question, body)
     db.commit()
     return RedirectResponse(

@@ -12,6 +12,7 @@ from app.models import Journey, Post, Region, User
 from app.models._enums import PostStatus, PostType
 from app.models.user import BadgeLevel
 from app.schemas.post_metadata import JourneyEpisodeMetadata, JourneyEpMeta
+from app.services import images as images_service
 from app.services import posts as posts_service
 from app.templating import templates
 
@@ -96,6 +97,7 @@ def submit_episode(
     if journey.author_id != user.id:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Not your journey")
     posts_service.validate_body_length(body)
+    images_service.validate_image_ownership(db, body, user)
     try:
         meta = JourneyEpisodeMetadata(
             journey_ep_meta=JourneyEpMeta(phase=phase, period_label=period_label)

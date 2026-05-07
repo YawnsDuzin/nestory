@@ -101,3 +101,57 @@ def test_validate_upload_aborts_early_on_oversize_streaming() -> None:
     with pytest.raises(HTTPException) as exc:
         images_service.validate_upload(f)
     assert exc.value.status_code == 400
+
+
+def test_extract_image_ids_finds_all_variants() -> None:
+    body = (
+        "intro\n\n"
+        "![](/img/42/orig) text "
+        "![](/img/100/thumb) more "
+        "![](/img/77/medium)"
+    )
+    assert images_service.extract_image_ids(body) == {42, 77, 100}
+
+
+def test_extract_image_ids_returns_empty_for_no_images() -> None:
+    assert images_service.extract_image_ids("just text, no images") == set()
+
+
+def test_validate_image_ownership_passes_for_own_images(db: Session) -> None:
+    user = UserFactory()
+    f = UploadFile(
+        filename="sample.jpg",
+        file=BytesIO(Path("app/tests/fixtures/sample.jpg").read_bytes()),
+    )
+    img = images_service.upload_image(db, user, f)
+    body = f"text ![](/img/{img.id}/orig)"
+    images_service.validate_image_ownership(db, body, user)  # no raise
+
+
+def test_validate_image_ownership_passes_for_no_images(db: Session) -> None:
+    user = UserFactory()
+    images_service.validate_image_ownership(db, "just text", user)  # no raise
+
+
+def test_validate_image_ownership_rejects_foreign_image(db: Session) -> None:
+    owner = UserFactory()
+    other = UserFactory()
+    f = UploadFile(
+        filename="sample.jpg",
+        file=BytesIO(Path("app/tests/fixtures/sample.jpg").read_bytes()),
+    )
+    img = images_service.upload_image(db, owner, f)
+    body = f"text ![](/img/{img.id}/orig)"
+    with pytest.raises(HTTPException) as exc:
+        images_service.validate_image_ownership(db, body, other)
+    assert exc.value.status_code == 400
+    assert "본인이 업로드하지 않은" in exc.value.detail
+
+
+def test_validate_image_ownership_rejects_missing_image(db: Session) -> None:
+    user = UserFactory()
+    body = "text ![](/img/99999/orig)"
+    with pytest.raises(HTTPException) as exc:
+        images_service.validate_image_ownership(db, body, user)
+    assert exc.value.status_code == 400
+    assert "존재하지 않는" in exc.value.detail

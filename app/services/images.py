@@ -3,6 +3,7 @@
 CLAUDE.md alignment: db first arg, user second, returns ORM Image (not bare path).
 Async resize dispatched via existing PG queue (workers.queue.enqueue).
 """
+import re
 from io import BytesIO
 from pathlib import Path, PurePosixPath
 from typing import Final
@@ -140,10 +141,45 @@ def upload_image(db: Session, owner: User, file: UploadFile) -> Image:
     return img
 
 
+_IMG_REF_RE = re.compile(r"/img/(\d+)/(?:orig|thumb|medium|webp)")
+
+
+def extract_image_ids(markdown_body: str) -> set[int]:
+    """Return the set of internal image IDs referenced in markdown body."""
+    return {int(m.group(1)) for m in _IMG_REF_RE.finditer(markdown_body)}
+
+
+def validate_image_ownership(db: Session, body: str, owner: User) -> None:
+    """Raise 400 if body references images not owned by `owner`.
+
+    Prevents a user from embedding another user's uploaded image in their
+    post body (attribution leak + storage hot-linking).
+    """
+    image_ids = extract_image_ids(body)
+    if not image_ids:
+        return
+    rows = db.query(Image.id, Image.owner_id).filter(Image.id.in_(image_ids)).all()
+    found_ids = {row.id for row in rows}
+    missing = image_ids - found_ids
+    if missing:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            f"존재하지 않는 이미지 참조: {sorted(missing)}",
+        )
+    foreign = [row.id for row in rows if row.owner_id != owner.id]
+    if foreign:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            f"본인이 업로드하지 않은 이미지: {sorted(foreign)}",
+        )
+
+
 __all__ = [
     "dispatch_resize",
+    "extract_image_ids",
     "store_original",
     "strip_exif",
     "upload_image",
+    "validate_image_ownership",
     "validate_upload",
 ]
