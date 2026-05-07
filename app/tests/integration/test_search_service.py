@@ -114,7 +114,7 @@ def test_type_filter_review_only(db: Session) -> None:
     )
     db.flush()
 
-    result = search_service.search_posts(db, "양평", type=PostType.REVIEW)
+    result = search_service.search_posts(db, "양평", post_type=PostType.REVIEW)
     assert result.total >= 1
     for post in result.posts:
         assert post.type == PostType.REVIEW

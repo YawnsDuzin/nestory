@@ -54,12 +54,6 @@ def test_normalize_empty_string_returns_empty() -> None:
     assert normalize_query("") == ""
 
 
-def test_normalize_none_like_empty_returns_empty() -> None:
-    """None is coerced by `(q or "")` — returns ""."""
-    # normalize_query signature: q: str, but test the guard
-    assert normalize_query("") == ""
-
-
 def test_normalize_single_char_returns_empty() -> None:
     """1-char query is below MIN_QUERY_LEN (2) → returns ""."""
     assert normalize_query("a") == ""
@@ -119,5 +113,5 @@ def test_min_query_len_is_two() -> None:
 
 
 def test_max_query_len_is_two_hundred() -> None:
-    """Confirm MAX_QUERY_LEN matches plan §847 length cap."""
+    """Confirm MAX_QUERY_LEN matches plan Task 2 length cap (200 chars)."""
     assert MAX_QUERY_LEN == 200

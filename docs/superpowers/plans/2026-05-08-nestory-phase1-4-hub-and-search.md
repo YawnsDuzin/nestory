@@ -178,7 +178,7 @@
 - Create: `app/tests/unit/test_search_query_builder.py`
 - Modify: `app/services/__init__.py`
 
-- [x] **Step 1: 실패 테스트 작성** ✅ `test_search_service.py` (12개 integration 케이스: 한글 부분일치·오타·region필터·type필터·latest/popular/relevance·pagination·빈쿼리·draft제외·soft-delete제외) + `test_search_query_builder.py` (18개 unit 케이스: strip·cap·short-circuit·특수문자 통과)
+- [x] **Step 1: 실패 테스트 작성** ✅ `test_search_service.py` (14개 integration 케이스: 한글 부분일치·오타·region필터·type필터·latest/popular/relevance·pagination·빈쿼리·draft제외·soft-delete제외) + `test_search_query_builder.py` (18개 unit 케이스: strip·cap·short-circuit·특수문자 통과)
 
 - [x] **Step 2: service 구현** ✅ `app/services/search.py` — `normalize_query` + `search_posts` + `SearchResult` dataclass. PAGE_SIZE=20, MIN_QUERY_LEN=2, MAX_QUERY_LEN=200, SIMILARITY_THRESHOLD=0.1. `selectinload(Post.author/region)` 포함.
   ```python

@@ -1,11 +1,6 @@
-"""Search service — pg_trgm + simple FTS hybrid.
-
-CLAUDE.md alignment: db first arg, no request.session, returns SearchResult
-dataclass (not dict). selectinload used for author/region (lazy="raise" rels).
-GIN partial indexes (status=published AND deleted_at IS NULL) added in Task 1
-migration e1ad6f3c4a92.
-"""
+"""Search service — pg_trgm + simple FTS hybrid post search."""
 from dataclasses import dataclass
+from typing import Literal
 
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, selectinload
@@ -37,8 +32,8 @@ def search_posts(
     q: str,
     *,
     region_id: int | None = None,
-    type: PostType | None = None,
-    sort: str = "relevance",  # relevance | latest | popular
+    post_type: PostType | None = None,
+    sort: Literal["relevance", "latest", "popular"] = "relevance",
     page: int = 1,
 ) -> SearchResult:
     """Search published posts via trgm similarity + simple FTS.
@@ -69,8 +64,8 @@ def search_posts(
 
     if region_id:
         stmt = stmt.where(Post.region_id == region_id)
-    if type:
-        stmt = stmt.where(Post.type == type)
+    if post_type:
+        stmt = stmt.where(Post.type == post_type)
 
     total = db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
 
