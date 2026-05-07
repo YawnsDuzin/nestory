@@ -16,8 +16,8 @@ from app.templating import templates
 router = APIRouter(tags=["content"])
 
 
-def _user_regions_options(db: Session, user: User) -> list[Region]:
-    """Regions available for posting: user's primary first, then all alphabetical."""
+def _all_regions_options(db: Session) -> list[Region]:
+    """All regions, sorted by sigungu. Used by all write/* forms."""
     return db.query(Region).order_by(Region.sigungu).all()
 
 
@@ -34,7 +34,7 @@ def write_review_form(
             "page_title": "후기 작성",
             "page_subtitle": "정착 회고를 남겨주세요. Pillar C — 후회 비용을 데이터로.",
             "form_action": "/write/review",
-            "regions": _user_regions_options(db, user),
+            "regions": _all_regions_options(db),
             "form": None,
         },
     )

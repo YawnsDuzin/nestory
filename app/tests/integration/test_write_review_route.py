@@ -89,3 +89,27 @@ def test_post_write_review_400_on_invalid_metadata(client: TestClient, db: Sessi
         },
     )
     assert r.status_code in (400, 422)
+
+
+def test_post_write_review_400_on_pydantic_validation_error(
+    client: TestClient, db: Session,
+) -> None:
+    """satisfaction_overall=6 passes FastAPI int validation but fails Pydantic le=5."""
+    user = ResidentUserFactory()
+    region = RegionFactory()
+    db.commit()
+    _login(client, user.id)
+    r = client.post(
+        "/write/review",
+        data={
+            "title": "x",
+            "body": "y",
+            "region_id": str(region.id),
+            "house_type": "단독",
+            "size_pyeong": "30",
+            "satisfaction_overall": "6",  # > Pydantic's le=5 cap
+        },
+    )
+    assert r.status_code == 400
+    text = r.text.lower()
+    assert "satisfaction" in text or "less than" in text or "validation" in text
