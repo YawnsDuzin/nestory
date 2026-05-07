@@ -192,3 +192,93 @@ def test_badge_evidence_factory(db: Session) -> None:
     assert e.application_id is not None
     assert e.evidence_type == EvidenceType.UTILITY_BILL
     assert e.file_path.startswith("evidence/")
+
+
+def test_notification_factory(db: Session) -> None:
+    from app.models._enums import NotificationType
+    from app.tests.factories import NotificationFactory
+
+    n = NotificationFactory()
+    assert n.id is not None
+    assert n.user_id is not None
+    assert n.type == NotificationType.SYSTEM
+    assert n.is_read is False
+
+
+def test_user_interest_region_factory(db: Session) -> None:
+    from app.tests.factories import UserInterestRegionFactory
+
+    uir = UserInterestRegionFactory()
+    assert uir.user_id is not None
+    assert uir.region_id is not None
+    assert uir.priority == 1
+
+
+def test_job_factory(db: Session) -> None:
+    from app.models._enums import JobKind, JobStatus
+    from app.tests.factories import JobFactory
+
+    j = JobFactory()
+    assert j.id is not None
+    assert j.kind == JobKind.NOTIFICATION
+    assert j.status == JobStatus.QUEUED
+    assert j.payload == {}
+
+
+def test_tag_factory(db: Session) -> None:
+    from app.tests.factories import TagFactory
+
+    t = TagFactory()
+    assert t.id is not None
+    assert t.slug.startswith("tag-")
+
+
+def test_tag_factory_get_or_create(db: Session) -> None:
+    from app.tests.factories import TagFactory
+
+    t1 = TagFactory(slug="dup-tag")
+    t2 = TagFactory(slug="dup-tag")
+    assert t1.id == t2.id
+
+
+def test_announcement_factory(db: Session) -> None:
+    from app.tests.factories import AnnouncementFactory
+
+    a = AnnouncementFactory()
+    assert a.id is not None
+    assert a.author_id is not None
+    assert a.pinned is False
+
+
+def test_audit_log_factory(db: Session) -> None:
+    from app.models._enums import AuditAction
+    from app.tests.factories import AuditLogFactory
+
+    log = AuditLogFactory()
+    assert log.id is not None
+    assert log.actor_id is not None
+    assert log.action == AuditAction.BADGE_APPROVED
+    assert log.target_type == "badge_applications"
+
+
+def test_report_factory(db: Session) -> None:
+    from app.models._enums import ReportReason, ReportStatus
+    from app.tests.factories import ReportFactory
+
+    r = ReportFactory()
+    assert r.id is not None
+    assert r.reporter_id is not None
+    assert r.target_type == "posts"
+    assert r.reason == ReportReason.SPAM
+    assert r.status == ReportStatus.PENDING
+
+
+def test_post_validation_factory(db: Session) -> None:
+    from app.models._enums import ValidationVote
+    from app.tests.factories import PostValidationFactory
+
+    pv = PostValidationFactory()
+    assert pv.id is not None
+    assert pv.post_id is not None
+    assert pv.validator_user_id is not None
+    assert pv.vote == ValidationVote.CONFIRM
