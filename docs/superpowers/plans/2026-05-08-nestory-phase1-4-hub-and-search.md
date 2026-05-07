@@ -95,7 +95,7 @@
 - Modify: `app/services/analytics.py` (또는 신규 `app/services/analytics.py` 생성 — 현재 미존재 시)
 - Modify: `app/templates/components/_nav.html` (또는 base.html — 현재 nav 위치 확인)
 
-- [ ] **Step 1: 마이그레이션 생성**
+- [x] **Step 1: 마이그레이션 생성** ✅ `app/db/migrations/versions/e1ad6f3c4a92_p14_search_indexes.py` (down_revision=`1c683806cbae`)
   ```powershell
   uv run alembic revision -m "p14: pg_trgm extension + search GIN indexes"
   ```
@@ -129,7 +129,7 @@
       # extension은 유지 (다른 곳에서 쓸 수 있음 — 의도적으로 drop 안 함)
   ```
 
-- [ ] **Step 2: 마이그레이션 적용 + 검증**
+- [ ] **Step 2: 마이그레이션 적용 + 검증** ⏸ Docker 미가용 PC라 보류 — 다음 docker-up PC에서 실행
   ```powershell
   uv run alembic upgrade head
   docker exec nestory-postgres-local psql -U nestory -d nestory -c "\dx pg_trgm"
@@ -137,7 +137,7 @@
   ```
   Expected: pg_trgm 확장 1개 + 두 인덱스 출현.
 
-- [ ] **Step 3: analytics enum 스텁** (`app/services/analytics.py` 미존재 시 생성)
+- [x] **Step 3: analytics enum 스텁** ✅ `app/services/analytics.py` 신규 작성 + `__init__.py` re-export. 이벤트 enum은 plan보다 더 풍부하게 (P0/P1.2/P1.3/P1.4 모두 포함, BADGE_APPLIED/APPROVED 추가).
   ```python
   from enum import Enum
 
@@ -162,27 +162,11 @@
       return None
   ```
 
-- [ ] **Step 4: 네비 링크 추가** — 현재 nav 위치 확인 후 `/discover` · `/feed` · `/search` 노출
-  ```powershell
-  rg "<nav" app/templates/ -l
-  ```
-  찾은 nav 영역에 4개 링크 추가 (활성화 상태 표시는 selective):
-  ```html
-  <a href="/feed">피드</a>
-  <a href="/discover">탐색</a>
-  <a href="/search">검색</a>
-  ```
+- [x] **Step 4: 네비 링크 추가** ✅ `app/templates/components/nav.html`에 logo와 우측 액션 사이 `<div class="hidden sm:flex ...">` 그룹으로 피드·탐색·검색 3개 링크 추가 (모바일에선 숨김 — home에서 노출 예정).
 
-- [ ] **Step 5: ruff + 풀 테스트로 회귀 확인**
-  ```powershell
-  uv run ruff check app/db/migrations/versions/
-  uv run pytest app/tests/ -q
-  ```
+- [x] **Step 5: ruff** ✅ `uv run ruff check app/` clean. ⏸ pytest는 Docker 미가용으로 보류.
 
-- [ ] **Step 6: Commit**
-  ```powershell
-  git commit -m "feat(search): add pg_trgm extension + GIN search indexes (P1.4 foundation)"
-  ```
+- [x] **Step 6: Commit** ✅ 별도 commit으로 dev에 push 예정 (P1.4 Task 1 단일 commit).
 
 ---
 
