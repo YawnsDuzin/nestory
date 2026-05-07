@@ -1,32 +1,18 @@
 """End-to-end: login → upload image → write review → detail page renders."""
-import base64
-import json
 from io import BytesIO
 from pathlib import Path
 
 from fastapi.testclient import TestClient
-from itsdangerous import TimestampSigner
 from sqlalchemy.orm import Session
 
-from app.config import get_settings
 from app.tests.factories import RegionFactory, ResidentUserFactory
 
 
-def _login_cookie(user_id: int) -> str:
-    signer = TimestampSigner(get_settings().app_secret_key)
-    raw = base64.b64encode(json.dumps({"user_id": user_id}).encode()).decode()
-    return signer.sign(raw.encode()).decode()
-
-
-def _login(client: TestClient, user_id: int) -> None:
-    client.cookies.set("nestory_session", _login_cookie(user_id))
-
-
-def test_full_post_workflow_with_image(client: TestClient, db: Session) -> None:
+def test_full_post_workflow_with_image(client: TestClient, db: Session, login) -> None:
     user = ResidentUserFactory()
     region = RegionFactory()
     db.commit()
-    _login(client, user.id)
+    login(user.id)
 
     # 1. Upload image
     sample = Path("app/tests/fixtures/sample.jpg").read_bytes()
@@ -65,11 +51,11 @@ def test_full_post_workflow_with_image(client: TestClient, db: Session) -> None:
     assert f"/img/{img_id}/orig" not in detail_r.text
 
 
-def test_journey_workflow_create_episode_view(client: TestClient, db: Session) -> None:
+def test_journey_workflow_create_episode_view(client: TestClient, db: Session, login) -> None:
     user = ResidentUserFactory()
     region = RegionFactory()
     db.commit()
-    _login(client, user.id)
+    login(user.id)
 
     # 1. Create journey
     j_r = client.post(
@@ -96,14 +82,14 @@ def test_journey_workflow_create_episode_view(client: TestClient, db: Session) -
     assert "1화 터잡기" in list_r.text
 
 
-def test_question_answer_workflow(client: TestClient, db: Session) -> None:
+def test_question_answer_workflow(client: TestClient, db: Session, login) -> None:
     asker = ResidentUserFactory()
     answerer = ResidentUserFactory()
     region = RegionFactory()
     db.commit()
 
     # 1. Asker posts question
-    _login(client, asker.id)
+    login(asker.id)
     q_r = client.post(
         "/write/question",
         data={"title": "단열재?", "body": "추천 부탁", "region_id": str(region.id), "tags": "단열"},
@@ -112,7 +98,7 @@ def test_question_answer_workflow(client: TestClient, db: Session) -> None:
     q_url = q_r.headers["location"]
 
     # 2. Answerer posts answer
-    _login(client, answerer.id)  # switches cookie
+    login(answerer.id)  # switches cookie
     a_r = client.post(
         f"{q_url}/answer",
         data={"body": "셀룰로오스 추천"},

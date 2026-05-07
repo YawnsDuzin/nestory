@@ -1,29 +1,20 @@
 """Tests for POST /htmx/image/upload."""
-import base64
-import json
 from io import BytesIO
 from pathlib import Path
 
 from fastapi.testclient import TestClient
-from itsdangerous import TimestampSigner
 from sqlalchemy.orm import Session
 
-from app.config import get_settings
 from app.models import Image
 from app.tests.factories import UserFactory
 
 
-def _login_cookie(client: TestClient, user_id: int) -> str:
-    secret = get_settings().app_secret_key
-    data = base64.b64encode(json.dumps({"user_id": user_id}).encode("utf-8"))
-    signer = TimestampSigner(secret)
-    return signer.sign(data).decode("utf-8")
-
-
-def test_upload_returns_json_with_image_id_and_url(client: TestClient, db: Session) -> None:
+def test_upload_returns_json_with_image_id_and_url(
+    client: TestClient, db: Session, login,
+) -> None:
     user = UserFactory()
     db.commit()
-    client.cookies.set("nestory_session", _login_cookie(client, user.id))
+    login(user.id)
     sample = Path("app/tests/fixtures/sample.jpg").read_bytes()
     r = client.post(
         "/htmx/image/upload",
@@ -44,10 +35,12 @@ def test_upload_requires_login(client: TestClient) -> None:
     assert r.status_code == 401
 
 
-def test_upload_rejects_non_image_mime(client: TestClient, db: Session) -> None:
+def test_upload_rejects_non_image_mime(
+    client: TestClient, db: Session, login,
+) -> None:
     user = UserFactory()
     db.commit()
-    client.cookies.set("nestory_session", _login_cookie(client, user.id))
+    login(user.id)
     r = client.post(
         "/htmx/image/upload",
         files={
@@ -61,12 +54,14 @@ def test_upload_rejects_non_image_mime(client: TestClient, db: Session) -> None:
     assert r.status_code == 400
 
 
-def test_upload_creates_image_row_and_enqueues_job(client: TestClient, db: Session) -> None:
+def test_upload_creates_image_row_and_enqueues_job(
+    client: TestClient, db: Session, login,
+) -> None:
     from app.models import Job
     from app.models._enums import JobKind
     user = UserFactory()
     db.commit()
-    client.cookies.set("nestory_session", _login_cookie(client, user.id))
+    login(user.id)
     sample = Path("app/tests/fixtures/sample.jpg").read_bytes()
     r = client.post(
         "/htmx/image/upload",

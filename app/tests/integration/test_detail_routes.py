@@ -26,22 +26,6 @@ def _published(**overrides):
     }
 
 
-def _login_cookie(user_id: int) -> str:
-    import base64
-    import json
-
-    from itsdangerous import TimestampSigner
-
-    from app.config import get_settings
-    signer = TimestampSigner(get_settings().app_secret_key)
-    raw = base64.b64encode(json.dumps({"user_id": user_id}).encode()).decode()
-    return signer.sign(raw.encode()).decode()
-
-
-def _login(client: TestClient, user_id: int) -> None:
-    client.cookies.set("nestory_session", _login_cookie(user_id))
-
-
 def test_post_review_renders_with_metadata_card(client: TestClient, db: Session) -> None:
     post = ReviewPostFactory(**_published(title="1년차 회고", body="단열"))
     db.commit()
@@ -83,11 +67,13 @@ def test_post_view_count_increments(client: TestClient, db: Session) -> None:
     assert post.view_count == 2
 
 
-def test_question_renders_with_answer_form_when_logged_in(client: TestClient, db: Session) -> None:
+def test_question_renders_with_answer_form_when_logged_in(
+    client: TestClient, db: Session, login,
+) -> None:
     question = QuestionPostFactory(**_published(title="단열재 추천?"))
     user = UserFactory()
     db.commit()
-    _login(client, user.id)
+    login(user.id)
     r = client.get(f"/question/{question.id}")
     assert r.status_code == 200
     assert "단열재 추천?" in r.text

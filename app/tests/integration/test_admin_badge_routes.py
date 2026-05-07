@@ -1,12 +1,8 @@
-import base64
-import json
 from datetime import UTC, datetime, timedelta
 
 from fastapi.testclient import TestClient
-from itsdangerous import TimestampSigner
 from sqlalchemy.orm import Session
 
-from app.config import get_settings
 from app.models import Job
 from app.models._enums import (
     BadgeApplicationStatus,
@@ -25,21 +21,14 @@ from app.tests.factories import (
 )
 
 
-def _login_cookie(user_id: int) -> str:
-    secret = get_settings().app_secret_key
-    data = base64.b64encode(json.dumps({"user_id": user_id}).encode("utf-8"))
-    signer = TimestampSigner(secret)
-    return signer.sign(data).decode("utf-8")
-
-
-def test_queue_requires_admin(db: Session, client: TestClient) -> None:
+def test_queue_requires_admin(db: Session, client: TestClient, login) -> None:
     user = UserFactory()
     db.commit()
-    client.cookies.set("nestory_session", _login_cookie(user.id))
+    login(user.id)
     assert client.get("/admin/badge-queue").status_code == 403
 
 
-def test_queue_lists_pending(db: Session, client: TestClient) -> None:
+def test_queue_lists_pending(db: Session, client: TestClient, login) -> None:
     admin = AdminUserFactory()
     applicant = UserFactory()
     region = RegionFactory(slug="yp-q")
@@ -50,13 +39,13 @@ def test_queue_lists_pending(db: Session, client: TestClient) -> None:
     )
     db.commit()
 
-    client.cookies.set("nestory_session", _login_cookie(admin.id))
+    login(admin.id)
     r = client.get("/admin/badge-queue")
     assert r.status_code == 200
     assert "@" + applicant.username in r.text
 
 
-def test_detail_shows_application(db: Session, client: TestClient) -> None:
+def test_detail_shows_application(db: Session, client: TestClient, login) -> None:
     admin = AdminUserFactory()
     applicant = UserFactory()
     region = RegionFactory(sigungu="양평군", slug="yp-d")
@@ -67,13 +56,13 @@ def test_detail_shows_application(db: Session, client: TestClient) -> None:
     )
     db.commit()
 
-    client.cookies.set("nestory_session", _login_cookie(admin.id))
+    login(admin.id)
     r = client.get(f"/admin/badge-queue/{app_obj.id}")
     assert r.status_code == 200
     assert "양평군" in r.text
 
 
-def test_evidence_download_returns_file(db: Session, client: TestClient, tmp_path) -> None:
+def test_evidence_download_returns_file(db: Session, client: TestClient, login, tmp_path) -> None:
     admin = AdminUserFactory()
     applicant = UserFactory()
     region = RegionFactory(slug="yp-e")
@@ -93,13 +82,13 @@ def test_evidence_download_returns_file(db: Session, client: TestClient, tmp_pat
     )
     db.commit()
 
-    client.cookies.set("nestory_session", _login_cookie(admin.id))
+    login(admin.id)
     r = client.get(f"/admin/badge-queue/{app_obj.id}/evidence/{e.id}")
     assert r.status_code == 200
     assert r.content == b"sample"
 
 
-def test_evidence_download_404_for_other_app(db: Session, client: TestClient) -> None:
+def test_evidence_download_404_for_other_app(db: Session, client: TestClient, login) -> None:
     admin = AdminUserFactory()
     applicant = UserFactory()
     region = RegionFactory(slug="yp-x")
@@ -120,13 +109,15 @@ def test_evidence_download_404_for_other_app(db: Session, client: TestClient) ->
     )
     db.commit()
 
-    client.cookies.set("nestory_session", _login_cookie(admin.id))
+    login(admin.id)
     # Try downloading via wrong app id
     r = client.get(f"/admin/badge-queue/{app2.id}/evidence/{e.id}")
     assert r.status_code == 404
 
 
-def test_approve_promotes_user_and_schedules_cleanup(db: Session, client: TestClient) -> None:
+def test_approve_promotes_user_and_schedules_cleanup(
+    db: Session, client: TestClient, login,
+) -> None:
     admin = AdminUserFactory()
     applicant = UserFactory()
     region = RegionFactory(slug="yp-app")
@@ -137,7 +128,7 @@ def test_approve_promotes_user_and_schedules_cleanup(db: Session, client: TestCl
     )
     db.commit()
 
-    client.cookies.set("nestory_session", _login_cookie(admin.id))
+    login(admin.id)
     r = client.post(
         f"/admin/badge-queue/{app_obj.id}/approve",
         data={"note": "확인 완료"},
@@ -160,7 +151,9 @@ def test_approve_promotes_user_and_schedules_cleanup(db: Session, client: TestCl
     assert timedelta(days=29) < delta < timedelta(days=31)
 
 
-def test_reject_keeps_user_and_immediate_cleanup(db: Session, client: TestClient) -> None:
+def test_reject_keeps_user_and_immediate_cleanup(
+    db: Session, client: TestClient, login,
+) -> None:
     admin = AdminUserFactory()
     applicant = UserFactory()
     region = RegionFactory(slug="yp-rej")
@@ -171,7 +164,7 @@ def test_reject_keeps_user_and_immediate_cleanup(db: Session, client: TestClient
     )
     db.commit()
 
-    client.cookies.set("nestory_session", _login_cookie(admin.id))
+    login(admin.id)
     r = client.post(
         f"/admin/badge-queue/{app_obj.id}/reject",
         data={"note": "증빙 불충분"},
@@ -190,7 +183,9 @@ def test_reject_keeps_user_and_immediate_cleanup(db: Session, client: TestClient
     assert job.run_after <= datetime.now(UTC) + timedelta(seconds=2)
 
 
-def test_approve_already_approved_returns_400(db: Session, client: TestClient) -> None:
+def test_approve_already_approved_returns_400(
+    db: Session, client: TestClient, login,
+) -> None:
     admin = AdminUserFactory()
     applicant = UserFactory()
     region = RegionFactory(slug="yp-twice")
@@ -201,6 +196,6 @@ def test_approve_already_approved_returns_400(db: Session, client: TestClient) -
         status=BadgeApplicationStatus.APPROVED,
     )
     db.commit()
-    client.cookies.set("nestory_session", _login_cookie(admin.id))
+    login(admin.id)
     r = client.post(f"/admin/badge-queue/{app_obj.id}/approve")
     assert r.status_code == 400

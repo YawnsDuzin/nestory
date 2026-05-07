@@ -7,27 +7,13 @@ from app.models._enums import PostType
 from app.tests.factories import QuestionPostFactory, UserFactory
 
 
-def _login_cookie(user_id: int) -> str:
-    import base64
-    import json
-
-    from itsdangerous import TimestampSigner
-
-    from app.config import get_settings
-    signer = TimestampSigner(get_settings().app_secret_key)
-    raw = base64.b64encode(json.dumps({"user_id": user_id}).encode()).decode()
-    return signer.sign(raw.encode()).decode()
-
-
-def _login(client: TestClient, user_id: int) -> None:
-    client.cookies.set("nestory_session", _login_cookie(user_id))
-
-
-def test_answer_creates_post_with_parent_link(client: TestClient, db: Session) -> None:
+def test_answer_creates_post_with_parent_link(
+    client: TestClient, db: Session, login,
+) -> None:
     question = QuestionPostFactory()
     user = UserFactory()
     db.commit()
-    _login(client, user.id)
+    login(user.id)
     r = client.post(
         f"/question/{question.id}/answer",
         data={"body": "셀룰로오스가 가성비 좋습니다"},
@@ -47,9 +33,9 @@ def test_answer_blocks_anonymous(client: TestClient, db: Session) -> None:
     assert r.status_code == 401
 
 
-def test_answer_404_on_missing_question(client: TestClient, db: Session) -> None:
+def test_answer_404_on_missing_question(client: TestClient, db: Session, login) -> None:
     user = UserFactory()
     db.commit()
-    _login(client, user.id)
+    login(user.id)
     r = client.post("/question/99999/answer", data={"body": "x"})
     assert r.status_code == 404

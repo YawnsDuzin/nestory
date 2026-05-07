@@ -1,9 +1,14 @@
+import base64
+import json
+
 import pytest
 from fastapi.testclient import TestClient
+from itsdangerous import TimestampSigner
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 import app.models  # noqa: F401  # Base.metadata에 모든 모델 등록
+from app.config import get_settings
 from app.db.session import SessionLocal, engine
 from app.main import app
 
@@ -79,3 +84,24 @@ def db() -> Session:
 @pytest.fixture
 def client() -> TestClient:
     return TestClient(app)
+
+
+@pytest.fixture
+def login(client: TestClient):
+    """Test helper: log in as the given user_id. Returns a callable.
+
+    Mirrors starlette SessionMiddleware: TimestampSigner(b64(json)).
+    When session signing changes (CSRF in P1.5+), only this fixture needs an update.
+
+    Usage:
+        def test_x(client, db, login):
+            user = UserFactory()
+            login(user.id)
+            r = client.get("/me/badge")
+    """
+    def _do_login(user_id: int) -> None:
+        signer = TimestampSigner(get_settings().app_secret_key)
+        raw = base64.b64encode(json.dumps({"user_id": user_id}).encode()).decode()
+        cookie = signer.sign(raw.encode()).decode()
+        client.cookies.set("nestory_session", cookie)
+    return _do_login

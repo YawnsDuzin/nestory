@@ -1,32 +1,16 @@
 """Tests for GET·POST /write/review."""
-import base64
-import json
-
 from fastapi.testclient import TestClient
-from itsdangerous import TimestampSigner
 from sqlalchemy.orm import Session
 
-from app.config import get_settings
 from app.models import Post
 from app.models._enums import PostStatus, PostType
 from app.tests.factories import RegionFactory, ResidentUserFactory, UserFactory
 
 
-def _login_cookie(user_id: int) -> str:
-    secret = get_settings().app_secret_key
-    data = base64.b64encode(json.dumps({"user_id": user_id}).encode("utf-8"))
-    signer = TimestampSigner(secret)
-    return signer.sign(data).decode("utf-8")
-
-
-def _login(client: TestClient, user_id: int) -> None:
-    client.cookies.set("nestory_session", _login_cookie(user_id))
-
-
-def test_get_write_review_renders_form(client: TestClient, db: Session) -> None:
+def test_get_write_review_renders_form(client: TestClient, db: Session, login) -> None:
     user = ResidentUserFactory()
     db.commit()
-    _login(client, user.id)
+    login(user.id)
     r = client.get("/write/review")
     assert r.status_code == 200
     assert "후기" in r.text or "review" in r.text.lower()
@@ -36,10 +20,12 @@ def test_get_write_review_renders_form(client: TestClient, db: Session) -> None:
     assert 'name="satisfaction_overall"' in r.text
 
 
-def test_get_write_review_blocks_non_resident(client: TestClient, db: Session) -> None:
+def test_get_write_review_blocks_non_resident(
+    client: TestClient, db: Session, login,
+) -> None:
     user = UserFactory()  # badge_level=INTERESTED
     db.commit()
-    _login(client, user.id)
+    login(user.id)
     r = client.get("/write/review")
     assert r.status_code == 403
 
@@ -49,11 +35,13 @@ def test_get_write_review_blocks_anonymous(client: TestClient) -> None:
     assert r.status_code == 401
 
 
-def test_post_write_review_creates_post_and_redirects(client: TestClient, db: Session) -> None:
+def test_post_write_review_creates_post_and_redirects(
+    client: TestClient, db: Session, login,
+) -> None:
     user = ResidentUserFactory()
     region = RegionFactory()
     db.commit()
-    _login(client, user.id)
+    login(user.id)
     r = client.post(
         "/write/review",
         data={
@@ -72,11 +60,13 @@ def test_post_write_review_creates_post_and_redirects(client: TestClient, db: Se
     assert post.status == PostStatus.PUBLISHED
 
 
-def test_post_write_review_400_on_invalid_metadata(client: TestClient, db: Session) -> None:
+def test_post_write_review_400_on_invalid_metadata(
+    client: TestClient, db: Session, login,
+) -> None:
     user = ResidentUserFactory()
     region = RegionFactory()
     db.commit()
-    _login(client, user.id)
+    login(user.id)
     r = client.post(
         "/write/review",
         data={
@@ -92,13 +82,13 @@ def test_post_write_review_400_on_invalid_metadata(client: TestClient, db: Sessi
 
 
 def test_post_write_review_400_on_pydantic_validation_error(
-    client: TestClient, db: Session,
+    client: TestClient, db: Session, login,
 ) -> None:
     """satisfaction_overall=6 passes FastAPI int validation but fails Pydantic le=5."""
     user = ResidentUserFactory()
     region = RegionFactory()
     db.commit()
-    _login(client, user.id)
+    login(user.id)
     r = client.post(
         "/write/review",
         data={
