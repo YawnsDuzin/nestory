@@ -725,9 +725,9 @@
 - Create: `app/templates/pages/profile/_header.html` · `home.html` · `posts.html` · `journeys.html` · `scraps.html`
 - Create: `app/tests/integration/test_profile_routes.py` · `test_interactions_routes.py` · `test_comment_route.py`
 
-- [ ] **Step 1: profile router** — `/u/{username}` (홈), `/u/{username}/posts`, `/u/{username}/journeys`, `/u/{username}/scraps` (scraps는 본인만 — `if current_user.id != profile_user.id: raise HTTPException(403)`)
+- [x] **Step 1: profile router** — `/u/{username}` (홈), `/u/{username}/posts`, `/u/{username}/journeys`, `/u/{username}/scraps` (scraps는 본인만 — `if current_user.id != profile_user.id: raise HTTPException(403)`)
 
-- [ ] **Step 2: interactions router** — HTMX endpoints
+- [x] **Step 2: interactions router** — HTMX endpoints
   ```python
   @router.post("/post/{post_id}/like", response_class=HTMLResponse)
   def like(post_id: int, request: Request, db: Session = Depends(get_db),
@@ -742,9 +742,9 @@
   # /post/{post_id}/scrap, /unscrap — 동일 패턴 with scrap service
   ```
 
-- [ ] **Step 3: comment route** — `POST /post/{post_id}/comment` — form `body` + optional `parent_id`. 성공 시 `redirect(f"/post/{id}#comments")`. validation error는 flash 또는 inline error.
+- [x] **Step 3: comment route** — `POST /post/{post_id}/comment` — form `body` + optional `parent_id`. 성공 시 `redirect(f"/post/{id}#comments")`. validation error는 flash 또는 inline error.
 
-- [ ] **Step 4: detail 템플릿에 partial 통합** — `app/templates/pages/detail/post.html` (그리고 journey_episode, question도) 끝에:
+- [x] **Step 4: detail 템플릿에 partial 통합** — `app/templates/pages/detail/post.html` (그리고 journey_episode, question도) 끝에:
   ```html
   {% include "partials/like_button.html" %}
   {% include "partials/scrap_button.html" %}
@@ -755,7 +755,7 @@
   ```
   detail 라우트가 `liked`·`scrapped`·`like_count`·`scrap_count`·`comments` context를 추가로 전달해야 함 — content/journey 라우트 수정 필요.
 
-- [ ] **Step 5: 테스트 + Commit** — `feat(profile): /u/{username} + post like/scrap/comment HTMX endpoints`
+- [x] **Step 5: 테스트 + Commit** — `feat(profile): /u/{username} + post like/scrap/comment HTMX endpoints`
 
 ---
 
