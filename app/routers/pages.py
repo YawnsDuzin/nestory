@@ -1,8 +1,10 @@
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse
+from sqlalchemy.orm import Session
 
-from app.deps import get_current_user
+from app.deps import get_current_user, get_db
 from app.models.user import User
+from app.services import feed as feed_service
 from app.templating import templates
 
 router = APIRouter(tags=["pages"])
@@ -10,9 +12,15 @@ router = APIRouter(tags=["pages"])
 
 @router.get("/", response_class=HTMLResponse)
 async def home(
-    request: Request, current_user: User | None = Depends(get_current_user)
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User | None = Depends(get_current_user),
 ) -> HTMLResponse:
-    return templates.TemplateResponse(request, "pages/home.html", {"current_user": current_user})
+    data = feed_service.home_data(db, current_user)
+    return templates.TemplateResponse(
+        request, "pages/home.html",
+        {"data": data, "current_user": current_user},
+    )
 
 
 @router.get("/auth/login", response_class=HTMLResponse)

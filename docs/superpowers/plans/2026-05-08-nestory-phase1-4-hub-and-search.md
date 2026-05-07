@@ -768,9 +768,9 @@
 - Create: `app/scripts/seed_demo.py`
 - Create: `app/tests/integration/test_home_dynamic.py`
 
-- [ ] **Step 1: home 동적화 테스트**
+- [x] **Step 1: home 동적화 테스트**
 
-- [ ] **Step 2: home 라우트**
+- [x] **Step 2: home 라우트**
   ```python
   @router.get("/", response_class=HTMLResponse)
   async def home(request: Request, db: Session = Depends(get_db),
@@ -780,14 +780,14 @@
                                        {"data": data, "current_user": current_user})
   ```
 
-- [ ] **Step 3: home.html 갱신** — 비로그인: 추천 허브 4 + 인기 후기 4 + 최근 Journey 4 + "카카오 1초 시작" CTA. 로그인: 팔로우 새 에피소드 우선 + 추천 허브.
+- [x] **Step 3: home.html 갱신** — 비로그인: 추천 허브 4 + 인기 후기 4 + 최근 Journey 4 + "카카오 1초 시작" CTA. 로그인: 팔로우 새 에피소드 우선 + 추천 허브.
 
-- [ ] **Step 4: seed_demo.py 작성** — factory-boy 직접 호출 (test 외부에서도 사용 가능). 4 region (양평/영월/홍천/곡성) · 6 user (1 admin + 2 resident + 2 region_verified + 1 interested) · 12 review · 2 journey + 5 episode · 4 question + 7 answer · 좋아요/스크랩 무작위. PRD 4축 강화하는 콘텐츠 (T: 1년차/3년차 후기 쌍, C: regret_items, R: 지역명 명시, V: 답변 다수).
+- [x] **Step 4: seed_demo.py 작성** — factory-boy 직접 호출 (test 외부에서도 사용 가능). 4 region (양평/영월/홍천/곡성) · 6 user (1 admin + 2 resident + 2 region_verified + 1 interested) · 12 review · 2 journey + 5 episode · 4 question + 7 answer · 좋아요/스크랩 무작위. PRD 4축 강화하는 콘텐츠 (T: 1년차/3년차 후기 쌍, C: regret_items, R: 지역명 명시, V: 답변 다수).
   ```powershell
   uv run python -m app.scripts.seed_demo --reset
   ```
 
-- [ ] **Step 5: ruff + 테스트 + Commit** — `feat(home): dynamic home data + add demo seed script`
+- [x] **Step 5: ruff + 테스트 + Commit** — `feat(home): dynamic home data + add demo seed script`
 
 ---
 

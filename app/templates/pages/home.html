@@ -47,6 +47,42 @@
         </p>
       {% endif %}
     </section>
+
+    {# Dynamic: followed Journey episodes #}
+    <section class="space-y-3 border-t border-slate-200 pt-6">
+      <h2 class="text-lg font-semibold">🆕 팔로우 중인 Journey 새 에피소드</h2>
+      {% if data.followed_episodes %}
+        <div class="grid gap-3 sm:grid-cols-2">
+          {% for post in data.followed_episodes %}
+            {% include "partials/post_card.html" %}
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="text-sm text-slate-500">
+          아직 팔로우하는 Journey가 없습니다.
+          <a href="/discover" class="text-emerald-700 hover:underline">Journey 탐색하기</a>
+        </p>
+      {% endif %}
+    </section>
+
+    {# Dynamic: recommended region hubs #}
+    {% if data.recommended_regions %}
+    <section class="space-y-3 border-t border-slate-200 pt-6">
+      <h2 class="text-lg font-semibold">🌳 추천 시군 허브</h2>
+      <div class="grid gap-3 sm:grid-cols-2">
+        {% for region in data.recommended_regions %}
+          <a href="/hub/{{ region.slug }}"
+             class="rounded border bg-white p-4 hover:bg-slate-50">
+            <p class="font-semibold text-slate-900">{{ region.sigungu }}</p>
+            <p class="text-xs text-slate-500 mt-1">{{ region.sido }}</p>
+            {% if region.description %}
+              <p class="text-sm text-slate-600 mt-1 line-clamp-2">{{ region.description }}</p>
+            {% endif %}
+          </a>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
   </section>
 {% else %}
   {# === 비로그인 방문자용 marketing landing === #}
@@ -153,7 +189,45 @@
     </div>
   </section>
 
-  {# 4. How it works #}
+  {# 4a. 지금 활발한 시군 (dynamic) #}
+  {% if data.recommended_regions %}
+  <section class="py-12 border-t border-slate-200">
+    <h2 class="text-2xl font-bold text-center text-slate-900 mb-8">
+      🌳 지금 활발한 시군
+    </h2>
+    <div class="grid gap-4 sm:grid-cols-2">
+      {% for region in data.recommended_regions %}
+        <a href="/hub/{{ region.slug }}"
+           class="rounded-lg border bg-white p-6 hover:bg-slate-50 block">
+          <p class="font-bold text-slate-900">{{ region.sigungu }}</p>
+          <p class="text-xs text-slate-500 mt-1">{{ region.sido }}</p>
+          {% if region.description %}
+            <p class="mt-2 text-sm text-slate-600 line-clamp-2">{{ region.description }}</p>
+          {% endif %}
+        </a>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  {# 4b. 인기 후기 (dynamic) #}
+  {% if data.popular_reviews %}
+  <section class="py-12 border-t border-slate-200">
+    <h2 class="text-2xl font-bold text-center text-slate-900 mb-8">
+      📝 인기 후기
+    </h2>
+    <div class="grid gap-4 sm:grid-cols-2">
+      {% for post in data.popular_reviews %}
+        {% include "partials/post_card.html" %}
+      {% endfor %}
+    </div>
+    <div class="mt-6 text-center">
+      <a href="/discover" class="text-emerald-700 hover:underline text-sm">후기 더 보기 →</a>
+    </div>
+  </section>
+  {% endif %}
+
+  {# 5. How it works #}
   <section class="py-12 border-t border-slate-200">
     <h2 class="text-2xl font-bold text-center text-slate-900 mb-8">
       이렇게 시작하세요
