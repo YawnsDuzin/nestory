@@ -578,16 +578,16 @@
 
 **Files:** 6 신규 partial templates.
 
-- [ ] **Step 1: post_card partial** (`app/templates/partials/post_card.html`)
+- [x] **Step 1: post_card partial** (`app/templates/partials/post_card.html`)
   - Tailwind 카드: 썸네일 placeholder + title + author username + region.sigungu + view_count + published_at(상대시간)
   - `post.type` enum별 라벨 chip (후기/Journey/Q&A/계획)
   - Detail 링크: type별 분기 (`/post/{id}` 또는 `/journey/{jid}/ep/{n}` 또는 `/question/{id}`)
 
-- [ ] **Step 2: journey_card partial** — Journey listing용 별도 카드 (cover + title + episode count + author)
+- [x] **Step 2: journey_card partial** — Journey listing용 별도 카드 (cover + title + episode count + author)
 
-- [ ] **Step 3: pagination partial** — `?page=N` prev/next + 현재 페이지 표시. 총 페이지 인자 받음.
+- [x] **Step 3: pagination partial** — `?page=N` prev/next + 현재 페이지 표시. 총 페이지 인자 받음.
 
-- [ ] **Step 4: like_button.html / scrap_button.html** — HTMX 패턴
+- [x] **Step 4: like_button.html / scrap_button.html** — HTMX 패턴
   ```html
   {# like_button.html — hx-swap target #}
   <button
@@ -601,9 +601,9 @@
   </button>
   ```
 
-- [ ] **Step 5: comment_list.html / comment_form.html** — comment list는 nested reply 포함
+- [x] **Step 5: comment_list.html / comment_form.html** — comment list는 nested reply 포함
 
-- [ ] **Step 6: Commit** — `feat(ui): shared post/journey card + pagination + like/scrap/comment partials`
+- [x] **Step 6: Commit** — `feat(ui): shared post/journey card + pagination + like/scrap/comment partials`
 
 ---
 

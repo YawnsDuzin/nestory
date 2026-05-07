@@ -1,0 +1,23 @@
+{# partials/pagination.html — page links. Expects: page, total, page_size (default 20), base_url, query_params (optional dict) #}
+{% set total_pages = ((total - 1) // (page_size or 20)) + 1 if total > 0 else 1 %}
+{% if total_pages > 1 %}
+  {% set ns = namespace(qs="") %}
+  {% if query_params %}
+    {% for k, v in query_params.items() %}
+      {% set ns.qs = ns.qs + "&" + k + "=" + (v|string) %}
+    {% endfor %}
+  {% endif %}
+  <nav class="mt-6 flex items-center justify-between text-sm" aria-label="페이지">
+    {% if page > 1 %}
+      <a href="{{ base_url }}?page={{ page - 1 }}{{ ns.qs }}" class="rounded border px-3 py-1 hover:bg-slate-50">← 이전</a>
+    {% else %}
+      <span class="rounded border px-3 py-1 text-slate-300">← 이전</span>
+    {% endif %}
+    <span class="text-slate-500">{{ page }} / {{ total_pages }}</span>
+    {% if page < total_pages %}
+      <a href="{{ base_url }}?page={{ page + 1 }}{{ ns.qs }}" class="rounded border px-3 py-1 hover:bg-slate-50">다음 →</a>
+    {% else %}
+      <span class="rounded border px-3 py-1 text-slate-300">다음 →</span>
+    {% endif %}
+  </nav>
+{% endif %}
