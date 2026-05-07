@@ -7,7 +7,8 @@ from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
 from app.deps import get_db, require_badge, require_user
-from app.models import Region, User
+from app.models import Post, Region, User
+from app.models._enums import PostType
 from app.models.user import BadgeLevel
 from app.schemas.post_metadata import PlanMetadata, QuestionMetadata, ReviewMetadata
 from app.services import posts as posts_service
@@ -156,3 +157,24 @@ def submit_plan(
     post = posts_service.create_plan(db, user, region, meta, title, body)
     db.commit()
     return RedirectResponse(f"/post/{post.id}", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@router.post("/question/{question_id}/answer")
+def submit_answer(
+    question_id: int,
+    user: User = Depends(require_user),
+    db: Session = Depends(get_db),
+    body: str = Form(...),
+) -> RedirectResponse:
+    question = db.get(Post, question_id)
+    if (
+        question is None
+        or question.type != PostType.QUESTION
+        or question.deleted_at is not None
+    ):
+        raise HTTPException(status.HTTP_404_NOT_FOUND)
+    posts_service.create_answer(db, user, question, body)
+    db.commit()
+    return RedirectResponse(
+        f"/question/{question_id}", status_code=status.HTTP_303_SEE_OTHER
+    )
