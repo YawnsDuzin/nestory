@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 64" role="img" aria-label="Nestory">
+  <title>Nestory — 은퇴자 전원주택 커뮤니티</title>
+  <g>
+    <path d="M10 30 L32 12 L54 30 L54 52 L10 52 Z" stroke="#1f3d36" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round" fill="none"/>
+    <path d="M27 52 L27 40 Q27 38 29 38 L35 38 Q37 38 37 40 L37 52" stroke="#1f3d36" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round" fill="none"/>
+    <path d="M32 12 Q24 6 28 0 Q34 4 32 12 Z" fill="#7fb069"/>
+    <path d="M32 8 Q38 5 40 0 Q35 2 32 9 Z" fill="#a3c9a8"/>
+  </g>
+  <text x="72" y="38" font-family="'Inter','Pretendard','Noto Sans KR',system-ui,sans-serif" font-size="26" font-weight="700" fill="#1f3d36" letter-spacing="-0.5">Nestory</text>
+  <text x="72" y="54" font-family="'Inter','Pretendard','Noto Sans KR',system-ui,sans-serif" font-size="10" font-weight="500" fill="#5a7a6e" letter-spacing="0.5">전원주택 정착 커뮤니티</text>
+</svg>

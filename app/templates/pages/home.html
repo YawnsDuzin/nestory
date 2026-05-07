@@ -7,9 +7,44 @@
     전원주택 정착의 전 과정을 실거주자의 여정으로 아카이빙하는 커뮤니티입니다.
   </p>
   {% if current_user %}
-    <p class="rounded-md bg-emerald-50 p-4 text-emerald-800">
-      반갑습니다, <strong>@{{ current_user.username }}</strong>. 콘텐츠 작성 기능은 곧 열립니다.
-    </p>
+    <div class="rounded-md bg-emerald-50 p-4 text-emerald-800">
+      반갑습니다, <strong>@{{ current_user.username }}</strong>.
+    </div>
+
+    <section class="space-y-3">
+      <h2 class="text-lg font-semibold">✏️ 쓰기</h2>
+      <div class="grid gap-3 sm:grid-cols-2">
+        {% set is_resident = current_user.badge_level.value in ("resident", "ex_resident") %}
+        <a href="{{ '/write/review' if is_resident else '/me/badge' }}"
+           class="rounded border bg-white p-4 hover:bg-slate-50">
+          <p class="font-semibold">📝 후기 작성</p>
+          <p class="text-sm text-slate-600 mt-1">
+            {% if is_resident %}정착 회고를 남겨주세요{% else %}🏡 실거주자 인증 후 작성 가능{% endif %}
+          </p>
+        </a>
+        <a href="{{ '/write/journey' if is_resident else '/me/badge' }}"
+           class="rounded border bg-white p-4 hover:bg-slate-50">
+          <p class="font-semibold">🗺️ Journey 시작</p>
+          <p class="text-sm text-slate-600 mt-1">
+            {% if is_resident %}정착 과정을 연재로{% else %}🏡 실거주자 인증 후 작성 가능{% endif %}
+          </p>
+        </a>
+        <a href="/write/question" class="rounded border bg-white p-4 hover:bg-slate-50">
+          <p class="font-semibold">❓ 질문 작성</p>
+          <p class="text-sm text-slate-600 mt-1">지역에 사는 분들께 직접 물어보세요</p>
+        </a>
+        <a href="/write/plan" class="rounded border bg-white p-4 hover:bg-slate-50">
+          <p class="font-semibold">📅 정착 계획</p>
+          <p class="text-sm text-slate-600 mt-1">예비 입주자의 검토 노트</p>
+        </a>
+      </div>
+      {% if not is_resident %}
+        <p class="text-xs text-slate-500">
+          후기·Journey는 🏡 실거주자 배지가 필요합니다 →
+          <a href="/me/badge" class="text-emerald-700 hover:underline">배지 신청</a>
+        </p>
+      {% endif %}
+    </section>
   {% else %}
     <p class="rounded-md bg-slate-100 p-4 text-slate-700">
       <a href="/auth/signup" class="font-semibold text-emerald-700 hover:underline">계정을 만들어</a>

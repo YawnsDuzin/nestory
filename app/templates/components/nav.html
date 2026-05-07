@@ -1,8 +1,31 @@
 <nav class="sticky top-0 z-10 border-b border-slate-200 bg-white">
   <div class="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
-    <a href="/" class="text-lg font-bold text-emerald-700">Nestory</a>
+    <a href="/" class="flex items-center" aria-label="Nestory 홈">
+      <img src="{{ url_for('static', path='/img/logo-c-full.svg') }}" alt="Nestory — 전원주택 정착 커뮤니티" class="h-8 w-auto hidden sm:block">
+      <img src="{{ url_for('static', path='/img/logo-c-mark.svg') }}" alt="Nestory" class="h-8 w-8 sm:hidden">
+    </a>
     <div class="flex items-center gap-3 text-sm">
       {% if current_user %}
+        <div x-data="{ open: false }" class="relative">
+          <button type="button" @click="open = !open" @click.outside="open = false"
+                  class="text-slate-600 hover:text-slate-900">
+            ✏️ 쓰기 ▾
+          </button>
+          <div x-show="open" x-transition x-cloak
+               class="absolute right-0 mt-2 w-56 rounded border bg-white shadow-lg z-20">
+            {% set is_resident = current_user.badge_level.value in ("resident", "ex_resident") %}
+            <a href="{{ '/write/review' if is_resident else '/me/badge' }}"
+               class="block px-4 py-2 hover:bg-slate-50">
+              📝 후기 {% if not is_resident %}<span class="text-xs text-slate-400">🏡 필요</span>{% endif %}
+            </a>
+            <a href="{{ '/write/journey' if is_resident else '/me/badge' }}"
+               class="block px-4 py-2 hover:bg-slate-50">
+              🗺️ Journey {% if not is_resident %}<span class="text-xs text-slate-400">🏡 필요</span>{% endif %}
+            </a>
+            <a href="/write/question" class="block px-4 py-2 hover:bg-slate-50">❓ 질문</a>
+            <a href="/write/plan" class="block px-4 py-2 hover:bg-slate-50">📅 정착 계획</a>
+          </div>
+        </div>
         <a href="/me/badge" class="text-sm text-slate-600 hover:underline">내 배지</a>
         {% if current_user.role.value == "admin" %}
           <a href="/admin/badge-queue" class="text-sm text-slate-600 hover:underline">배지 큐</a>

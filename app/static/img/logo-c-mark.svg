@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Nestory mark">
+  <title>Nestory</title>
+  <path d="M10 30 L32 12 L54 30 L54 52 L10 52 Z" stroke="#1f3d36" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round" fill="none"/>
+  <path d="M27 52 L27 40 Q27 38 29 38 L35 38 Q37 38 37 40 L37 52" stroke="#1f3d36" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round" fill="none"/>
+  <path d="M32 12 Q24 6 28 0 Q34 4 32 12 Z" fill="#7fb069"/>
+  <path d="M32 8 Q38 5 40 0 Q35 2 32 9 Z" fill="#a3c9a8"/>
+</svg>
