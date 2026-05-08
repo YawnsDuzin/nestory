@@ -22,6 +22,7 @@ from app.db.session import SessionLocal
 from app.models import Post
 from app.models._enums import PostStatus, PostType
 from app.models.user import BadgeLevel
+from app.scripts.seed_assets.picsum import download_and_attach
 from app.tests.factories import (
     AdminUserFactory,
     AnswerPostFactory,
@@ -87,6 +88,8 @@ def seed(reset: bool = False) -> None:
     session = SessionLocal()
     try:
         _bind_session(session)
+        failure_counter = [0]  # mutable; shared across all download_and_attach calls
+        base_seed_counter = [1000]  # increments by 10 per call → spread Picsum seeds
         if reset:
             _truncate_all(session)
             print("Truncated all tables.")
@@ -188,6 +191,14 @@ def seed(reset: bool = False) -> None:
                     view_count=random.randint(50, 500),
                 )
             )
+            review = reviews[-1]
+            n = random.randint(1, 3)
+            download_and_attach(
+                session, review, author, n,
+                base_seed=base_seed_counter[0],
+                failure_counter=failure_counter,
+            )
+            base_seed_counter[0] += 10
         # Pad to 12 with shorter generic reviews
         for _ in range(12 - len(reviews)):
             author = random.choice([resident_a, resident_b])
@@ -201,6 +212,14 @@ def seed(reset: bool = False) -> None:
                     view_count=random.randint(20, 200),
                 )
             )
+            review = reviews[-1]
+            n = random.randint(1, 3)
+            download_and_attach(
+                session, review, author, n,
+                base_seed=base_seed_counter[0],
+                failure_counter=failure_counter,
+            )
+            base_seed_counter[0] += 10
 
         # 2 Journeys + 5 episodes
         journey_yp = JourneyFactory(
@@ -226,7 +245,7 @@ def seed(reset: bool = False) -> None:
             ],
             start=1,
         ):
-            JourneyEpisodePostFactory(
+            ep = JourneyEpisodePostFactory(
                 journey=journey_yp,
                 author=resident_a,
                 region=regions["yangpyeong"],
@@ -235,12 +254,19 @@ def seed(reset: bool = False) -> None:
                 status=PostStatus.PUBLISHED,
                 published_at=_now() - timedelta(days=random.randint(60, 200)),
             )
+            n = random.randint(1, 3)
+            download_and_attach(
+                session, ep, resident_a, n,
+                base_seed=base_seed_counter[0],
+                failure_counter=failure_counter,
+            )
+            base_seed_counter[0] += 10
 
         for ep_no, title in enumerate(
             ["1화 — 첫 겨울 화목난로 도입", "2화 — 두 번째 봄, 텃밭 시작"],
             start=1,
         ):
-            JourneyEpisodePostFactory(
+            ep = JourneyEpisodePostFactory(
                 journey=journey_hc,
                 author=resident_b,
                 region=regions["hongcheon"],
@@ -249,6 +275,13 @@ def seed(reset: bool = False) -> None:
                 status=PostStatus.PUBLISHED,
                 published_at=_now() - timedelta(days=random.randint(100, 400)),
             )
+            n = random.randint(1, 3)
+            download_and_attach(
+                session, ep, resident_b, n,
+                base_seed=base_seed_counter[0],
+                failure_counter=failure_counter,
+            )
+            base_seed_counter[0] += 10
 
         # 4 PLAN posts — interested user reviewing options
         plan_data = [
@@ -290,6 +323,14 @@ def seed(reset: bool = False) -> None:
                     view_count=random.randint(5, 80),
                 )
             )
+            n = random.randint(0, 1)
+            if n:
+                download_and_attach(
+                    session, plans[-1], interested, n,
+                    base_seed=base_seed_counter[0],
+                    failure_counter=failure_counter,
+                )
+                base_seed_counter[0] += 10
 
         # 4 questions + 7 answers
         questions = []
@@ -399,6 +440,11 @@ def seed(reset: bool = False) -> None:
 
         comment_total = session.scalar(select(func.count(Comment.id)))
         print(f"  Comments: {comment_total}")
+        from app.models import Image
+        image_total = session.scalar(select(func.count(Image.id)))
+        print(f"  Images: {image_total}")
+        if failure_counter[0]:
+            print(f"  [!] Picsum 누적 실패: {failure_counter[0]}회")
 
     finally:
         session.close()
