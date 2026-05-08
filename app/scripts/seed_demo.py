@@ -19,11 +19,13 @@ from pathlib import Path
 from sqlalchemy import text
 
 from app.db.session import SessionLocal
+from app.models import Post
 from app.models._enums import PostStatus, PostType
 from app.models.user import BadgeLevel
 from app.tests.factories import (
     AdminUserFactory,
     AnswerPostFactory,
+    CommentFactory,
     JourneyEpisodePostFactory,
     JourneyFactory,
     PilotRegionFactory,
@@ -343,6 +345,31 @@ def seed(reset: bool = False) -> None:
 
         session.commit()
 
+        # Comments — 0-3 top-level + ~30% 1-level reply per review/journey ep
+        commenter_pool = [resident_a, resident_b, rv_a, rv_b]
+        ep_posts = list(
+            session.query(Post).filter(
+                Post.type == PostType.JOURNEY_EPISODE,
+                Post.status == PostStatus.PUBLISHED,
+            ).all()
+        )
+        commentable = list(reviews) + ep_posts
+        for post in commentable:
+            top_count = random.randint(0, 3)
+            for _ in range(top_count):
+                top = CommentFactory(
+                    post=post,
+                    author=random.choice(commenter_pool),
+                )
+                if random.random() < 0.30:
+                    CommentFactory(
+                        post=post,
+                        author=random.choice(commenter_pool),
+                        parent=top,
+                    )
+
+        session.commit()
+
         # Likes + scraps — random sprinkle
         for review in reviews:
             for user in random.sample(all_users, k=random.randint(0, 3)):
@@ -354,7 +381,7 @@ def seed(reset: bool = False) -> None:
         # Summary
         from sqlalchemy import func, select
 
-        from app.models import Post, Region, User
+        from app.models import Region, User
 
         def _count(q):
             return session.scalar(select(func.count(Post.id)).where(q))
@@ -368,6 +395,10 @@ def seed(reset: bool = False) -> None:
         print(f"    -Questions: {_count(Post.type == PostType.QUESTION)}")
         print(f"    -Answers: {_count(Post.type == PostType.ANSWER)}")
         print(f"    -Plans: {_count(Post.type == PostType.PLAN)}")
+        from app.models import Comment
+
+        comment_total = session.scalar(select(func.count(Comment.id)))
+        print(f"  Comments: {comment_total}")
 
     finally:
         session.close()
