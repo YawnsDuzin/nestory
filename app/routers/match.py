@@ -3,7 +3,7 @@ from urllib.parse import urlencode
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
-from sqlalchemy import delete
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
 from app.deps import get_current_user, get_db
@@ -109,7 +109,6 @@ def wizard_question(
 
 @router.post("/match/wizard/submit", response_class=HTMLResponse)
 def wizard_submit(
-    request: Request,
     a1: str = Form(...),
     a2: str = Form(...),
     a3: str = Form(...),
@@ -136,12 +135,12 @@ def _parse_answers_from_query(qs: dict[str, str]) -> dict[int, str] | None:
     return out
 
 
-@router.get("/match/result", response_class=HTMLResponse)
+@router.get("/match/result", response_class=HTMLResponse, response_model=None)
 def wizard_result(
     request: Request,
     db: Session = Depends(get_db),
     current_user: User | None = Depends(get_current_user),
-) -> HTMLResponse:
+) -> HTMLResponse | RedirectResponse:
     answers = _parse_answers_from_query(dict(request.query_params))
     if answers is None:
         return RedirectResponse(url="/match/wizard", status_code=303)
@@ -159,22 +158,17 @@ def wizard_result(
     ]
 
     if current_user is not None:
-        # 기존 wizard 결과 row 3개를 덮어쓰기 (priority 1~3 — 사용자가 수동으로 추가한
-        # 다른 region은 priority>=4 가정. wizard는 1~3을 점유.)
-        db.execute(
-            delete(UserInterestRegion).where(
-                UserInterestRegion.user_id == current_user.id,
-                UserInterestRegion.priority.in_([1, 2, 3]),
-            )
-        )
         for m in matches:
-            db.add(
-                UserInterestRegion(
-                    user_id=current_user.id,
-                    region_id=m.region.id,
-                    priority=m.rank,
-                )
+            stmt = pg_insert(UserInterestRegion).values(
+                user_id=current_user.id,
+                region_id=m.region.id,
+                priority=m.rank,
             )
+            stmt = stmt.on_conflict_do_update(
+                index_elements=["user_id", "region_id"],
+                set_={"priority": m.rank},
+            )
+            db.execute(stmt)
         db.commit()
 
     emit(EventName.MATCH_RESULT_VIEWED)
