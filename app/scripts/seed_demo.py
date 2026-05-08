@@ -27,6 +27,7 @@ from app.tests.factories import (
     JourneyEpisodePostFactory,
     JourneyFactory,
     PilotRegionFactory,
+    PlanPostFactory,
     QuestionPostFactory,
     RegionVerifiedUserFactory,
     ResidentUserFactory,
@@ -247,6 +248,47 @@ def seed(reset: bool = False) -> None:
                 published_at=_now() - timedelta(days=random.randint(100, 400)),
             )
 
+        # 4 PLAN posts — interested user reviewing options
+        plan_data = [
+            (
+                "양평 동향 검토 — 3개 부지 비교 중",
+                "가족 4인, 예산 5억. 2027년 봄 이주 검토. 동향 단지 3곳 후보,"  # noqa: E501
+                " 일조량/접근성/단지내 학교 비교 중입니다.",
+                regions["yangpyeong"],
+            ),
+            (
+                "곡성 1년 이내 이주 계획",
+                "은퇴 부부, 2026년 가을 입주 목표. 60평 단층, 텃밭 200평 포함."  # noqa: E501
+                " 시공사 추천 받고 있습니다.",
+                regions["gokseong"],
+            ),
+            (
+                "홍천 vs 영월, 어디로 할까?",
+                "둘 다 강원도, 둘 다 자연 좋습니다. 인터넷·의료·접근성 비교"
+                " 의견 부탁드려요.",
+                regions["hongcheon"],
+            ),
+            (
+                "은퇴 5년 후, 단독 vs 듀플렉스",
+                "자녀 가구 합산 가능성 검토. 단독 1동(60평) vs 듀플렉스"  # noqa: E501
+                " (40평+30평) 어느 쪽이 현실적일지.",
+                regions["yeongwol"],
+            ),
+        ]
+        plans = []
+        for title, body, region in plan_data:
+            plans.append(
+                PlanPostFactory(
+                    author=interested,
+                    region=region,
+                    title=title,
+                    body=body,
+                    status=PostStatus.PUBLISHED,
+                    published_at=_now() - timedelta(days=random.randint(1, 30)),
+                    view_count=random.randint(5, 80),
+                )
+            )
+
         # 4 questions + 7 answers
         questions = []
         for title, body, asker, region in [
@@ -293,7 +335,7 @@ def seed(reset: bool = False) -> None:
                 if random.random() > 0.3:  # ~70% chance each resident answers
                     AnswerPostFactory(
                         author=answer_author,
-                        region=q.region,
+                        region_id=q.region_id,  # avoid q.region (lazy='raise')
                         parent_post=q,
                         status=PostStatus.PUBLISHED,
                         published_at=q.published_at + timedelta(hours=random.randint(2, 48)),
@@ -321,10 +363,11 @@ def seed(reset: bool = False) -> None:
         print(f"  Regions: {session.scalar(select(func.count(Region.id)))}")
         print(f"  Users: {session.scalar(select(func.count(User.id)))}")
         print(f"  Posts: {session.scalar(select(func.count(Post.id)))}")
-        print(f"  ↳ Reviews: {_count(Post.type == PostType.REVIEW)}")
-        print(f"  ↳ Journey episodes: {_count(Post.type == PostType.JOURNEY_EPISODE)}")
-        print(f"  ↳ Questions: {_count(Post.type == PostType.QUESTION)}")
-        print(f"  ↳ Answers: {_count(Post.type == PostType.ANSWER)}")
+        print(f"    -Reviews: {_count(Post.type == PostType.REVIEW)}")
+        print(f"    -Journey episodes: {_count(Post.type == PostType.JOURNEY_EPISODE)}")
+        print(f"    -Questions: {_count(Post.type == PostType.QUESTION)}")
+        print(f"    -Answers: {_count(Post.type == PostType.ANSWER)}")
+        print(f"    -Plans: {_count(Post.type == PostType.PLAN)}")
 
     finally:
         session.close()
