@@ -6,7 +6,8 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.models import Post, Region, User
-from app.models._enums import BadgeLevel, PostStatus, PostType
+from app.models._enums import PostStatus, PostType
+from app.models.user import BadgeLevel
 
 PAGE_SIZE = 20
 

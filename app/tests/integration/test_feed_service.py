@@ -37,9 +37,9 @@ from app.tests.factories import (
 
 def _published_review(region, *, view_count=0, **kwargs):
     """Shorthand: PUBLISHED ReviewPost."""
+    kwargs.setdefault("published_at", datetime.now(UTC))
     return ReviewPostFactory(
         status=PostStatus.PUBLISHED,
-        published_at=datetime.now(UTC),
         region=region,
         view_count=view_count,
         **kwargs,

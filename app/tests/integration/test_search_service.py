@@ -34,11 +34,11 @@ from app.tests.factories import (
 
 def _published_review(title: str, body: str, region, **kwargs):
     """Shorthand: PUBLISHED ReviewPost with explicit title/body/region."""
+    kwargs.setdefault("published_at", datetime.now(UTC))
     return ReviewPostFactory(
         title=title,
         body=body,
         status=PostStatus.PUBLISHED,
-        published_at=datetime.now(UTC),
         region=region,
         **kwargs,
     )

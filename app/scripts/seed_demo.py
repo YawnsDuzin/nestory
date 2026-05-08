@@ -17,7 +17,8 @@ from datetime import UTC, date, datetime, timedelta
 from sqlalchemy import text
 
 from app.db.session import SessionLocal
-from app.models._enums import BadgeLevel, PostStatus, PostType
+from app.models._enums import PostStatus, PostType
+from app.models.user import BadgeLevel
 from app.tests.factories import (
     AdminUserFactory,
     AnswerPostFactory,
