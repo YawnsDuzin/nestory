@@ -1,0 +1,123 @@
+"""Region Match Wizard — deterministic Top 3 scoring + LLM-driven explanations.
+
+PRD §1.5.3 [v1.1·B3] Pillar R 핵심 차별화. 점수는 deterministic dot product,
+AI는 자연어 설명만 (fallback 정적 텍스트).
+"""
+from dataclasses import dataclass
+
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from app.models import Region, RegionScoringWeight
+
+# ---------------------------------------------------------------------------
+# Domain types
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class RegionMatch:
+    region: Region
+    weight: RegionScoringWeight
+    total_score: int
+    rank: int  # 1-based
+
+
+# 5축 → user weight per option (A/B/C/D)
+# 각 옵션이 얼마나 그 축에 강조를 두는지 (0~10 정수).
+USER_WEIGHTS: dict[int, dict[str, dict[str, int]]] = {
+    # Q1: 활동 — A 텃밭/B 산책/C 예술/D 휴식
+    1: {
+        "A": {"activity": 8, "medical": 3, "family_visit": 3, "farming": 7, "budget": 5},
+        "B": {"activity": 9, "medical": 4, "family_visit": 4, "farming": 3, "budget": 5},
+        "C": {"activity": 5, "medical": 6, "family_visit": 5, "farming": 1, "budget": 5},
+        "D": {"activity": 3, "medical": 7, "family_visit": 4, "farming": 1, "budget": 5},
+    },
+    # Q2: 의료 — A 매우중요/B 중요/C 보통/D 낮음
+    2: {
+        "A": {"activity": 3, "medical": 10, "family_visit": 5, "farming": 3, "budget": 4},
+        "B": {"activity": 4, "medical": 7,  "family_visit": 5, "farming": 4, "budget": 5},
+        "C": {"activity": 5, "medical": 5,  "family_visit": 5, "farming": 5, "budget": 6},
+        "D": {"activity": 6, "medical": 3,  "family_visit": 5, "farming": 6, "budget": 7},
+    },
+    # Q3: 자녀방문 — A 주1회+/B 월2-3/C 분기1/D 거의없음
+    3: {
+        "A": {"activity": 4, "medical": 5, "family_visit": 10, "farming": 4, "budget": 4},
+        "B": {"activity": 5, "medical": 5, "family_visit": 8,  "farming": 5, "budget": 5},
+        "C": {"activity": 6, "medical": 5, "family_visit": 5,  "farming": 6, "budget": 6},
+        "D": {"activity": 7, "medical": 5, "family_visit": 3,  "farming": 7, "budget": 7},
+    },
+    # Q4: 농사 — A 본격/B 텃밭/C 마당/D 안함
+    4: {
+        "A": {"activity": 7, "medical": 4, "family_visit": 4, "farming": 10, "budget": 6},
+        "B": {"activity": 6, "medical": 5, "family_visit": 5, "farming": 7,  "budget": 5},
+        "C": {"activity": 5, "medical": 5, "family_visit": 5, "farming": 3,  "budget": 5},
+        "D": {"activity": 5, "medical": 6, "family_visit": 5, "farming": 0,  "budget": 5},
+    },
+    # Q5: 예산 — A ~3억/B 3-5/C 5-8/D 8억+
+    5: {
+        "A": {"activity": 4, "medical": 4, "family_visit": 4, "farming": 5, "budget": 10},
+        "B": {"activity": 5, "medical": 5, "family_visit": 5, "farming": 5, "budget": 7},
+        "C": {"activity": 5, "medical": 5, "family_visit": 5, "farming": 5, "budget": 5},
+        "D": {"activity": 6, "medical": 6, "family_visit": 6, "farming": 5, "budget": 3},
+    },
+}
+
+VALID_OPTIONS = frozenset({"A", "B", "C", "D"})
+QUESTION_NUMBERS = (1, 2, 3, 4, 5)
+
+
+def _validate_answers(answers: dict[int, str]) -> None:
+    for q in QUESTION_NUMBERS:
+        if q not in answers:
+            raise ValueError(f"missing answer for Q{q}")
+    for q, opt in answers.items():
+        if q not in QUESTION_NUMBERS:
+            raise ValueError(f"invalid question {q}")
+        if opt not in VALID_OPTIONS:
+            raise ValueError(f"invalid answer '{opt}' for Q{q}")
+
+
+def _user_weight_vector(answers: dict[int, str]) -> dict[str, int]:
+    """5문항 답변 → 5축 합산 가중치 벡터."""
+    vec = {"activity": 0, "medical": 0, "family_visit": 0, "farming": 0, "budget": 0}
+    for q in QUESTION_NUMBERS:
+        for axis, w in USER_WEIGHTS[q][answers[q]].items():
+            vec[axis] += w
+    return vec
+
+
+def _score(weight: RegionScoringWeight, user_vec: dict[str, int]) -> int:
+    return (
+        weight.activity_score * user_vec["activity"]
+        + weight.medical_score * user_vec["medical"]
+        + weight.family_visit_score * user_vec["family_visit"]
+        + weight.farming_score * user_vec["farming"]
+        + weight.budget_score * user_vec["budget"]
+    )
+
+
+def compute_top_regions(db: Session, answers: dict[int, str]) -> list[RegionMatch]:
+    """Top 3 매칭 region을 score 내림차순으로 반환. 동점은 region_id 오름차순.
+
+    Raises:
+        ValueError: 답변 누락 또는 옵션 코드 부정.
+    """
+    _validate_answers(answers)
+    user_vec = _user_weight_vector(answers)
+    weights = list(db.scalars(select(RegionScoringWeight)).all())
+    region_ids = [w.region_id for w in weights]
+    region_map = {
+        r.id: r
+        for r in db.scalars(select(Region).where(Region.id.in_(region_ids))).all()
+    }
+    scored = [(w, _score(w, user_vec), region_map[w.region_id]) for w in weights]
+    scored.sort(key=lambda t: (-t[1], t[2].id))
+    top = scored[:3]
+    return [
+        RegionMatch(region=region, weight=w, total_score=score, rank=idx + 1)
+        for idx, (w, score, region) in enumerate(top)
+    ]
+
+
+__all__ = ["RegionMatch", "USER_WEIGHTS", "compute_top_regions"]
