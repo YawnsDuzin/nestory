@@ -29,6 +29,11 @@ class EventName(str, Enum):
     COMMENT_POSTED = "comment_posted"
     PROFILE_VIEWED = "profile_viewed"
 
+    # P1.5 / P1.4b — Region Match Wizard
+    MATCH_WIZARD_STARTED = "match_wizard_started"
+    MATCH_WIZARD_SUBMITTED = "match_wizard_submitted"
+    MATCH_RESULT_VIEWED = "match_result_viewed"
+
 
 def emit(
     event: EventName,
