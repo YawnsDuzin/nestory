@@ -66,12 +66,18 @@ def attach_image(db: Session, owner: User, raw: bytes) -> Image | None:
 def download_and_attach(
     db: Session,
     post: Post,
+    owner: User,
     count: int,
     *,
     base_seed: int,
     failure_counter: list[int],
 ) -> int:
     """Fetch `count` images, attach to post, append `![](/img/<id>/orig)` to body.
+
+    `owner` is passed explicitly because `Post.author` has `lazy='raise'` and
+    factory-created posts in the seeder do not populate the relationship attr
+    (only the FK column). Caller passes the same user variable used to create
+    the post.
 
     `failure_counter` is a single-element list used as a mutable int across calls
     (callers reuse one counter across the whole seed run). Raises SeedAbort if
@@ -88,7 +94,7 @@ def download_and_attach(
         if raw is None:
             failure_counter[0] += 1
             continue
-        img = attach_image(db, post.author, raw)
+        img = attach_image(db, owner, raw)
         if img is None:
             failure_counter[0] += 1
             continue
