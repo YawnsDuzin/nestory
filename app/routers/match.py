@@ -1,10 +1,15 @@
 """Region Match Wizard — 5문항 → Top 3 + AI 설명. PRD §1.5.3."""
-from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import HTMLResponse
+from urllib.parse import urlencode
 
-from app.deps import get_current_user
-from app.models import User
+from fastapi import APIRouter, Depends, Form, HTTPException, Request
+from fastapi.responses import HTMLResponse, RedirectResponse
+from sqlalchemy import delete
+from sqlalchemy.orm import Session
+
+from app.deps import get_current_user, get_db
+from app.models import User, UserInterestRegion
 from app.services.analytics import EventName, emit
+from app.services.match import VALID_OPTIONS, compute_top_regions, generate_explanations
 from app.templating import templates
 
 router = APIRouter(tags=["match"])
@@ -97,6 +102,88 @@ def wizard_question(
             "q": q,
             "n": n,
             "total": TOTAL_QUESTIONS,
+            "current_user": current_user,
+        },
+    )
+
+
+@router.post("/match/wizard/submit", response_class=HTMLResponse)
+def wizard_submit(
+    request: Request,
+    a1: str = Form(...),
+    a2: str = Form(...),
+    a3: str = Form(...),
+    a4: str = Form(...),
+    a5: str = Form(...),
+) -> RedirectResponse:
+    answers = {1: a1, 2: a2, 3: a3, 4: a4, 5: a5}
+    for q, opt in answers.items():
+        if opt not in VALID_OPTIONS:
+            raise HTTPException(400, f"답변 형식이 올바르지 않습니다 (Q{q})")
+    emit(EventName.MATCH_WIZARD_SUBMITTED)
+    qs = urlencode({f"a{n}": answers[n] for n in range(1, TOTAL_QUESTIONS + 1)})
+    return RedirectResponse(url=f"/match/result?{qs}", status_code=303)
+
+
+def _parse_answers_from_query(qs: dict[str, str]) -> dict[int, str] | None:
+    """Return parsed {1..5: 'A'..'D'} or None if any missing/invalid."""
+    out: dict[int, str] = {}
+    for n in range(1, TOTAL_QUESTIONS + 1):
+        v = qs.get(f"a{n}")
+        if v not in VALID_OPTIONS:
+            return None
+        out[n] = v
+    return out
+
+
+@router.get("/match/result", response_class=HTMLResponse)
+def wizard_result(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User | None = Depends(get_current_user),
+) -> HTMLResponse:
+    answers = _parse_answers_from_query(dict(request.query_params))
+    if answers is None:
+        return RedirectResponse(url="/match/wizard", status_code=303)
+
+    matches = compute_top_regions(db, answers)
+    if len(matches) < 3:
+        raise HTTPException(
+            500, "추천에 필요한 시군 데이터가 부족합니다. 운영자에게 문의해주세요."
+        )
+
+    explanations = generate_explanations(matches, answers)
+    cards = [
+        {"match": m, "explanation": exp}
+        for m, exp in zip(matches, explanations, strict=True)
+    ]
+
+    if current_user is not None:
+        # 기존 wizard 결과 row 3개를 덮어쓰기 (priority 1~3 — 사용자가 수동으로 추가한
+        # 다른 region은 priority>=4 가정. wizard는 1~3을 점유.)
+        db.execute(
+            delete(UserInterestRegion).where(
+                UserInterestRegion.user_id == current_user.id,
+                UserInterestRegion.priority.in_([1, 2, 3]),
+            )
+        )
+        for m in matches:
+            db.add(
+                UserInterestRegion(
+                    user_id=current_user.id,
+                    region_id=m.region.id,
+                    priority=m.rank,
+                )
+            )
+        db.commit()
+
+    emit(EventName.MATCH_RESULT_VIEWED)
+    return templates.TemplateResponse(
+        request,
+        "pages/match/result.html",
+        {
+            "cards": cards,
+            "answers": answers,
             "current_user": current_user,
         },
     )
