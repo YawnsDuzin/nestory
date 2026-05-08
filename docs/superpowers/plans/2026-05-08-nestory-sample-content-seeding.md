@@ -473,26 +473,30 @@ from app.scripts.seed_assets.picsum import download_and_attach
 
 - [ ] **Step 2: review 루프에 첨부 호출 추가**
 
+**Important note:** `download_and_attach` signature was amended in commit `301799d` to accept explicit `owner: User`. New positional signature: `(db, post, owner, count, *, base_seed, failure_counter)`. The caller MUST pass the same user variable used to create the post — `post.author` would raise `InvalidRequestError` (lazy='raise').
+
 기존 review 생성 루프 (review_data 사용 + 패딩 generic 둘 다):
 
 ```python
 for i, (title, body) in enumerate(review_data):
+    author = resident_a if i % 2 == 0 else resident_b
     ...
-    reviews.append(ReviewPostFactory(...))
+    reviews.append(ReviewPostFactory(author=author, ...))
 
 # Pad to 12 with shorter generic reviews
 for _ in range(12 - len(reviews)):
+    author = random.choice([resident_a, resident_b])
     ...
-    reviews.append(ReviewPostFactory(...))
+    reviews.append(ReviewPostFactory(author=author, ...))
 ```
 
-각 ReviewPostFactory 직후에 다음 한 블록 추가 (양쪽 루프 모두):
+각 ReviewPostFactory 직후에 다음 한 블록 추가 (양쪽 루프 모두) — `author` 변수가 이미 scope에 있으니 그대로 전달:
 
 ```python
         review = reviews[-1]
         n = random.randint(1, 3)
         download_and_attach(
-            session, review, n,
+            session, review, author, n,
             base_seed=base_seed_counter[0],
             failure_counter=failure_counter,
         )
@@ -521,24 +525,24 @@ journey_yp 루프 변경:
             )
             n = random.randint(1, 3)
             download_and_attach(
-                session, ep, n,
+                session, ep, resident_a, n,
                 base_seed=base_seed_counter[0],
                 failure_counter=failure_counter,
             )
             base_seed_counter[0] += 10
 ```
 
-journey_hc 루프 동일 패턴 적용.
+journey_hc 루프 동일 패턴 적용 (`owner=resident_b`).
 
 - [ ] **Step 4: PLAN 루프에 0-1장 첨부 호출 추가 (T4 블록 수정)**
 
-T4에서 추가한 PLAN 루프의 PlanPostFactory 호출 직후에 추가:
+T4에서 추가한 PLAN 루프의 PlanPostFactory 호출 직후에 추가 (`interested` 변수가 작성자):
 
 ```python
             n = random.randint(0, 1)
             if n:
                 download_and_attach(
-                    session, plans[-1], n,
+                    session, plans[-1], interested, n,
                     base_seed=base_seed_counter[0],
                     failure_counter=failure_counter,
                 )
