@@ -58,6 +58,7 @@ def attach_image(db: Session, owner: User, raw: bytes) -> Image | None:
         db.refresh(img)  # pick up status=READY + thumb/medium paths
         return img
     except Exception as e:  # noqa: BLE001  — best-effort seeder
+        db.rollback()  # recover session from any aborted transaction
         warnings.warn(f"attach_image failed: {e}", stacklevel=2)
         return None
 
