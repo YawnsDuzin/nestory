@@ -9,6 +9,7 @@ Tests:
 
 NOTE: Requires running Postgres (factory-boy uses test session).
 """
+import pytest
 from sqlalchemy.orm import Session
 
 from app.services.match import compute_top_regions
@@ -56,8 +57,6 @@ def test_same_input_yields_same_output(db: Session) -> None:
 
 
 def test_invalid_answer_code_raises(db: Session) -> None:
-    import pytest
-
     with pytest.raises(ValueError, match="invalid answer"):
         compute_top_regions(db, {1: "A", 2: "A", 3: "A", 4: "A", 5: "Z"})
 
@@ -81,3 +80,26 @@ def test_resolves_ties_by_region_id_for_determinism(db: Session) -> None:
     assert matches[0].region.id < matches[1].region.id
     assert matches[0].region.id == a.id
     assert matches[1].region.id == b.id
+
+
+def test_empty_db_returns_empty_list(db: Session) -> None:
+    """No RegionScoringWeight rows → empty list (route layer enforces ≥3 contract)."""
+    matches = compute_top_regions(db, {1: "A", 2: "A", 3: "A", 4: "A", 5: "A"})
+    assert matches == []
+
+
+def test_returns_partial_when_fewer_than_3_regions(db: Session) -> None:
+    """Service returns whatever is available; route layer enforces minimum."""
+    _seed_region("only-a", "전부시", activity_score=5, medical_score=5,
+                 family_visit_score=5, farming_score=5, budget_score=5)
+    _seed_region("only-b", "유일시", activity_score=6, medical_score=6,
+                 family_visit_score=6, farming_score=6, budget_score=6)
+    matches = compute_top_regions(db, {1: "A", 2: "A", 3: "A", 4: "A", 5: "A"})
+    assert len(matches) == 2
+    assert matches[0].rank == 1
+    assert matches[1].rank == 2
+
+
+def test_missing_answer_raises(db: Session) -> None:
+    with pytest.raises(ValueError, match="missing answer"):
+        compute_top_regions(db, {1: "A", 2: "A", 3: "A", 4: "A"})  # no Q5

@@ -10,10 +10,6 @@ from sqlalchemy.orm import Session
 
 from app.models import Region, RegionScoringWeight
 
-# ---------------------------------------------------------------------------
-# Domain types
-# ---------------------------------------------------------------------------
-
 
 @dataclass(frozen=True)
 class RegionMatch:
@@ -104,8 +100,10 @@ def compute_top_regions(db: Session, answers: dict[int, str]) -> list[RegionMatc
         ValueError: 답변 누락 또는 옵션 코드 부정.
     """
     _validate_answers(answers)
-    user_vec = _user_weight_vector(answers)
     weights = list(db.scalars(select(RegionScoringWeight)).all())
+    if not weights:
+        return []
+    user_vec = _user_weight_vector(answers)
     region_ids = [w.region_id for w in weights]
     region_map = {
         r.id: r
