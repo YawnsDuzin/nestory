@@ -3,12 +3,17 @@
 PRD §1.5.3 [v1.1·B3] Pillar R 핵심 차별화. 점수는 deterministic dot product,
 AI는 자연어 설명만 (fallback 정적 텍스트).
 """
+import logging
 from dataclasses import dataclass
+from functools import lru_cache
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.config import get_settings
 from app.models import Region, RegionScoringWeight
+
+log = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -118,4 +123,92 @@ def compute_top_regions(db: Session, answers: dict[int, str]) -> list[RegionMatc
     ]
 
 
-__all__ = ["RegionMatch", "USER_WEIGHTS", "compute_top_regions"]
+_ANSWER_LABELS: dict[int, dict[str, str]] = {
+    1: {"A": "텃밭·정원", "B": "등산·산책", "C": "예술·취미", "D": "조용한 휴식"},
+    2: {"A": "매우 중요(만성질환)", "B": "중요", "C": "보통", "D": "낮음"},
+    3: {"A": "주 1회 이상", "B": "월 2-3회", "C": "분기 1회", "D": "거의 없음"},
+    4: {"A": "본격 농업", "B": "텃밭 정도", "C": "마당만", "D": "안 함"},
+    5: {"A": "3억 이하", "B": "3-5억", "C": "5-8억", "D": "8억 이상"},
+}
+
+_SYSTEM_PROMPT = (
+    "당신은 한국 전원주택 정착 추천 도우미입니다. "
+    "시니어 사용자의 라이프스타일 답변과 시군 점수를 보고, "
+    "왜 이 시군이 추천되었는지 1-2문장으로 친절하게 설명합니다. "
+    "존댓말 사용. 시군 이름과 핵심 매칭 이유 2-3개를 자연스럽게 엮으세요. "
+    "절대 점수 자체나 숫자를 본문에 노출하지 마세요."
+)
+
+
+@lru_cache(maxsize=1)
+def _get_sdk_client():  # type: ignore[no-untyped-def]
+    """Anthropic 클라이언트 — process 단위 캐시. OAuth 토큰은 default_headers Bearer로 주입."""
+    import anthropic
+
+    settings = get_settings()
+    return anthropic.Anthropic(
+        default_headers={"Authorization": f"Bearer {settings.anthropic_oauth_token}"}
+    )
+
+
+def _user_prompt(match: "RegionMatch", answers: dict[int, str]) -> str:
+    lines = [
+        f"시군: {match.region.sigungu} ({match.region.sido})",
+        "사용자 라이프스타일:",
+        f"- 활동: {_ANSWER_LABELS[1][answers[1]]}",
+        f"- 의료: {_ANSWER_LABELS[2][answers[2]]}",
+        f"- 자녀 방문: {_ANSWER_LABELS[3][answers[3]]}",
+        f"- 농사: {_ANSWER_LABELS[4][answers[4]]}",
+        f"- 예산: {_ANSWER_LABELS[5][answers[5]]}",
+        "",
+        "매칭 점수 분포 (참고용, 본문에 직접 노출 금지):",
+        f"- 활동 {match.weight.activity_score}/10, "
+        f"의료 {match.weight.medical_score}/10, "
+        f"자녀방문 {match.weight.family_visit_score}/10, "
+        f"농사 {match.weight.farming_score}/10, "
+        f"예산 {match.weight.budget_score}/10",
+        "",
+        "설명을 1-2문장으로:",
+    ]
+    return "\n".join(lines)
+
+
+def _static_explanation(match: "RegionMatch") -> str:
+    return (
+        f"{match.region.sigungu}이(가) Top {match.rank}로 추천되었습니다. "
+        f"5개 항목 매칭 점수 합계 {match.total_score}점."
+    )
+
+
+def generate_explanations(
+    matches: list["RegionMatch"], answers: dict[int, str]
+) -> list[str]:
+    """각 match에 1-2문장 자연어 설명. OAuth 미설정/실패 시 fallback."""
+    settings = get_settings()
+    if not settings.anthropic_oauth_token:
+        return [_static_explanation(m) for m in matches]
+
+    client = _get_sdk_client()
+    out: list[str] = []
+    for m in matches:
+        try:
+            resp = client.messages.create(
+                model="claude-haiku-4-5-20251001",
+                max_tokens=200,
+                system=_SYSTEM_PROMPT,
+                messages=[{"role": "user", "content": _user_prompt(m, answers)}],
+                timeout=5.0,
+            )
+            out.append(resp.content[0].text.strip())
+        except Exception as e:  # noqa: BLE001
+            log.warning("match_llm.failed region_id=%s error=%s", m.region.id, e)
+            out.append(_static_explanation(m))
+    return out
+
+
+__all__ = [
+    "RegionMatch",
+    "USER_WEIGHTS",
+    "compute_top_regions",
+    "generate_explanations",
+]
