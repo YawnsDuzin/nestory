@@ -22,7 +22,7 @@ from app.db.session import SessionLocal
 from app.models import Post
 from app.models._enums import PostStatus, PostType
 from app.models.user import BadgeLevel
-from app.scripts.seed_assets.picsum import download_and_attach
+from app.scripts.seed_assets.picsum import SeedAbort, download_and_attach
 from app.tests.factories import (
     AdminUserFactory,
     AnswerPostFactory,
@@ -454,7 +454,11 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Nestory demo seeder")
     parser.add_argument("--reset", action="store_true", help="TRUNCATE all tables before seeding")
     args = parser.parse_args()
-    seed(reset=args.reset)
+    try:
+        seed(reset=args.reset)
+    except SeedAbort as e:
+        print(f"[!] {e}")
+        return 1
     return 0
 
 
