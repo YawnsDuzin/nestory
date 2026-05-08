@@ -31,7 +31,11 @@ from app.tests.factories import (
 
 
 def _seed_4_regions(db: Session) -> None:
-    """4 pilot region with weights — required for result page (>=3)."""
+    """4 pilot region with weights — required for result page (>=3).
+
+    라우트의 Depends(get_db)는 별도 SessionLocal을 생성하므로 factory의 flush-only
+    데이터를 못 본다. 마지막에 commit 해야 라우트 측 트랜잭션이 seed를 읽는다.
+    """
     for slug, sigungu, scores in [
         ("yang", "양평군", (8, 7, 9, 7, 6)),
         ("gap",  "가평군", (8, 5, 8, 8, 7)),
@@ -45,6 +49,7 @@ def _seed_4_regions(db: Session) -> None:
             activity_score=a, medical_score=m, family_visit_score=fv,
             farming_score=fa, budget_score=b,
         )
+    db.commit()
 
 
 def _patch_oauth_empty():
@@ -95,7 +100,7 @@ def test_submit_invalid_answer_returns_400(client: TestClient) -> None:
 def test_result_with_full_answers_returns_200(
     client: TestClient, db: Session
 ) -> None:
-    _seed_4_regions(db)
+    _seed_4_regions(db)  # commit은 helper 내부에서 처리
     with _patch_oauth_empty():
         r = client.get("/match/result?a1=A&a2=A&a3=A&a4=A&a5=A")
     assert r.status_code == 200
@@ -113,6 +118,7 @@ def test_result_logged_in_upserts_user_interest_regions(
 ) -> None:
     _seed_4_regions(db)
     user = UserFactory()
+    db.commit()
     login(user.id)
     with _patch_oauth_empty():
         r = client.get("/match/result?a1=A&a2=A&a3=A&a4=A&a5=A")
@@ -135,6 +141,7 @@ def test_result_logged_in_preserves_manual_interest_regions(
     # 사용자가 수동으로 추가한 priority=4 region (wizard Top 3와 무관)
     extra = PilotRegionFactory(slug="extra", sigungu="추가시")
     UserInterestRegionFactory(user=user, region=extra, priority=4)
+    db.commit()
     login(user.id)
     with _patch_oauth_empty():
         r = client.get("/match/result?a1=A&a2=A&a3=A&a4=A&a5=A")
@@ -157,6 +164,7 @@ def test_result_logged_in_rerun_updates_existing_region_priority(
     """Wizard 재실행 시 기존 wizard 결과 row가 새 priority로 갱신된다."""
     _seed_4_regions(db)
     user = UserFactory()
+    db.commit()
     login(user.id)
     with _patch_oauth_empty():
         client.get("/match/result?a1=A&a2=A&a3=A&a4=A&a5=A")

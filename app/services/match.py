@@ -8,10 +8,11 @@ from dataclasses import dataclass
 from functools import lru_cache
 
 from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import insert as _pg_insert
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
-from app.models import Region, RegionScoringWeight
+from app.models import Region, RegionScoringWeight, User, UserInterestRegion
 
 log = logging.getLogger(__name__)
 
@@ -206,9 +207,32 @@ def generate_explanations(
     return out
 
 
+def save_wizard_top3(
+    db: Session, user: User, matches: list[RegionMatch]
+) -> None:
+    """Wizard 결과 Top 3를 user_interest_regions에 ON CONFLICT UPSERT.
+
+    composite PK (user_id, region_id) 충돌 시 priority만 갱신 — 사용자가 수동으로
+    추가한 priority>=4 region은 그대로 보존됨. wizard 재실행 시 동일 region은
+    priority 갱신만, 다른 region은 그대로.
+    """
+    for m in matches:
+        stmt = _pg_insert(UserInterestRegion).values(
+            user_id=user.id,
+            region_id=m.region.id,
+            priority=m.rank,
+        ).on_conflict_do_update(
+            index_elements=["user_id", "region_id"],
+            set_={"priority": m.rank},
+        )
+        db.execute(stmt)
+    db.commit()
+
+
 __all__ = [
     "RegionMatch",
     "USER_WEIGHTS",
     "compute_top_regions",
     "generate_explanations",
+    "save_wizard_top3",
 ]

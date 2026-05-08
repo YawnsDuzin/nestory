@@ -3,13 +3,17 @@ from urllib.parse import urlencode
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
-from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
 from app.deps import get_current_user, get_db
-from app.models import User, UserInterestRegion
+from app.models import User
 from app.services.analytics import EventName, emit
-from app.services.match import VALID_OPTIONS, compute_top_regions, generate_explanations
+from app.services.match import (
+    VALID_OPTIONS,
+    compute_top_regions,
+    generate_explanations,
+    save_wizard_top3,
+)
 from app.templating import templates
 
 router = APIRouter(tags=["match"])
@@ -158,18 +162,7 @@ def wizard_result(
     ]
 
     if current_user is not None:
-        for m in matches:
-            stmt = pg_insert(UserInterestRegion).values(
-                user_id=current_user.id,
-                region_id=m.region.id,
-                priority=m.rank,
-            )
-            stmt = stmt.on_conflict_do_update(
-                index_elements=["user_id", "region_id"],
-                set_={"priority": m.rank},
-            )
-            db.execute(stmt)
-        db.commit()
+        save_wizard_top3(db, current_user, matches)
 
     emit(EventName.MATCH_RESULT_VIEWED)
     return templates.TemplateResponse(
