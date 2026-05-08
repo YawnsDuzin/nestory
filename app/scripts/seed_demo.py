@@ -11,8 +11,10 @@ from __future__ import annotations
 
 import argparse
 import random
+import shutil
 import sys
 from datetime import UTC, date, datetime, timedelta
+from pathlib import Path
 
 from sqlalchemy import text
 
@@ -66,6 +68,14 @@ def _truncate_all(session) -> None:
     session.commit()
 
 
+def _clean_media(image_base_path: str) -> None:
+    """Wipe `<image_base_path>/images/` so re-seeded image rows have no orphan files."""
+    images_dir = Path(image_base_path) / "images"
+    if images_dir.exists():
+        shutil.rmtree(images_dir)
+    images_dir.mkdir(parents=True, exist_ok=True)
+
+
 def _now() -> datetime:
     return datetime.now(UTC)
 
@@ -77,6 +87,9 @@ def seed(reset: bool = False) -> None:
         if reset:
             _truncate_all(session)
             print("Truncated all tables.")
+            from app.config import get_settings
+            _clean_media(get_settings().image_base_path)
+            print(f"Cleaned media directory: {get_settings().image_base_path}/images/")
 
         # Regions
         regions = {
