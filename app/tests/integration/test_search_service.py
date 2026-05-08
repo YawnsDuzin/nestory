@@ -2,7 +2,7 @@
 
 Covers:
 - 한글 부분일치 (e.g. "양평" in body "양평군 동향에 단열")
-- 오타 허용 (trgm — "양펑" → "양평" similarity > 0.1)
+- 오타 허용 (trgm — "양펑" → "양평" similarity > 0.07)
 - region_id 필터 (other region excluded)
 - type 필터 (REVIEW only)
 - sort=latest / sort=popular / sort=relevance
@@ -73,7 +73,8 @@ def test_typo_tolerance_trgm(db: Session) -> None:
     db.flush()
 
     result = search_service.search_posts(db, "양펑")
-    # trgm similarity("양펑", "양평") ≈ 0.5 which is > SIMILARITY_THRESHOLD (0.1)
+    # trgm similarity("양펑", "양평 이사 후기") ≈ 0.09 which is > SIMILARITY_THRESHOLD (0.07)
+    # 한국어는 영어보다 trigram 밀도가 낮아 임계값 0.07로 조정 (PRD §6.3 보강)
     assert result.total >= 1
 
 

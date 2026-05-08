@@ -11,7 +11,7 @@ from app.models._enums import PostStatus, PostType
 PAGE_SIZE = 20
 MIN_QUERY_LEN = 2
 MAX_QUERY_LEN = 200
-SIMILARITY_THRESHOLD = 0.1
+SIMILARITY_THRESHOLD = 0.07
 
 
 @dataclass
