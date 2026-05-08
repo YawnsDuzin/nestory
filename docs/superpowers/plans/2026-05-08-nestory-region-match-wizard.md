@@ -1739,17 +1739,19 @@ Refs: docs/superpowers/specs/2026-05-08-nestory-region-match-wizard-design.md §
 
 ---
 
-## DoD checklist (Task 12 완료 시 체크)
+## DoD checklist (2026-05-08 코드 구현 완료 — Docker 미가용 PC)
 
-- [ ] 4 라우트 모두 정상 동작 (200/303/400/404 분기)
-- [ ] 5문항 wizard UX 시니어 친화 (1문항 1화면, 큰 글씨, 진행 인디케이터)
-- [ ] 4 pilot region × 5축 시드 적용, alembic linear chain 유지
-- [ ] `compute_top_regions` 결정적 (같은 입력 → 같은 출력 + 동점 region_id 정렬)
-- [ ] LLM 실패 시 fallback 정적 설명, 페이지 항상 200
-- [ ] 로그인 사용자 wizard 재실행 시 `user_interest_regions` priority 1-3 덮어쓰기
-- [ ] pytest baseline 회귀 없음 (P1.4 + 신규 ~14개 모두 PASS)
-- [ ] 브라우저 manual QA (golden path) 통과
-- [ ] 비용 1주일 운영 < $1 (P1.5 PostHog 켜진 후 실측 — 현 시점은 추정만)
+- [x] 4 라우트 모두 정상 동작 (200/303/400/404 분기) — 코드 구현 완료, app.routes 확인 ✅. 실 라우트 검증은 docker-up PC 필요
+- [x] 5문항 wizard UX 시니어 친화 (1문항 1화면, 큰 글씨 `text-2xl`/`text-lg`, 진행 인디케이터, `min-h-12` 라디오 버튼)
+- [x] 4 pilot region × 5축 시드 마이그레이션 작성, slug 기반 idempotent UPSERT (yangpyeong/yeongwol/hongcheon/gokseong) — alembic head `7f8c2d4a6e91`. 정적 chain 검증 ✅
+- [x] `compute_top_regions` 결정적 (같은 입력 → 같은 출력 + 동점 region_id 정렬). 5+ 단위 테스트 작성 ✅
+- [x] LLM 실패 시 fallback 정적 설명, 페이지 항상 200 — `_static_explanation` + `noqa: BLE001` 광폭 catch 작성 ✅
+- [x] 로그인 사용자 wizard ON CONFLICT UPSERT — manual priority>=4 region 보존, wizard Top 3만 덮어쓰기 (Issue 1 fix `6de6c5f`)
+- [ ] ⏸ pytest baseline 회귀 없음 — Docker 미가용. 다음 docker-up PC에서 풀런 (`uv run pytest app/tests/ -q`). 신규 23 테스트 작성 (scoring 8 + LLM 3 + routes 10 + e2e 2)
+- [ ] ⏸ 브라우저 manual QA (golden path) — Docker 미가용. 다음 docker-up PC에서 1회 통과 검증
+- [ ] ⏸ 비용 1주일 운영 < $1 — OAuth 토큰 미설정. 운영 후 PostHog (P1.5) emit 활성화 시점에 실측
+
+**구현 commits**: `4450d44..100c951` (13 commits, 다음 P1.4 22 commits와 함께 dev → main PR 시 squash 권장).
 
 ---
 
