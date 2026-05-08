@@ -14,6 +14,7 @@ from app.routers import hub as hub_router
 from app.routers import images as images_router
 from app.routers import interactions as interactions_router
 from app.routers import journey as journey_router
+from app.routers import match as match_router
 from app.routers import me as me_router
 from app.routers import pages as pages_router
 from app.routers import profile as profile_router
@@ -44,6 +45,7 @@ app.include_router(hub_router.router)
 app.include_router(images_router.router)
 app.include_router(interactions_router.router)
 app.include_router(journey_router.router)
+app.include_router(match_router.router)
 app.include_router(me_router.router)
 app.include_router(pages_router.router)
 app.include_router(profile_router.router)

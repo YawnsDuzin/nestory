@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}나에게 맞는 시군 찾기 · Nestory{% endblock %}
+{% block content %}
+<section class="space-y-6">
+  <header class="text-center space-y-3">
+    <h1 class="text-3xl font-bold text-slate-900">🎯 나에게 맞는 시군 찾기</h1>
+    <p class="text-lg text-slate-600">
+      5개 질문에 답하시면 Top 3 시군을 추천해드립니다.
+    </p>
+  </header>
+
+  <div class="rounded-lg border bg-white p-6 space-y-4">
+    <p class="text-slate-700">
+      라이프스타일·예산·의료·자녀 방문 등을 종합해 가장 잘 맞는 시군을 알려드립니다.
+      답변은 저장되지 않으며, 결과 페이지의 URL을 저장/공유할 수 있습니다.
+    </p>
+    <ul class="text-sm text-slate-600 space-y-1 list-disc pl-5">
+      <li>1-2분 소요</li>
+      <li>비로그인도 사용 가능 (결과는 URL로 공유)</li>
+      <li>로그인 사용자는 Top 3가 관심 시군으로 자동 저장</li>
+    </ul>
+    <div class="pt-4">
+      <a href="/match/wizard/q/1"
+         class="inline-block rounded-md bg-emerald-600 px-6 py-3 text-lg font-semibold text-white hover:bg-emerald-700">
+        시작하기 →
+      </a>
+    </div>
+  </div>
+</section>
+{% endblock %}
