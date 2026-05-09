@@ -1,8 +1,7 @@
 <nav class="sticky top-0 z-10 border-b border-slate-200 bg-white">
   <div class="mx-auto flex max-w-3xl items-center justify-between px-4 py-3">
     <a href="/" class="flex items-center" aria-label="Nestory 홈">
-      <img src="{{ url_for('static', path='/img/logo-c-full.svg') }}" alt="Nestory — 전원주택 정착 커뮤니티" class="h-8 w-auto hidden sm:block">
-      <img src="{{ url_for('static', path='/img/logo-c-mark.svg') }}" alt="Nestory" class="h-8 w-8 sm:hidden">
+      <img src="{{ url_for('static', path='/img/logo-c-full.svg') }}" alt="Nestory — 전원주택 정착 커뮤니티" class="h-10 w-auto">
     </a>
     <div class="hidden sm:flex items-center gap-4 text-sm text-slate-600">
       <a href="/feed" class="hover:text-slate-900">피드</a>
@@ -12,6 +11,15 @@
     </div>
     <div class="flex items-center gap-3 text-sm">
       {% if current_user %}
+        {# 알림 bell — HTMX 30s polling #}
+        <div hx-get="/notifications/_bell"
+             hx-trigger="load"
+             hx-swap="outerHTML"
+             class="text-slate-400">
+          🔔
+        </div>
+
+        {# 쓰기 드롭다운 — 별도 유지 #}
         <div x-data="{ open: false }" class="relative">
           <button type="button" @click="open = !open" @click.outside="open = false"
                   class="text-slate-600 hover:text-slate-900">
@@ -32,14 +40,81 @@
             <a href="/write/plan" class="block px-4 py-2 hover:bg-slate-50">📅 정착 계획</a>
           </div>
         </div>
-        <a href="/me/badge" class="text-sm text-slate-600 hover:underline">내 배지</a>
-        {% if current_user.role.value == "admin" %}
-          <a href="/admin/badge-queue" class="text-sm text-slate-600 hover:underline">배지 큐</a>
-        {% endif %}
-        <span class="text-slate-600">@{{ current_user.username }}</span>
-        <form method="post" action="/auth/logout" class="inline">
-          <button type="submit" class="text-slate-500 hover:text-slate-900">로그아웃</button>
-        </form>
+
+        {# 사용자 메뉴 — avatar 트리거 + 항목 그룹 #}
+        {% set badge_label = {
+          'interested': '🌱 관심',
+          'region_verified': '🏡 시군 인증',
+          'resident': '🏠 거주자',
+          'ex_resident': '📜 전 거주자',
+        }.get(current_user.badge_level.value, current_user.badge_level.value) %}
+        <div x-data="{ open: false }" class="relative">
+          <button type="button" @click="open = !open" @click.outside="open = false"
+                  class="flex items-center gap-1 rounded-full hover:opacity-90"
+                  aria-label="사용자 메뉴">
+            <span class="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-600 text-sm font-semibold text-white">
+              {{ current_user.username[:1] | upper }}
+            </span>
+            <span class="text-slate-500" aria-hidden="true">▾</span>
+          </button>
+          <div x-show="open" x-transition x-cloak
+               class="absolute right-0 mt-2 w-64 rounded-lg border border-slate-200 bg-white shadow-lg z-20 overflow-hidden">
+            {# 헤더 — username · role · badge #}
+            <div class="px-4 py-3 border-b border-slate-100">
+              <div class="font-semibold text-slate-900 truncate">@{{ current_user.username }}</div>
+              <div class="text-xs text-slate-500 mt-0.5">
+                {{ '관리자' if current_user.role.value == 'admin' else '사용자' }}
+              </div>
+              <span class="inline-block mt-2 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                {{ badge_label }}
+              </span>
+            </div>
+
+            {# 일반 항목 #}
+            <div class="py-1">
+              <a href="/u/{{ current_user.username }}/scraps" class="flex items-center gap-3 px-4 py-2 text-slate-700 hover:bg-slate-50">
+                <span class="w-5 text-center">⭐</span>
+                <span>관심 시군</span>
+              </a>
+              <a href="/notifications" class="flex items-center gap-3 px-4 py-2 text-slate-700 hover:bg-slate-50">
+                <span class="w-5 text-center">🔔</span>
+                <span>알림</span>
+              </a>
+              <a href="/u/{{ current_user.username }}" class="flex items-center gap-3 px-4 py-2 text-slate-700 hover:bg-slate-50">
+                <span class="w-5 text-center">👤</span>
+                <span>프로필</span>
+              </a>
+              <a href="/me/badge" class="flex items-center gap-3 px-4 py-2 text-slate-700 hover:bg-slate-50">
+                <span class="w-5 text-center">🏡</span>
+                <span>내 배지</span>
+              </a>
+            </div>
+
+            {# 관리자 전용 그룹 #}
+            {% if current_user.role.value == 'admin' %}
+              <div class="border-t border-slate-100 py-1">
+                <a href="/admin/badge-queue" class="flex items-center gap-3 px-4 py-2 text-slate-700 hover:bg-slate-50">
+                  <span class="w-5 text-center">🛡</span>
+                  <span>배지 큐</span>
+                </a>
+                <a href="/docs" class="flex items-center gap-3 px-4 py-2 text-slate-700 hover:bg-slate-50">
+                  <span class="w-5 text-center font-mono">&lt;/&gt;</span>
+                  <span>API Docs</span>
+                </a>
+              </div>
+            {% endif %}
+
+            {# 로그아웃 — 빨강 #}
+            <div class="border-t border-slate-100 py-1">
+              <form method="post" action="/auth/logout" class="block">
+                <button type="submit" class="flex w-full items-center gap-3 px-4 py-2 text-rose-600 hover:bg-rose-50">
+                  <span class="w-5 text-center">↩</span>
+                  <span>로그아웃</span>
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
       {% else %}
         <a href="/auth/login" class="text-slate-600 hover:text-slate-900">로그인</a>
         <a href="/auth/signup" class="rounded-md bg-emerald-600 px-3 py-1 text-white hover:bg-emerald-700">시작하기</a>

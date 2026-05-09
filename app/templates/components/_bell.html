@@ -1,0 +1,47 @@
+<div id="bell-area"
+     hx-get="/notifications/_bell"
+     hx-trigger="every 30s"
+     hx-swap="outerHTML"
+     class="relative" x-data="{ open: false }">
+
+  <button type="button" @click="open = !open" @click.outside="open = false"
+          class="relative text-slate-600 hover:text-slate-900 min-w-12 min-h-12 flex items-center justify-center"
+          aria-label="알림 {{ unread_count }}개">
+    <span class="text-xl">🔔</span>
+    {% if unread_count > 0 %}
+      <span class="absolute -top-1 -right-1 inline-flex items-center justify-center
+                   h-5 min-w-5 px-1 rounded-full bg-rose-600 text-white text-xs">
+        {{ unread_count if unread_count < 100 else '99+' }}
+      </span>
+    {% endif %}
+  </button>
+
+  <div x-show="open" x-transition x-cloak
+       class="absolute right-0 mt-2 w-80 rounded border bg-white shadow-lg z-20">
+    <div class="px-4 py-2 text-sm font-semibold border-b">알림</div>
+    {% if recent %}
+      <ul class="max-h-96 overflow-y-auto">
+        {% for view in recent %}
+          <li>
+            <form method="post" action="/notifications/{{ view.notification.id }}/read">
+              <button type="submit"
+                      class="w-full text-left px-4 py-3 hover:bg-slate-50
+                             {% if not view.notification.is_read %}bg-emerald-50{% endif %}">
+                <p class="text-sm text-slate-900">{{ view.label }}</p>
+                <p class="text-xs text-slate-500 mt-1">
+                  {{ view.notification.created_at.strftime('%m/%d %H:%M') }}
+                </p>
+              </button>
+            </form>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="px-4 py-6 text-center text-sm text-slate-500">새 알림이 없습니다.</p>
+    {% endif %}
+    <a href="/notifications"
+       class="block text-center px-4 py-2 border-t text-sm text-emerald-700 hover:bg-slate-50">
+      모두 보기 →
+    </a>
+  </div>
+</div>
