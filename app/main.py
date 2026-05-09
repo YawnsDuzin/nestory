@@ -1,3 +1,4 @@
+import uuid
 from pathlib import Path
 
 from fastapi import FastAPI, Request
@@ -20,6 +21,7 @@ from app.routers import notifications as notifications_router
 from app.routers import pages as pages_router
 from app.routers import profile as profile_router
 from app.routers import search as search_router
+from app.services.analytics import _distinct_id
 from app.services.kakao_inapp import is_kakao_inapp
 
 settings = get_settings()
@@ -43,6 +45,17 @@ app.add_middleware(
 @app.middleware("http")
 async def kakao_inapp_middleware(request: Request, call_next):
     request.state.kakao_inapp = is_kakao_inapp(request)
+    return await call_next(request)
+
+
+@app.middleware("http")
+async def analytics_distinct_id_middleware(request: Request, call_next):
+    user_id = request.session.get("user_id")
+    anon_id = request.session.get("posthog_anon_id")
+    if user_id is None and anon_id is None:
+        anon_id = f"anon-{uuid.uuid4()}"
+        request.session["posthog_anon_id"] = anon_id
+    request.state.distinct_id_hash = _distinct_id(user_id, anon_id)
     return await call_next(request)
 
 
