@@ -32,15 +32,12 @@ BASE_DIR = Path(__file__).resolve().parent
 
 app = FastAPI(title="Nestory", debug=settings.app_env == "local")
 
-app.add_middleware(
-    SessionMiddleware,
-    secret_key=settings.app_secret_key,
-    session_cookie="nestory_session",
-    max_age=60 * 60 * 24 * 30,
-    same_site="lax",
-    https_only=settings.session_cookie_secure,
-)
 
+# NOTE: middleware 등록 순서 — Starlette는 add_middleware/decorator 시 list의
+# 0번 위치에 prepend하므로 "마지막에 등록"이 outermost가 됩니다.
+# request 처리 순서: SessionMiddleware → analytics → kakao → routes
+# 따라서 analytics가 request.session에 접근하려면 SessionMiddleware가
+# outermost(마지막 등록)가 되어야 합니다.
 
 @app.middleware("http")
 async def kakao_inapp_middleware(request: Request, call_next):
@@ -57,6 +54,18 @@ async def analytics_distinct_id_middleware(request: Request, call_next):
         request.session["posthog_anon_id"] = anon_id
     request.state.distinct_id_hash = _distinct_id(user_id, anon_id)
     return await call_next(request)
+
+
+# SessionMiddleware는 가장 마지막에 등록 — outermost가 되어야
+# 위의 두 미들웨어가 request.session에 접근 가능.
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=settings.app_secret_key,
+    session_cookie="nestory_session",
+    max_age=60 * 60 * 24 * 30,
+    same_site="lax",
+    https_only=settings.session_cookie_secure,
+)
 
 
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
