@@ -34,7 +34,7 @@ def write_journey_form(
 ) -> HTMLResponse:
     return templates.TemplateResponse(
         request, "pages/write/journey_create.html",
-        {"user": user, "regions": _all_regions(db)},
+        {"user": user, "current_user": user, "regions": _all_regions(db)},
     )
 
 
@@ -76,7 +76,7 @@ def write_episode_form(
     return templates.TemplateResponse(
         request, "pages/write/journey_episode.html",
         {
-            "user": user, "journey": journey,
+            "user": user, "current_user": user, "journey": journey,
             "page_title": f"새 에피소드 — {journey.title}",
             "page_subtitle": "이번 단계의 진행 상황을 기록하세요.",
             "form_action": f"/write/journey/{journey_id}/ep",
@@ -120,6 +120,7 @@ def journey_detail(
     request: Request,
     journey_id: int,
     db: Session = Depends(get_db),
+    current_user: User | None = Depends(get_current_user),
 ) -> HTMLResponse:
     journey = db.get(Journey, journey_id)
     if journey is None or journey.deleted_at is not None:
@@ -140,7 +141,13 @@ def journey_detail(
     )
     return templates.TemplateResponse(
         request, "pages/detail/journey.html",
-        {"journey": journey, "author": author, "region": region, "episodes": episodes},
+        {
+            "journey": journey,
+            "author": author,
+            "region": region,
+            "episodes": episodes,
+            "current_user": current_user,
+        },
     )
 
 

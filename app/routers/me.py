@@ -33,7 +33,7 @@ def badge_page(
     return templates.TemplateResponse(
         request,
         "pages/me_badge.html",
-        {"user": user, "pending": pending, "regions": regions},
+        {"user": user, "current_user": user, "pending": pending, "regions": regions},
     )
 
 
@@ -79,7 +79,7 @@ def resident_form(
     return templates.TemplateResponse(
         request,
         "pages/me_badge_resident.html",
-        {"user": user, "regions": regions, "evidence_types": list(EvidenceType)},
+        {"user": user, "current_user": user, "regions": regions, "evidence_types": list(EvidenceType)},
     )
 
 

@@ -20,7 +20,7 @@ EVIDENCE_RETENTION_DAYS = 30
 @router.get("/badge-queue", response_class=HTMLResponse)
 def badge_queue(
     request: Request,
-    _: User = Depends(require_admin),
+    current_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ) -> HTMLResponse:
     pending = badges.list_pending(db)
@@ -31,7 +31,9 @@ def badge_queue(
         region = db.get(Region, app_obj.region_id)
         rows.append({"app": app_obj, "applicant": applicant, "region": region})
     return templates.TemplateResponse(
-        request, "pages/admin_badge_queue.html", {"rows": rows}
+        request,
+        "pages/admin_badge_queue.html",
+        {"rows": rows, "current_user": current_user},
     )
 
 
@@ -39,7 +41,7 @@ def badge_queue(
 def badge_detail(
     request: Request,
     application_id: int,
-    _: User = Depends(require_admin),
+    current_user: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ) -> HTMLResponse:
     app_obj = db.get(BadgeApplication, application_id)
@@ -56,6 +58,7 @@ def badge_detail(
             "applicant": applicant,
             "region": region,
             "evidences": evidences,
+            "current_user": current_user,
         },
     )
 

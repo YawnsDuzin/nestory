@@ -36,6 +36,7 @@ def write_review_form(
         request, "pages/write/review.html",
         {
             "user": user,
+            "current_user": user,
             "page_title": "후기 작성",
             "page_subtitle": "정착 회고를 남겨주세요. Pillar C — 후회 비용을 데이터로.",
             "form_action": "/write/review",
@@ -84,6 +85,7 @@ def write_question_form(
         request, "pages/write/question.html",
         {
             "user": user,
+            "current_user": user,
             "page_title": "질문 작성",
             "page_subtitle": "지역에 사는 분들께 직접 물어보세요.",
             "form_action": "/write/question",
@@ -127,6 +129,7 @@ def write_plan_form(
         request, "pages/write/plan.html",
         {
             "user": user,
+            "current_user": user,
             "page_title": "정착 계획 작성",
             "page_subtitle": "예비 입주자를 위한 콘텐츠. 다른 분들의 조언을 받아보세요.",
             "form_action": "/write/plan",
