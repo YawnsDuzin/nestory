@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
@@ -20,6 +20,7 @@ from app.routers import notifications as notifications_router
 from app.routers import pages as pages_router
 from app.routers import profile as profile_router
 from app.routers import search as search_router
+from app.services.kakao_inapp import is_kakao_inapp
 
 settings = get_settings()
 configure_logging(env=settings.app_env)
@@ -37,6 +38,14 @@ app.add_middleware(
     same_site="lax",
     https_only=settings.session_cookie_secure,
 )
+
+
+@app.middleware("http")
+async def kakao_inapp_middleware(request: Request, call_next):
+    request.state.kakao_inapp = is_kakao_inapp(request)
+    return await call_next(request)
+
+
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 app.include_router(admin_router.router)
 app.include_router(auth_router.router)

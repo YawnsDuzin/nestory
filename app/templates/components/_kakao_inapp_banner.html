@@ -1,0 +1,16 @@
+{% if request.state.kakao_inapp %}
+<div class="bg-amber-50 border-b border-amber-200 px-4 py-3 text-sm text-amber-900"
+     x-data="{ show: true }" x-show="show">
+  <div class="mx-auto max-w-3xl flex items-start gap-3">
+    <span class="text-lg">📱</span>
+    <div class="flex-1">
+      <p class="font-semibold">외부 브라우저에서 열어보세요</p>
+      <p class="mt-1 text-amber-800">
+        카카오톡 인앱 브라우저에서는 일부 기능(홈 화면 추가, 알림)이 제한됩니다.
+        우측 상단 메뉴 → "다른 브라우저로 열기"를 이용해주세요.
+      </p>
+    </div>
+    <button type="button" @click="show = false" class="text-amber-600 hover:text-amber-900" aria-label="닫기">✕</button>
+  </div>
+</div>
+{% endif %}
