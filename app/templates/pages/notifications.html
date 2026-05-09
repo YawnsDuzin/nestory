@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}알림 · Nestory{% endblock %}
+{% block content %}
+<section class="space-y-4">
+  <header class="flex items-center justify-between">
+    <h1 class="text-2xl font-bold text-slate-900">알림</h1>
+    {% if total > 0 %}
+      <form method="post" action="/notifications/read-all">
+        <button type="submit"
+                class="rounded border bg-white px-3 py-2 text-sm text-slate-700 hover:bg-slate-50">
+          모두 읽음
+        </button>
+      </form>
+    {% endif %}
+  </header>
+
+  {% if views %}
+    <ul class="space-y-2">
+      {% for view in views %}
+        <li>
+          <form method="post" action="/notifications/{{ view.notification.id }}/read">
+            <button type="submit"
+                    class="w-full text-left rounded border bg-white p-4 hover:bg-slate-50
+                           {% if not view.notification.is_read %}border-emerald-300 bg-emerald-50{% endif %}">
+              <p class="text-base text-slate-900">{{ view.label }}</p>
+              <p class="text-xs text-slate-500 mt-2">
+                {{ view.notification.created_at.strftime('%Y-%m-%d %H:%M') }}
+                {% if view.notification.is_read %}<span class="ml-2">· 읽음</span>{% endif %}
+              </p>
+            </button>
+          </form>
+        </li>
+      {% endfor %}
+    </ul>
+
+    {% with base_url='/notifications' %}
+      {% include "partials/pagination.html" %}
+    {% endwith %}
+  {% else %}
+    <div class="rounded border bg-white p-8 text-center text-slate-500">
+      알림이 없습니다.
+    </div>
+  {% endif %}
+</section>
+{% endblock %}
