@@ -32,13 +32,13 @@
   </div>
 
   {% if app.status.value == "pending" %}
-    <div class="grid grid-cols-2 gap-2">
+    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:items-start">
       <form method="post" action="/admin/badge-queue/{{ app.id }}/approve">
         <button type="submit" class="inline-flex w-full items-center justify-center gap-2 rounded-md bg-emerald-600 text-white p-2.5 hover:bg-emerald-700">
           {{ icon("check", 18) }}승인
         </button>
       </form>
-      <form method="post" action="/admin/badge-queue/{{ app.id }}/reject" class="space-y-1">
+      <form method="post" action="/admin/badge-queue/{{ app.id }}/reject" class="space-y-2">
         <input type="text" name="note" required placeholder="반려 사유 (필수)" class="w-full rounded-md border border-stone-300 p-2 text-sm">
         <button type="submit" class="inline-flex w-full items-center justify-center gap-2 rounded-md bg-rose-600 text-white p-2.5 hover:bg-rose-700">
           {{ icon("x", 18) }}반려
