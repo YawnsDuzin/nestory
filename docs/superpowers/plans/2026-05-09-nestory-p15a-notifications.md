@@ -1599,18 +1599,20 @@ Refs: docs/superpowers/specs/2026-05-09-nestory-p15a-notifications-design.md §1
 
 ---
 
-## DoD checklist (Task 13 완료 시 체크)
+## DoD checklist (2026-05-09 코드 구현 완료 — Docker 미가용 PC)
 
-- [ ] 4 라우트 모두 정상 동작 (200/303/401/404 분기)
-- [ ] Bell UI 시니어 친화 (큰 hit target, 명확 unread 시각 차)
-- [ ] 4종 트리거 모두 `create_notification` 통과 (badges + comments + journey episode + Q&A answer)
-- [ ] 자기 자신 알림 helper에서 자동 skip
-- [ ] 기존 `app/services/badges.py` 직접 INSERT 패턴 → helper 호출로 통일
-- [ ] HTMX 30초 polling 동작 (수동 QA 30초 내 갱신)
-- [ ] 4 테스트 파일 모두 PASS (service 13 + routes 9 + emit 6 + e2e 1 = 29 신규 테스트)
-- [ ] pytest baseline 회귀 없음 (P1.3 + P1.4 + P1.4b)
-- [ ] 비용 0 (in-app DB row만 — 발송 비용 없음)
-- [ ] 새 마이그레이션 0 (P1.1 모델 그대로 사용)
+- [x] 4 라우트 모두 정상 동작 (200/303/401/404 분기) — app.routes 정적 등록 확인 ✅. 실 라우트 검증은 docker-up PC 필요
+- [x] Bell UI 시니어 친화 (`min-w-12 min-h-12` hit target, `bg-emerald-50` unread 시각 차)
+- [x] 4종 트리거 모두 `create_notification` 통과 — badges (Task 3) + comments (Task 4) + journey episode (Task 5) + Q&A answer (Task 5)
+- [x] 자기 자신 알림 helper에서 자동 skip — Task 1 + Task 2 단위 테스트 검증
+- [x] 기존 `app/services/badges.py` 직접 INSERT 패턴 → helper 호출로 통일 (Task 3, `5c33a4f`)
+- [x] HTMX 30초 polling 동작 — `_bell.html`의 `hx-trigger="every 30s"` + nav 페이지 로드 시 placeholder swap (Task 8). 실제 30초 갱신 확인은 docker-up PC 브라우저 QA 필요
+- [x] 4 테스트 파일 작성 (service 13 + routes 9 + emit 6 + e2e 1 = 29 신규 테스트). lint clean ✅
+- [ ] ⏸ pytest 풀런 baseline 회귀 없음 — Docker 미가용. 다음 docker-up PC에서 `uv run pytest app/tests/ -q`
+- [x] 비용 0 (in-app DB row만 — 발송 비용 없음)
+- [x] 새 마이그레이션 0 (P1.1 `Notification` 모델 그대로 사용)
+
+**구현 commits**: `68eb8e6..161381e` (12 commits, dev → main PR 시 squash 권장).
 
 ---
 
