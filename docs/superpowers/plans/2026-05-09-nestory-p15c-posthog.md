@@ -471,14 +471,16 @@ Refs: docs/superpowers/specs/2026-05-09-nestory-p15c-posthog-design.md §8"
 
 ---
 
-## DoD checklist
+## DoD checklist (2026-05-09 코드 구현 완료)
 
-- [ ] `posthog>=3.0` 의존성 추가 + uv.lock 갱신 (Task 1)
-- [ ] `app/config.py` posthog_api_key/host 설정 (Task 1)
-- [ ] `.env.example` placeholder 추가 (Task 1)
-- [ ] `app/services/analytics.py` 실제 wiring (Task 2)
-- [ ] `app/main.py` distinct-id middleware (Task 3)
-- [ ] 2 테스트 파일 작성 (service 10 + middleware 3 = 13 신규 테스트) (Tasks 4, 5)
-- [ ] 모든 기존 emit 호출 시그니처 호환 — 회귀 없음
-- [ ] PRD §8.2 PII 위반 호출 0건 (Task 6 audit)
+- [x] `posthog>=3.0` (실제 7.14.0) 의존성 추가 + uv.lock 갱신
+- [x] `app/config.py` posthog_api_key/host 설정
+- [x] `.env.example` placeholder 추가
+- [x] `app/services/analytics.py` 실제 wiring (env-gated, lru-cached client, SHA-256 distinct_id, exception graceful)
+- [x] `app/main.py` distinct-id middleware (세션 anon_id 보존)
+- [x] 2 테스트 파일 작성 (service 10 + middleware 3 = 13 신규 테스트). lint clean ✅
+- [x] 모든 기존 emit 호출 시그니처 호환 — 회귀 없음 (4 call sites 모두 `emit(EventName.X)` 형태 props 없음)
+- [x] PRD §8.2 PII 위반 호출 0건 — `grep emit(EventName` 결과 props 없음 확인
 - [ ] ⏸ 실 PostHog dashboard에서 이벤트 도착 확인 — prod 배포 + API key 설정 시점
+
+**구현 commits**: `d1f46a2..4c63c43` (5 commits).
