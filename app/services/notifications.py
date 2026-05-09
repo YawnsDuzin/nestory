@@ -62,7 +62,7 @@ def recent_for_dropdown(
         db.scalars(
             select(Notification)
             .where(Notification.user_id == user.id)
-            .order_by(Notification.created_at.desc())
+            .order_by(Notification.created_at.desc(), Notification.id.desc())
             .limit(limit)
         ).all()
     )
@@ -76,7 +76,7 @@ def list_paginated(
     total = db.scalar(select(func.count()).select_from(base.subquery())) or 0
     rows = list(
         db.scalars(
-            base.order_by(Notification.created_at.desc())
+            base.order_by(Notification.created_at.desc(), Notification.id.desc())
             .offset((page - 1) * PAGE_SIZE)
             .limit(PAGE_SIZE)
         ).all()

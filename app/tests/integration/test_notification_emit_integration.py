@@ -22,6 +22,7 @@ from app.models._enums import (
 from app.models.interaction import journey_follows
 from app.schemas.post_metadata import (
     JourneyEpisodeMetadata,
+    JourneyEpMeta,
 )
 from app.services.comments import create_comment
 from app.services.posts import create_answer, create_journey_episode
@@ -74,7 +75,6 @@ def test_create_journey_episode_fans_out_to_followers(db: Session) -> None:
         author_id=author.id,
         region_id=region.id,
         title="My Journey",
-        slug="my-journey",
         status=JourneyStatus.IN_PROGRESS,
     )
     db.add(journey)
@@ -92,7 +92,9 @@ def test_create_journey_episode_fans_out_to_followers(db: Session) -> None:
         db,
         author=author,
         journey=journey,
-        payload=JourneyEpisodeMetadata(),
+        payload=JourneyEpisodeMetadata(
+            journey_ep_meta=JourneyEpMeta(phase="터", period_label="2025-11")
+        ),
         title="Episode 1",
         body="첫 회차",
     )
@@ -111,7 +113,6 @@ def test_create_journey_episode_skips_self_follower(db: Session) -> None:
         author_id=author.id,
         region_id=region.id,
         title="Self J",
-        slug="self-j",
         status=JourneyStatus.IN_PROGRESS,
     )
     db.add(journey)
@@ -126,7 +127,9 @@ def test_create_journey_episode_skips_self_follower(db: Session) -> None:
         db,
         author=author,
         journey=journey,
-        payload=JourneyEpisodeMetadata(),
+        payload=JourneyEpisodeMetadata(
+            journey_ep_meta=JourneyEpMeta(phase="터", period_label="2025-11")
+        ),
         title="Self ep",
         body="본인 글",
     )
