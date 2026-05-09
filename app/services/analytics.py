@@ -34,6 +34,9 @@ class EventName(str, Enum):
     MATCH_WIZARD_SUBMITTED = "match_wizard_submitted"
     MATCH_RESULT_VIEWED = "match_result_viewed"
 
+    # P1.5a — notifications
+    NOTIFICATION_OPENED = "notification_opened"
+
 
 def emit(
     event: EventName,
