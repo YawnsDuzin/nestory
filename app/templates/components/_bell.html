@@ -5,12 +5,12 @@
      class="relative" x-data="{ open: false }">
 
   <button type="button" @click="open = !open" @click.outside="open = false"
-          class="relative text-slate-600 hover:text-slate-900 min-w-12 min-h-12 flex items-center justify-center"
+          class="relative h-9 w-9 inline-flex items-center justify-center rounded text-slate-600 hover:bg-slate-50 hover:text-slate-900"
           aria-label="알림 {{ unread_count }}개">
-    <span class="text-xl">🔔</span>
+    <span class="text-lg leading-none">🔔</span>
     {% if unread_count > 0 %}
       <span class="absolute -top-1 -right-1 inline-flex items-center justify-center
-                   h-5 min-w-5 px-1 rounded-full bg-rose-600 text-white text-xs">
+                   h-4 min-w-4 px-1 rounded-full bg-rose-600 text-white text-[10px] leading-none">
         {{ unread_count if unread_count < 100 else '99+' }}
       </span>
     {% endif %}
