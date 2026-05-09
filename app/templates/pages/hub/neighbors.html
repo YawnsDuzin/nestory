@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "components/_status_chip.html" import status_chip %}
 {% block title %}{{ region.sigungu }} · 이웃 · Nestory{% endblock %}
 {% block content %}
 <section class="space-y-6">
@@ -8,20 +9,24 @@
   {% if neighbors %}
     <ul class="grid gap-3 sm:grid-cols-2">
       {% for u in neighbors %}
-        <li class="rounded border bg-white p-4">
-          <a href="/u/{{ u.username }}" class="font-semibold text-slate-900 hover:text-emerald-700">
-            @{{ u.username }}
-          </a>
-          <p class="mt-1 text-xs text-slate-500">
-            {% if u.badge_level.value == "resident" %}🏡 거주자{% elif u.badge_level.value == "ex_resident" %}🏡 전 거주자{% endif %}
-            {% if u.resident_verified_at %}· {{ u.resident_verified_at.strftime("%Y-%m") }} 인증{% endif %}
-          </p>
-          {% if u.bio %}<p class="mt-2 text-sm text-slate-700 line-clamp-2">{{ u.bio }}</p>{% endif %}
+        <li class="rounded-lg border border-stone-200 bg-white p-5">
+          <div class="flex items-center justify-between gap-2">
+            <a href="/u/{{ u.username }}" class="font-semibold text-stone-900 hover:text-emerald-700 truncate">
+              @{{ u.username }}
+            </a>
+            {% if u.badge_level.value in ("resident", "ex_resident") %}
+              {{ status_chip("badge_level", u.badge_level.value) }}
+            {% endif %}
+          </div>
+          {% if u.resident_verified_at %}
+            <p class="mt-1 text-xs text-stone-500">{{ u.resident_verified_at.strftime("%Y-%m") }} 인증</p>
+          {% endif %}
+          {% if u.bio %}<p class="mt-2 text-sm text-stone-700 line-clamp-2">{{ u.bio }}</p>{% endif %}
         </li>
       {% endfor %}
     </ul>
   {% else %}
-    <p class="rounded border border-dashed bg-white p-6 text-center text-sm text-slate-500">
+    <p class="rounded-lg border border-dashed border-stone-300 bg-white p-6 text-center text-sm text-stone-500">
       아직 이 지역에 인증된 거주자가 없습니다.
     </p>
   {% endif %}

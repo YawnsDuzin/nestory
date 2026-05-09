@@ -1,17 +1,17 @@
 {# Hub header — expects: region, overview (HubOverview) — overview optional for tab pages #}
 <header class="space-y-2">
-  <p class="text-xs text-slate-500">{{ region.sido }}</p>
+  <p class="text-xs text-stone-500">{{ region.sido }}</p>
   <div class="flex items-center gap-2">
-    <h1 class="text-2xl font-bold text-slate-900">{{ region.sigungu }} 허브</h1>
+    <h1 class="text-2xl font-bold text-stone-900">{{ region.sigungu }} 허브</h1>
     {% if region.is_pilot %}
       <span class="rounded bg-amber-100 px-2 py-0.5 text-xs text-amber-800">파일럿</span>
     {% endif %}
   </div>
   {% if region.description %}
-    <p class="text-sm text-slate-600">{{ region.description }}</p>
+    <p class="text-sm text-stone-600">{{ region.description }}</p>
   {% endif %}
   {% if overview is defined %}
-    <p class="text-xs text-slate-500">
+    <p class="text-xs text-stone-500">
       후기 {{ overview.review_count }} · Journey {{ overview.journey_count }} · 질문 {{ overview.question_count }} · 거주자 {{ overview.resident_count }}
     </p>
   {% endif %}

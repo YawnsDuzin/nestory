@@ -1,25 +1,22 @@
+{% from "components/_status_chip.html" import status_chip %}
 {# Profile header — expects: profile_user, data (ProfileData), current_user (optional) #}
 <header class="space-y-2">
   <div class="flex items-center justify-between">
-    <h1 class="text-2xl font-bold text-slate-900">@{{ profile_user.username }}</h1>
-    {% if profile_user.badge_level.value == "resident" %}
-      <span class="rounded bg-emerald-100 px-2 py-0.5 text-xs text-emerald-800">🏡 거주자</span>
-    {% elif profile_user.badge_level.value == "ex_resident" %}
-      <span class="rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-700">🏡 전 거주자</span>
-    {% elif profile_user.badge_level.value == "region_verified" %}
-      <span class="rounded bg-sky-100 px-2 py-0.5 text-xs text-sky-800">📍 지역 인증</span>
+    <h1 class="text-2xl font-bold text-stone-900">@{{ profile_user.username }}</h1>
+    {% if profile_user.badge_level.value in ("resident", "ex_resident", "region_verified") %}
+      {{ status_chip("badge_level", profile_user.badge_level.value) }}
     {% endif %}
   </div>
-  {% if profile_user.bio %}<p class="text-sm text-slate-700">{{ profile_user.bio }}</p>{% endif %}
+  {% if profile_user.bio %}<p class="text-sm text-stone-700">{{ profile_user.bio }}</p>{% endif %}
   {% if data is defined %}
-    <p class="text-xs text-slate-500">
+    <p class="text-xs text-stone-500">
       후기 {{ data.review_count }} · Journey {{ data.journey_episode_count }} · 질문 {{ data.question_count }}
     </p>
   {% endif %}
 </header>
 
 {# Tab nav #}
-<nav class="border-b border-slate-200 text-sm">
+<nav class="border-b border-stone-200 text-sm">
   <ul class="flex gap-1">
     {% for tab, label in [
       ("home", "홈"),
@@ -32,7 +29,7 @@
         <a href="{{ href }}"
            class="block px-3 py-2 -mb-px border-b-2
                   {{ 'border-emerald-600 text-emerald-700 font-semibold' if is_active
-                     else 'border-transparent text-slate-600 hover:text-slate-900' }}">
+                     else 'border-transparent text-stone-600 hover:text-stone-900' }}">
           {{ label }}
         </a>
       </li>
@@ -43,7 +40,7 @@
         <a href="/u/{{ profile_user.username }}/scraps"
            class="block px-3 py-2 -mb-px border-b-2
                   {{ 'border-emerald-600 text-emerald-700 font-semibold' if is_active
-                     else 'border-transparent text-slate-600 hover:text-slate-900' }}">
+                     else 'border-transparent text-stone-600 hover:text-stone-900' }}">
           스크랩
         </a>
       </li>

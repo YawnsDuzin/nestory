@@ -1,13 +1,15 @@
-<nav class="sticky top-0 z-10 border-b border-slate-200 bg-white">
+{% from "components/_icon.html" import icon %}
+{% from "components/_status_chip.html" import status_chip %}
+<nav class="sticky top-0 z-10 border-b border-stone-200 bg-white">
   <div class="mx-auto flex h-14 max-w-3xl items-center justify-between px-4">
     <a href="/" class="flex h-9 items-center" aria-label="Nestory 홈">
       <img src="{{ url_for('static', path='/img/logo-c-full.svg') }}" alt="Nestory — 전원생활 정착 커뮤니티" class="h-9 w-auto">
     </a>
-    <div class="hidden sm:flex items-center gap-5 text-sm text-slate-600">
-      <a href="/feed" class="hover:text-slate-900">피드</a>
-      <a href="/discover" class="hover:text-slate-900">탐색</a>
-      <a href="/match/wizard" class="hover:text-slate-900">🎯 시군 매칭</a>
-      <a href="/search" class="hover:text-slate-900">검색</a>
+    <div class="hidden sm:flex items-center gap-5 text-sm text-stone-600">
+      <a href="/feed" class="hover:text-stone-900">피드</a>
+      <a href="/discover" class="hover:text-stone-900">탐색</a>
+      <a href="/match/wizard" class="inline-flex items-center gap-1.5 hover:text-stone-900">{{ icon("target", 16) }}시군 매칭</a>
+      <a href="/search" class="inline-flex items-center gap-1.5 hover:text-stone-900">{{ icon("search", 16) }}검색</a>
     </div>
     <div class="flex items-center gap-2 text-sm">
       {% if current_user %}
@@ -15,39 +17,43 @@
         <div hx-get="/notifications/_bell"
              hx-trigger="load"
              hx-swap="outerHTML"
-             class="h-9 w-9 inline-flex items-center justify-center text-slate-400">
-          <span class="text-lg leading-none">🔔</span>
+             class="h-9 w-9 inline-flex items-center justify-center text-stone-400">
+          {{ icon("bell", 18) }}
         </div>
 
         {# 쓰기 드롭다운 — 별도 유지 #}
         <div x-data="{ open: false }" class="relative">
           <button type="button" @click="open = !open" @click.outside="open = false"
-                  class="h-9 px-3 inline-flex items-center gap-1 rounded text-slate-600 hover:bg-slate-50 hover:text-slate-900">
-            ✏️ 쓰기 ▾
+                  class="h-9 px-3 inline-flex items-center gap-1.5 rounded text-stone-700 hover:bg-stone-50 hover:text-stone-900">
+            {{ icon("pencil", 16) }} 쓰기 {{ icon("chevron-down", 14, "text-stone-400") }}
           </button>
           <div x-show="open" x-transition x-cloak
-               class="absolute right-0 mt-2 w-56 rounded border bg-white shadow-lg z-20">
+               class="absolute right-0 mt-2 w-56 rounded-lg border border-stone-200 bg-white shadow-lg z-20 overflow-hidden">
             {% set is_resident = current_user.badge_level.value in ("resident", "ex_resident") %}
             <a href="{{ '/write/review' if is_resident else '/me/badge' }}"
-               class="block px-4 py-2 hover:bg-slate-50">
-              📝 후기 {% if not is_resident %}<span class="text-xs text-slate-400">🏡 필요</span>{% endif %}
+               class="flex items-center gap-3 px-4 py-2.5 text-stone-700 hover:bg-stone-50">
+              <span class="text-stone-500">{{ icon("file-pen", 18) }}</span>
+              <span class="flex-1">후기</span>
+              {% if not is_resident %}<span class="text-xs text-stone-400">거주자만</span>{% endif %}
             </a>
             <a href="{{ '/write/journey' if is_resident else '/me/badge' }}"
-               class="block px-4 py-2 hover:bg-slate-50">
-              🗺️ Journey {% if not is_resident %}<span class="text-xs text-slate-400">🏡 필요</span>{% endif %}
+               class="flex items-center gap-3 px-4 py-2.5 text-stone-700 hover:bg-stone-50">
+              <span class="text-stone-500">{{ icon("map", 18) }}</span>
+              <span class="flex-1">Journey</span>
+              {% if not is_resident %}<span class="text-xs text-stone-400">거주자만</span>{% endif %}
             </a>
-            <a href="/write/question" class="block px-4 py-2 hover:bg-slate-50">❓ 질문</a>
-            <a href="/write/plan" class="block px-4 py-2 hover:bg-slate-50">📅 정착 계획</a>
+            <a href="/write/question" class="flex items-center gap-3 px-4 py-2.5 text-stone-700 hover:bg-stone-50">
+              <span class="text-stone-500">{{ icon("help-circle", 18) }}</span>
+              <span>질문</span>
+            </a>
+            <a href="/write/plan" class="flex items-center gap-3 px-4 py-2.5 text-stone-700 hover:bg-stone-50">
+              <span class="text-stone-500">{{ icon("calendar", 18) }}</span>
+              <span>정착 계획</span>
+            </a>
           </div>
         </div>
 
         {# 사용자 메뉴 — avatar 트리거 + 항목 그룹 #}
-        {% set badge_label = {
-          'interested': '🌱 관심',
-          'region_verified': '🏡 시군 인증',
-          'resident': '🏠 거주자',
-          'ex_resident': '📜 전 거주자',
-        }.get(current_user.badge_level.value, current_user.badge_level.value) %}
         <div x-data="{ open: false }" class="relative">
           <button type="button" @click="open = !open" @click.outside="open = false"
                   class="h-9 inline-flex items-center gap-1 rounded-full hover:opacity-90"
@@ -55,72 +61,72 @@
             <span class="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-600 text-sm font-semibold text-white">
               {{ current_user.username[:1] | upper }}
             </span>
-            <span class="text-slate-500" aria-hidden="true">▾</span>
+            {{ icon("chevron-down", 14, "text-stone-400") }}
           </button>
           <div x-show="open" x-transition x-cloak
-               class="absolute right-0 mt-2 w-64 rounded-lg border border-slate-200 bg-white shadow-lg z-20 overflow-hidden">
+               class="absolute right-0 mt-2 w-64 rounded-lg border border-stone-200 bg-white shadow-lg z-20 overflow-hidden">
             {# 헤더 — username · role · badge #}
-            <div class="px-4 py-3 border-b border-slate-100">
-              <div class="font-semibold text-slate-900 truncate">@{{ current_user.username }}</div>
-              <div class="text-xs text-slate-500 mt-0.5">
+            <div class="px-4 py-3 border-b border-stone-100">
+              <div class="font-semibold text-stone-900 truncate">@{{ current_user.username }}</div>
+              <div class="text-xs text-stone-500 mt-0.5">
                 {{ '관리자' if current_user.role.value == 'admin' else '사용자' }}
               </div>
-              <span class="inline-block mt-2 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
-                {{ badge_label }}
-              </span>
+              <div class="mt-2">
+                {{ status_chip("badge_level", current_user.badge_level.value) }}
+              </div>
             </div>
 
             {# 일반 항목 #}
             <div class="py-1">
-              <a href="/u/{{ current_user.username }}/scraps" class="flex items-center gap-3 px-4 py-2 text-slate-700 hover:bg-slate-50">
-                <span class="w-5 text-center">⭐</span>
+              <a href="/u/{{ current_user.username }}/scraps" class="flex items-center gap-3 px-4 py-2.5 text-stone-700 hover:bg-stone-50">
+                <span class="text-stone-500">{{ icon("star", 18) }}</span>
                 <span>관심 시군</span>
               </a>
-              <a href="/notifications" class="flex items-center gap-3 px-4 py-2 text-slate-700 hover:bg-slate-50">
-                <span class="w-5 text-center">🔔</span>
+              <a href="/notifications" class="flex items-center gap-3 px-4 py-2.5 text-stone-700 hover:bg-stone-50">
+                <span class="text-stone-500">{{ icon("bell", 18) }}</span>
                 <span>알림</span>
               </a>
-              <a href="/u/{{ current_user.username }}" class="flex items-center gap-3 px-4 py-2 text-slate-700 hover:bg-slate-50">
-                <span class="w-5 text-center">👤</span>
+              <a href="/u/{{ current_user.username }}" class="flex items-center gap-3 px-4 py-2.5 text-stone-700 hover:bg-stone-50">
+                <span class="text-stone-500">{{ icon("user", 18) }}</span>
                 <span>프로필</span>
               </a>
-              <a href="/me/badge" class="flex items-center gap-3 px-4 py-2 text-slate-700 hover:bg-slate-50">
-                <span class="w-5 text-center">🏡</span>
+              <a href="/me/badge" class="flex items-center gap-3 px-4 py-2.5 text-stone-700 hover:bg-stone-50">
+                <span class="text-stone-500">{{ icon("home", 18) }}</span>
                 <span>내 배지</span>
               </a>
             </div>
 
             {# 관리자 전용 그룹 #}
             {% if current_user.role.value == 'admin' %}
-              <div class="border-t border-slate-100 py-1">
-                <a href="/admin/badge-queue" class="flex items-center gap-3 px-4 py-2 text-slate-700 hover:bg-slate-50">
-                  <span class="w-5 text-center">🛡</span>
+              <div class="border-t border-stone-100 py-1">
+                <a href="/admin/badge-queue" class="flex items-center gap-3 px-4 py-2.5 text-stone-700 hover:bg-stone-50">
+                  <span class="text-stone-500">{{ icon("shield", 18) }}</span>
                   <span>배지 큐</span>
                 </a>
-                <a href="/admin/content" class="flex items-center gap-3 px-4 py-2 text-slate-700 hover:bg-slate-50">
-                  <span class="w-5 text-center">📄</span>
+                <a href="/admin/content" class="flex items-center gap-3 px-4 py-2.5 text-stone-700 hover:bg-stone-50">
+                  <span class="text-stone-500">{{ icon("file-text", 18) }}</span>
                   <span>콘텐츠</span>
                 </a>
-                <a href="/admin/users" class="flex items-center gap-3 px-4 py-2 text-slate-700 hover:bg-slate-50">
-                  <span class="w-5 text-center">👥</span>
+                <a href="/admin/users" class="flex items-center gap-3 px-4 py-2.5 text-stone-700 hover:bg-stone-50">
+                  <span class="text-stone-500">{{ icon("users", 18) }}</span>
                   <span>사용자</span>
                 </a>
-                <a href="/admin/reports" class="flex items-center gap-3 px-4 py-2 text-slate-700 hover:bg-slate-50">
-                  <span class="w-5 text-center">🚨</span>
+                <a href="/admin/reports" class="flex items-center gap-3 px-4 py-2.5 text-stone-700 hover:bg-stone-50">
+                  <span class="text-stone-500">{{ icon("alert-triangle", 18) }}</span>
                   <span>신고 큐</span>
                 </a>
-                <a href="/docs" class="flex items-center gap-3 px-4 py-2 text-slate-700 hover:bg-slate-50">
-                  <span class="w-5 text-center font-mono">&lt;/&gt;</span>
+                <a href="/docs" class="flex items-center gap-3 px-4 py-2.5 text-stone-700 hover:bg-stone-50">
+                  <span class="text-stone-500 font-mono text-xs">&lt;/&gt;</span>
                   <span>API Docs</span>
                 </a>
               </div>
             {% endif %}
 
             {# 로그아웃 — 빨강 #}
-            <div class="border-t border-slate-100 py-1">
+            <div class="border-t border-stone-100 py-1">
               <form method="post" action="/auth/logout" class="block">
-                <button type="submit" class="flex w-full items-center gap-3 px-4 py-2 text-rose-600 hover:bg-rose-50">
-                  <span class="w-5 text-center">↩</span>
+                <button type="submit" class="flex w-full items-center gap-3 px-4 py-2.5 text-rose-600 hover:bg-rose-50">
+                  <span>{{ icon("log-out", 18) }}</span>
                   <span>로그아웃</span>
                 </button>
               </form>
@@ -128,8 +134,8 @@
           </div>
         </div>
       {% else %}
-        <a href="/auth/login" class="h-9 inline-flex items-center px-2 text-slate-600 hover:text-slate-900">로그인</a>
-        <a href="/auth/signup" class="h-9 inline-flex items-center rounded-md bg-emerald-600 px-3 text-white hover:bg-emerald-700">시작하기</a>
+        <a href="/auth/login" class="h-9 inline-flex items-center px-2 text-stone-600 hover:text-stone-900">로그인</a>
+        <a href="/auth/signup" class="h-9 inline-flex items-center rounded-md bg-emerald-600 px-3 font-medium text-white hover:bg-emerald-700">시작하기</a>
       {% endif %}
     </div>
   </div>

@@ -3,21 +3,21 @@
 {% block content %}
 <section class="space-y-6">
   <header>
-    <h1 class="text-2xl font-bold text-slate-900">시군 허브</h1>
-    <p class="mt-1 text-sm text-slate-600">파일럿 지역부터 전국 시군까지. 거주자가 있는 지역의 후기를 살펴보세요.</p>
+    <h1 class="text-2xl font-bold text-stone-900">시군 허브</h1>
+    <p class="mt-1 text-sm text-stone-600">파일럿 지역부터 전국 시군까지. 거주자가 있는 지역의 후기를 살펴보세요.</p>
   </header>
   <ul class="grid gap-4 sm:grid-cols-2">
     {% for region in regions %}
       <li>
         <a href="/hub/{{ region.slug }}"
-           class="block rounded-lg border bg-white p-5 hover:bg-slate-50">
+           class="block rounded-lg border bg-white p-5 hover:bg-stone-50">
           <div class="flex items-center gap-2 text-xs">
             {% if region.is_pilot %}<span class="rounded bg-amber-100 px-2 py-0.5 text-amber-800">파일럿</span>{% endif %}
-            <span class="text-slate-500">{{ region.sido }}</span>
+            <span class="text-stone-500">{{ region.sido }}</span>
           </div>
-          <h2 class="mt-2 text-lg font-semibold text-slate-900">{{ region.sigungu }}</h2>
+          <h2 class="mt-2 text-lg font-semibold text-stone-900">{{ region.sigungu }}</h2>
           {% if region.description %}
-            <p class="mt-2 text-sm text-slate-600 line-clamp-2">{{ region.description }}</p>
+            <p class="mt-2 text-sm text-stone-600 line-clamp-2">{{ region.description }}</p>
           {% endif %}
         </a>
       </li>

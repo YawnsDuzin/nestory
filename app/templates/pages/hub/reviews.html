@@ -6,11 +6,11 @@
   {% with active = "reviews" %}{% include "pages/hub/_tabs.html" %}{% endwith %}
 
   <div class="flex items-center justify-between">
-    <p class="text-sm text-slate-500">{{ total }}건</p>
+    <p class="text-sm text-stone-500">{{ total }}건</p>
     <div class="text-sm">
-      <a href="?sort=latest" class="{{ 'font-semibold text-emerald-700' if sort == 'latest' else 'text-slate-500 hover:text-slate-900' }}">최신</a>
-      <span class="mx-1 text-slate-300">·</span>
-      <a href="?sort=popular" class="{{ 'font-semibold text-emerald-700' if sort == 'popular' else 'text-slate-500 hover:text-slate-900' }}">인기</a>
+      <a href="?sort=latest" class="{{ 'font-semibold text-emerald-700' if sort == 'latest' else 'text-stone-500 hover:text-stone-900' }}">최신</a>
+      <span class="mx-1 text-stone-300">·</span>
+      <a href="?sort=popular" class="{{ 'font-semibold text-emerald-700' if sort == 'popular' else 'text-stone-500 hover:text-stone-900' }}">인기</a>
     </div>
   </div>
 
@@ -22,7 +22,7 @@
       {% include "partials/pagination.html" %}
     {% endwith %}
   {% else %}
-    <p class="rounded border border-dashed bg-white p-6 text-center text-sm text-slate-500">아직 후기가 없습니다.</p>
+    <p class="rounded border border-dashed bg-white p-6 text-center text-sm text-stone-500">아직 후기가 없습니다.</p>
   {% endif %}
 </section>
 {% endblock %}

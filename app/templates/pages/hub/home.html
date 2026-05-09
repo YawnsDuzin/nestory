@@ -7,7 +7,7 @@
 
   {% if overview.popular_reviews %}
     <section>
-      <h2 class="mb-3 font-semibold text-slate-900">인기 후기</h2>
+      <h2 class="mb-3 font-semibold text-stone-900">인기 후기</h2>
       <ul class="grid gap-3 sm:grid-cols-2">
         {% for post in overview.popular_reviews %}
           <li>{% include "partials/post_card.html" %}</li>
@@ -18,7 +18,7 @@
 
   {% if overview.recent_journeys %}
     <section>
-      <h2 class="mb-3 font-semibold text-slate-900">최근 Journey 에피소드</h2>
+      <h2 class="mb-3 font-semibold text-stone-900">최근 Journey 에피소드</h2>
       <ul class="grid gap-3 sm:grid-cols-2">
         {% for post in overview.recent_journeys %}
           <li>{% include "partials/post_card.html" %}</li>
@@ -29,7 +29,7 @@
 
   {% if overview.recent_questions %}
     <section>
-      <h2 class="mb-3 font-semibold text-slate-900">최근 질문</h2>
+      <h2 class="mb-3 font-semibold text-stone-900">최근 질문</h2>
       <ul class="grid gap-3 sm:grid-cols-2">
         {% for post in overview.recent_questions %}
           <li>{% include "partials/post_card.html" %}</li>
@@ -39,7 +39,7 @@
   {% endif %}
 
   {% if not overview.popular_reviews and not overview.recent_journeys and not overview.recent_questions %}
-    <p class="rounded border border-dashed bg-white p-6 text-center text-sm text-slate-500">
+    <p class="rounded border border-dashed bg-white p-6 text-center text-sm text-stone-500">
       아직 콘텐츠가 없습니다. 첫 후기를 남겨주세요.
     </p>
   {% endif %}

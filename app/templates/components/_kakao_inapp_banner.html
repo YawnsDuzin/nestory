@@ -1,8 +1,9 @@
+{% from "components/_icon.html" import icon %}
 {% if request.state.kakao_inapp %}
 <div class="bg-amber-50 border-b border-amber-200 px-4 py-3 text-sm text-amber-900"
      x-data="{ show: true }" x-show="show">
   <div class="mx-auto max-w-3xl flex items-start gap-3">
-    <span class="text-lg">📱</span>
+    <span class="text-amber-700 shrink-0 mt-0.5">{{ icon("smartphone", 20) }}</span>
     <div class="flex-1">
       <p class="font-semibold">외부 브라우저에서 열어보세요</p>
       <p class="mt-1 text-amber-800">
@@ -10,7 +11,9 @@
         우측 상단 메뉴 → "다른 브라우저로 열기"를 이용해주세요.
       </p>
     </div>
-    <button type="button" @click="show = false" class="text-amber-600 hover:text-amber-900" aria-label="닫기">✕</button>
+    <button type="button" @click="show = false" class="text-amber-600 hover:text-amber-900 shrink-0" aria-label="닫기">
+      {{ icon("x", 18) }}
+    </button>
   </div>
 </div>
 {% endif %}
