@@ -2061,7 +2061,7 @@ async def healthz() -> dict[str, str]:
     {% block content %}{% endblock %}
   </main>
   <footer class="mt-16 py-6 text-center text-xs text-slate-500">
-    © Nestory · 전원주택 정착의 여정
+    © Nestory · 전원생활 정착의 여정
   </footer>
 </body>
 </html>
@@ -2213,7 +2213,7 @@ async def signup_page(request: Request, current_user: User | None = Depends(get_
 <section class="space-y-4">
   <h1 class="text-3xl font-bold text-slate-900">Nestory에 오신 것을 환영합니다</h1>
   <p class="text-slate-600">
-    전원주택 정착의 전 과정을 실거주자의 여정으로 아카이빙하는 커뮤니티입니다.
+    전원생활 정착의 전 과정을 실거주자의 여정으로 아카이빙하는 커뮤니티입니다.
   </p>
   {% if current_user %}
     <p class="rounded-md bg-emerald-50 p-4 text-emerald-800">
