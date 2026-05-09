@@ -43,6 +43,7 @@ def _patch_oauth_empty():
 
 def test_full_anonymous_flow(client: TestClient, db: Session) -> None:
     _seed_4(db)
+    db.commit()  # 라우트의 별도 세션이 seed를 보려면 commit 필요
     assert client.get("/match/wizard").status_code == 200
     for n in range(1, 6):
         assert client.get(f"/match/wizard/q/{n}").status_code == 200
@@ -62,6 +63,7 @@ def test_full_logged_in_flow_persists_top_3(
 ) -> None:
     _seed_4(db)
     user = UserFactory()
+    db.commit()
     login(user.id)
     with _patch_oauth_empty():
         r = client.post(
