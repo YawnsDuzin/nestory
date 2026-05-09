@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}관리자 · 신고 큐 · Nestory{% endblock %}
+{% block content %}
+<section class="space-y-4">
+  <header class="flex items-center justify-between">
+    <h1 class="text-2xl font-bold text-slate-900">신고 큐 (Pending)</h1>
+    <span class="text-sm text-slate-500">총 {{ total }}건</span>
+  </header>
+
+  <div class="rounded bg-amber-50 border border-amber-200 p-3 text-sm text-amber-900">
+    <p>resolve · reject 액션은 P2 (관리자 v2)에서 추가됩니다. 현재는 조회만 가능합니다.</p>
+  </div>
+
+  {% if reports %}
+    <table class="w-full text-sm bg-white border rounded">
+      <thead class="bg-slate-50 text-slate-600">
+        <tr>
+          <th class="text-left px-3 py-2">ID</th>
+          <th class="text-left px-3 py-2">신고자</th>
+          <th class="text-left px-3 py-2">대상</th>
+          <th class="text-left px-3 py-2">사유</th>
+          <th class="text-left px-3 py-2">상세</th>
+          <th class="text-left px-3 py-2">신고일</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in reports %}
+          <tr class="border-t hover:bg-slate-50">
+            <td class="px-3 py-2 text-slate-500">{{ r.id }}</td>
+            <td class="px-3 py-2 text-xs">user#{{ r.reporter_id }}</td>
+            <td class="px-3 py-2 text-xs">{{ r.target_type }}#{{ r.target_id }}</td>
+            <td class="px-3 py-2 text-xs">{{ r.reason.value }}</td>
+            <td class="px-3 py-2 text-xs text-slate-600">{{ (r.detail or '')[:80] }}</td>
+            <td class="px-3 py-2 text-xs text-slate-500">
+              {{ r.created_at.strftime('%Y-%m-%d %H:%M') if r.created_at else '' }}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    {% with base_url='/admin/reports' %}
+      {% include "partials/pagination.html" %}
+    {% endwith %}
+  {% else %}
+    <div class="rounded border bg-white p-8 text-center text-slate-500">
+      현재 처리 대기 중인 신고가 없습니다.
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

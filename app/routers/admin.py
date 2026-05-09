@@ -207,3 +207,21 @@ def admin_users(
             "current_user": current_user,
         },
     )
+
+
+@router.get("/reports", response_class=HTMLResponse)
+def admin_reports(
+    request: Request,
+    page: int = 1,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> HTMLResponse:
+    result = admin_moderation.list_pending_reports(db, page=page)
+    return templates.TemplateResponse(
+        request, "pages/admin_reports.html",
+        {
+            "reports": result.reports, "total": result.total,
+            "page": page, "page_size": admin_moderation.PAGE_SIZE,
+            "current_user": current_user,
+        },
+    )
