@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.deps import get_db, require_admin
 from app.models import BadgeApplication, BadgeEvidence, Post, Region, User
 from app.models._enums import JobKind
+from app.models.user import BadgeLevel
 from app.services import admin_moderation, badges
 from app.templating import templates
 from app.workers import queue
@@ -177,3 +178,32 @@ def admin_content_unhide(
     admin_moderation.unhide_post(db, current_user, post, reason=reason or None)
     db.commit()
     return RedirectResponse("/admin/content?status_filter=published", status_code=303)
+
+
+@router.get("/users", response_class=HTMLResponse)
+def admin_users(
+    request: Request,
+    q: str | None = None,
+    badge_level: str | None = None,
+    page: int = 1,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> HTMLResponse:
+    bl_enum: BadgeLevel | None = None
+    if badge_level:
+        try:
+            bl_enum = BadgeLevel(badge_level)
+        except ValueError:
+            bl_enum = None
+    result = admin_moderation.list_users(
+        db, q=q, badge_level=bl_enum, page=page,
+    )
+    return templates.TemplateResponse(
+        request, "pages/admin_users.html",
+        {
+            "users": result.users, "total": result.total,
+            "page": page, "page_size": admin_moderation.PAGE_SIZE,
+            "q": q or "", "badge_level": badge_level or "",
+            "current_user": current_user,
+        },
+    )

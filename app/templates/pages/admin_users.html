@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}관리자 · 사용자 · Nestory{% endblock %}
+{% block content %}
+<section class="space-y-4">
+  <header class="flex items-center justify-between">
+    <h1 class="text-2xl font-bold text-slate-900">사용자 조회</h1>
+    <span class="text-sm text-slate-500">총 {{ total }}명</span>
+  </header>
+
+  <form method="get" action="/admin/users" class="flex flex-wrap gap-2 items-end">
+    <div>
+      <label class="block text-xs text-slate-600">검색 (username/email)</label>
+      <input type="text" name="q" value="{{ q }}"
+             class="rounded border px-3 py-2 text-sm w-64">
+    </div>
+    <div>
+      <label class="block text-xs text-slate-600">배지</label>
+      <select name="badge_level" class="rounded border px-3 py-2 text-sm">
+        <option value="" {% if not badge_level %}selected{% endif %}>전체</option>
+        <option value="interested" {% if badge_level == 'interested' %}selected{% endif %}>관심자</option>
+        <option value="region_verified" {% if badge_level == 'region_verified' %}selected{% endif %}>시군 인증</option>
+        <option value="resident" {% if badge_level == 'resident' %}selected{% endif %}>거주자</option>
+        <option value="ex_resident" {% if badge_level == 'ex_resident' %}selected{% endif %}>전 거주자</option>
+      </select>
+    </div>
+    <button type="submit" class="rounded bg-emerald-600 px-3 py-2 text-white text-sm hover:bg-emerald-700">조회</button>
+  </form>
+
+  {% if users %}
+    <table class="w-full text-sm bg-white border rounded">
+      <thead class="bg-slate-50 text-slate-600">
+        <tr>
+          <th class="text-left px-3 py-2">ID</th>
+          <th class="text-left px-3 py-2">username</th>
+          <th class="text-left px-3 py-2">email</th>
+          <th class="text-left px-3 py-2">배지</th>
+          <th class="text-left px-3 py-2">role</th>
+          <th class="text-left px-3 py-2">가입일</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+          <tr class="border-t hover:bg-slate-50">
+            <td class="px-3 py-2 text-slate-500">{{ u.id }}</td>
+            <td class="px-3 py-2">
+              <a href="/u/{{ u.username }}" class="text-emerald-700 hover:underline">@{{ u.username }}</a>
+            </td>
+            <td class="px-3 py-2 text-xs text-slate-600">{{ u.email }}</td>
+            <td class="px-3 py-2 text-xs">{{ u.badge_level.value }}</td>
+            <td class="px-3 py-2 text-xs">{{ u.role.value }}</td>
+            <td class="px-3 py-2 text-xs text-slate-500">
+              {{ u.created_at.strftime('%Y-%m-%d') if u.created_at else '' }}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    {% with base_url='/admin/users', query_params={'q': q, 'badge_level': badge_level} %}
+      {% include "partials/pagination.html" %}
+    {% endwith %}
+  {% else %}
+    <div class="rounded border bg-white p-8 text-center text-slate-500">
+      조건에 맞는 사용자가 없습니다.
+    </div>
+  {% endif %}
+</section>
+{% endblock %}
