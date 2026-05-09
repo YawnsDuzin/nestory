@@ -85,7 +85,7 @@ def list_paginated(
 
 
 def mark_read(db: Session, user: User, notif_id: int) -> Notification | None:
-    """Soup-test ownership before marking. Returns None if not found or not owner."""
+    """Mark a notification as read iff caller owns it. Returns None if not found or not owner."""
     notif = db.get(Notification, notif_id)
     if notif is None or notif.user_id != user.id:
         return None
@@ -112,7 +112,7 @@ def _to_view(db: Session, notif: Notification) -> NotificationView:
     return NotificationView(
         notification=notif,
         label=_format_label(notif, source_username),
-        link=_resolve_link(notif),
+        link=resolve_link(notif),
         source_username=source_username,
     )
 
@@ -134,7 +134,7 @@ def _format_label(notif: Notification, source_username: str | None) -> str:
     return "새 알림이 있습니다."
 
 
-def _resolve_link(notif: Notification) -> str:
+def resolve_link(notif: Notification) -> str:
     if notif.target_type == "badge_application":
         return "/me/badge"
     if notif.target_type == "post" and notif.target_id is not None:
@@ -151,5 +151,6 @@ __all__ = [
     "mark_all_read",
     "mark_read",
     "recent_for_dropdown",
+    "resolve_link",
     "unread_count",
 ]

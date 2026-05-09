@@ -176,7 +176,7 @@ def test_resolve_link_per_target() -> None:
         target_id=99,
         is_read=False,
     )
-    assert nsvc._resolve_link(n_badge) == "/me/badge"
+    assert nsvc.resolve_link(n_badge) == "/me/badge"
 
     n_post = Notification(
         user_id=1,
@@ -185,9 +185,9 @@ def test_resolve_link_per_target() -> None:
         target_id=42,
         is_read=False,
     )
-    assert nsvc._resolve_link(n_post) == "/post/42"
+    assert nsvc.resolve_link(n_post) == "/post/42"
 
     n_unknown = Notification(
         user_id=1, type=NotificationType.SYSTEM, is_read=False
     )
-    assert nsvc._resolve_link(n_unknown) == "/notifications"
+    assert nsvc.resolve_link(n_unknown) == "/notifications"

@@ -64,7 +64,7 @@ def notification_read(
         raise HTTPException(404, "알림을 찾을 수 없습니다")
     db.commit()
     emit(EventName.NOTIFICATION_OPENED)
-    return RedirectResponse(url=nsvc._resolve_link(notif), status_code=303)
+    return RedirectResponse(url=nsvc.resolve_link(notif), status_code=303)
 
 
 @router.post("/notifications/read-all", response_model=None)
