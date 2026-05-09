@@ -1,3 +1,23 @@
-from app.services import analytics, images, posts
+from app.services import (
+    analytics,
+    comments,
+    feed,
+    hub,
+    images,
+    interactions,
+    posts,
+    profile,
+    search,
+)
 
-__all__ = ["analytics", "images", "posts"]
+__all__ = [
+    "analytics",
+    "comments",
+    "feed",
+    "hub",
+    "images",
+    "interactions",
+    "posts",
+    "profile",
+    "search",
+]

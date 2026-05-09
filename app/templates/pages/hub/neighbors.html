@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}{{ region.sigungu }} · 이웃 · Nestory{% endblock %}
+{% block content %}
+<section class="space-y-6">
+  {% include "pages/hub/_header.html" %}
+  {% with active = "neighbors" %}{% include "pages/hub/_tabs.html" %}{% endwith %}
+
+  {% if neighbors %}
+    <ul class="grid gap-3 sm:grid-cols-2">
+      {% for u in neighbors %}
+        <li class="rounded border bg-white p-4">
+          <a href="/u/{{ u.username }}" class="font-semibold text-slate-900 hover:text-emerald-700">
+            @{{ u.username }}
+          </a>
+          <p class="mt-1 text-xs text-slate-500">
+            {% if u.badge_level.value == "resident" %}🏡 거주자{% elif u.badge_level.value == "ex_resident" %}🏡 전 거주자{% endif %}
+            {% if u.resident_verified_at %}· {{ u.resident_verified_at.strftime("%Y-%m") }} 인증{% endif %}
+          </p>
+          {% if u.bio %}<p class="mt-2 text-sm text-slate-700 line-clamp-2">{{ u.bio }}</p>{% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="rounded border border-dashed bg-white p-6 text-center text-sm text-slate-500">
+      아직 이 지역에 인증된 거주자가 없습니다.
+    </p>
+  {% endif %}
+</section>
+{% endblock %}

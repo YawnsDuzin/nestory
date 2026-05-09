@@ -13,6 +13,24 @@
   </header>
   {% include "pages/detail/_meta_card_journey_ep.html" %}
   <div class="prose max-w-none">{{ post.body | markdown | safe }}</div>
+
+  {# Like / scrap actions — current_user gating handled inline #}
+  <div class="mt-6 flex items-center gap-3">
+    {% if current_user %}
+      {% include "partials/like_button.html" %}
+      {% include "partials/scrap_button.html" %}
+    {% else %}
+      <a href="/auth/login" class="text-sm text-slate-500 hover:underline">로그인하고 좋아요·스크랩</a>
+    {% endif %}
+  </div>
+
+  {# Comments #}
+  <section id="comments" class="mt-8 border-t border-slate-200 pt-6">
+    <h2 class="font-semibold text-slate-900">댓글 {{ comments | length }}</h2>
+    {% include "partials/comment_list.html" %}
+    {% include "partials/comment_form.html" %}
+  </section>
+
   <nav class="flex justify-between pt-4 border-t">
     {% if prev_ep %}
       <a href="/journey/{{ journey.id }}/ep/{{ prev_ep.episode_no }}" class="text-sm text-emerald-600">← {{ prev_ep.episode_no }}화</a>

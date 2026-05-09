@@ -1,0 +1,17 @@
+{# partials/like_button.html — heart toggle button. Expects: post, liked (bool), count (int).
+   HTMX swap target — endpoint POSTs to /post/{id}/{like|unlike} and returns this same partial. #}
+<button
+  type="button"
+  id="like-btn-{{ post.id }}"
+  hx-post="{{ '/post/' ~ post.id ~ '/' ~ ('unlike' if liked else 'like') }}"
+  hx-target="#like-btn-{{ post.id }}"
+  hx-swap="outerHTML"
+  class="inline-flex items-center gap-1 rounded border px-3 py-1 text-sm
+         {{ 'border-rose-300 bg-rose-50 text-rose-700' if liked
+            else 'border-slate-200 text-slate-600 hover:bg-slate-50' }}"
+  aria-pressed="{{ 'true' if liked else 'false' }}"
+  aria-label="{{ '좋아요 취소' if liked else '좋아요' }}"
+>
+  <span aria-hidden="true">{{ '♥' if liked else '♡' }}</span>
+  <span>{{ count }}</span>
+</button>
