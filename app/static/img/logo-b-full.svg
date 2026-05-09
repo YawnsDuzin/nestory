@@ -6,5 +6,5 @@
     <path d="M16 24 L48 48" stroke="#7fb069" stroke-width="4" stroke-linecap="round"/>
   </g>
   <text x="76" y="38" font-family="'Inter','Pretendard','Noto Sans KR',system-ui,sans-serif" font-size="26" font-weight="700" fill="#0f172a" letter-spacing="-0.5">Nestory</text>
-  <text x="76" y="54" font-family="'Inter','Pretendard','Noto Sans KR',system-ui,sans-serif" font-size="10" font-weight="500" fill="#64748b" letter-spacing="0.5">전원주택 정착 커뮤니티</text>
+  <text x="76" y="54" font-family="'Inter','Pretendard','Noto Sans KR',system-ui,sans-serif" font-size="10" font-weight="500" fill="#64748b" letter-spacing="0.5">전원생활 정착 커뮤니티</text>
 </svg>

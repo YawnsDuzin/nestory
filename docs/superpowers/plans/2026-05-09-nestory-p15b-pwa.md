@@ -42,9 +42,9 @@
 
 ```json
 {
-  "name": "Nestory · 전원주택 정착 커뮤니티",
+  "name": "Nestory · 전원생활 정착 커뮤니티",
   "short_name": "Nestory",
-  "description": "은퇴자 전원주택 정착의 전 과정을 실거주자 후기·Journey로 아카이빙합니다.",
+  "description": "은퇴자 전원생활 정착의 전 과정을 실거주자 후기·Journey로 아카이빙합니다.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
