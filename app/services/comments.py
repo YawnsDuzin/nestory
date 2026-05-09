@@ -3,7 +3,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import Comment, Post, User
-from app.models._enums import CommentStatus
+from app.models._enums import CommentStatus, NotificationType
+from app.services.notifications import create_notification
 
 MAX_BODY = 2000
 
@@ -26,6 +27,16 @@ def create_comment(
             raise CommentValidationError("잘못된 부모 댓글입니다")
     c = Comment(post_id=post.id, author_id=user.id, body=body, parent_id=parent_id)
     db.add(c)
+    post_author = db.get(User, post.author_id)
+    if post_author is not None:
+        create_notification(
+            db,
+            recipient=post_author,
+            type=NotificationType.POST_COMMENT,
+            source_user=user,
+            target_type="post",
+            target_id=post.id,
+        )
     db.commit()
     db.refresh(c)
     return c
