@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}질문 {{ n }}/{{ total }} · Nestory{% endblock %}
+{% block content %}
+<section class="space-y-6">
+  <div class="text-sm text-slate-500 text-center">
+    <span class="font-semibold text-emerald-700">{{ n }}</span> / {{ total }}
+  </div>
+  <div class="h-2 w-full rounded-full bg-slate-200">
+    <div class="h-2 rounded-full bg-emerald-600"
+         style="width: {{ (n / total * 100) | round }}%"></div>
+  </div>
+
+  <h2 class="text-2xl font-bold text-slate-900 text-center">{{ q.title }}</h2>
+
+  <form method="post"
+        action="/match/wizard/submit"
+        class="space-y-3"
+        x-data="{ selected: null }">
+    {# 이전 답변 유지 — URL 쿼리스트링 ?a1=A&a2=B... 가 있으면 hidden 으로 보존 #}
+    {% for prev in range(1, n) %}
+      {% set key = 'a' ~ prev %}
+      {% if request.query_params.get(key) %}
+        <input type="hidden" name="{{ key }}"
+               value="{{ request.query_params.get(key) }}">
+      {% endif %}
+    {% endfor %}
+
+    {% for code, label in q.options %}
+      <label class="block rounded-lg border-2 bg-white p-4 cursor-pointer
+                    min-h-12 hover:border-emerald-500 has-[:checked]:border-emerald-600
+                    has-[:checked]:bg-emerald-50 transition">
+        <input type="radio" name="a{{ n }}" value="{{ code }}"
+               class="mr-3 h-5 w-5 align-middle accent-emerald-600"
+               x-on:change="selected = '{{ code }}'"
+               required>
+        <span class="text-lg align-middle">{{ label }}</span>
+      </label>
+    {% endfor %}
+
+    <div class="flex justify-between gap-3 pt-4">
+      {% if n > 1 %}
+        <a href="/match/wizard/q/{{ n - 1 }}{% if request.query_params %}?{{ request.query_params }}{% endif %}"
+           class="rounded-md bg-slate-200 px-5 py-3 text-lg text-slate-800 hover:bg-slate-300">
+          ← 이전
+        </a>
+      {% else %}
+        <span></span>
+      {% endif %}
+
+      {% if n < total %}
+        {# 중간 문항: 다음 문항 GET. 답변은 query string에 누적. #}
+        <button type="button"
+                x-bind:disabled="!selected"
+                x-on:click="
+                  if (!selected) return;
+                  const params = new URLSearchParams(window.location.search);
+                  params.set('a{{ n }}', selected);
+                  window.location.href = '/match/wizard/q/{{ n + 1 }}?' + params.toString();
+                "
+                class="rounded-md bg-emerald-600 px-5 py-3 text-lg font-semibold text-white
+                       hover:bg-emerald-700 disabled:bg-slate-300 disabled:cursor-not-allowed">
+          다음 →
+        </button>
+      {% else %}
+        <button type="submit"
+                x-bind:disabled="!selected"
+                class="rounded-md bg-emerald-600 px-5 py-3 text-lg font-semibold text-white
+                       hover:bg-emerald-700 disabled:bg-slate-300 disabled:cursor-not-allowed">
+          결과 보기 →
+        </button>
+      {% endif %}
+    </div>
+  </form>
+</section>
+{% endblock %}

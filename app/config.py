@@ -29,6 +29,7 @@ class Settings(BaseSettings):
     image_base_path: str = "./media"
     max_upload_size: int = 10 * 1024 * 1024  # 10MB
     image_max_dimension: int = 6000  # px
+    anthropic_oauth_token: str = ""
 
 
 @lru_cache

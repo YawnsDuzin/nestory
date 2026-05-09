@@ -15,6 +15,7 @@ from app.models.notification import Notification
 from app.models.post import Post
 from app.models.post_validation import PostValidation
 from app.models.region import Region
+from app.models.region_scoring import RegionScoringWeight
 from app.models.tag import Tag  # post_tags Table 객체는 tag 모듈 로드 시 함께 등록
 from app.models.user import BadgeLevel, User, UserRole
 
@@ -32,6 +33,7 @@ __all__ = [
     "Post",
     "PostValidation",
     "Region",
+    "RegionScoringWeight",
     "Report",
     "Tag",
     "User",

@@ -7,11 +7,12 @@ via model_dump and pops type_tag (discriminator lives in Post.type column).
 from datetime import UTC, date, datetime
 
 from fastapi import HTTPException, status
-from sqlalchemy import func
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models import Journey, Post, Region, User
-from app.models._enums import JourneyStatus, PostStatus, PostType
+from app.models._enums import JourneyStatus, NotificationType, PostStatus, PostType
+from app.models.interaction import journey_follows
 from app.schemas.post_metadata import (
     AnswerMetadata,
     JourneyEpisodeMetadata,
@@ -19,6 +20,7 @@ from app.schemas.post_metadata import (
     QuestionMetadata,
     ReviewMetadata,
 )
+from app.services.notifications import create_notification
 
 BODY_MAX_LENGTH = 50_000  # ~50KB markdown — abuse prevention
 
@@ -90,6 +92,22 @@ def create_journey_episode(
     )
     db.add(post)
     db.flush()
+    followers = list(
+        db.scalars(
+            select(User)
+            .join(journey_follows, User.id == journey_follows.c.user_id)
+            .where(journey_follows.c.journey_id == journey.id)
+        ).all()
+    )
+    for follower in followers:
+        create_notification(
+            db,
+            recipient=follower,
+            type=NotificationType.JOURNEY_NEW_EPISODE,
+            source_user=author,
+            target_type="post",
+            target_id=post.id,
+        )
     return post
 
 
@@ -117,6 +135,16 @@ def create_answer(db: Session, author: User, parent_question: Post, body: str) -
     )
     db.add(post)
     db.flush()
+    question_author = db.get(User, parent_question.author_id)
+    if question_author is not None:
+        create_notification(
+            db,
+            recipient=question_author,
+            type=NotificationType.QUESTION_ANSWERED,
+            source_user=author,
+            target_type="post",
+            target_id=parent_question.id,
+        )
     return post
 
 

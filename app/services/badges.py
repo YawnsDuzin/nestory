@@ -14,7 +14,6 @@ from app.models import (
     AuditLog,
     BadgeApplication,
     BadgeEvidence,
-    Notification,
     User,
 )
 from app.models._enums import (
@@ -25,6 +24,7 @@ from app.models._enums import (
     NotificationType,
 )
 from app.models.user import BadgeLevel
+from app.services.notifications import create_notification
 
 
 def submit_application(
@@ -123,14 +123,13 @@ def approve(
     )
 
     # Notify target user
-    db.add(
-        Notification(
-            user_id=target_user.id,
-            type=NotificationType.BADGE_APPROVED,
-            source_user_id=reviewer.id,
-            target_type="badge_application",
-            target_id=application.id,
-        )
+    create_notification(
+        db,
+        recipient=target_user,
+        type=NotificationType.BADGE_APPROVED,
+        source_user=reviewer,
+        target_type="badge_application",
+        target_id=application.id,
     )
 
     db.flush()
@@ -152,6 +151,10 @@ def reject(
     if application.status != BadgeApplicationStatus.PENDING:
         raise ValueError(f"Cannot reject application in status {application.status}")
 
+    target_user = db.get(User, application.user_id)
+    if target_user is None:
+        raise ValueError(f"User {application.user_id} not found")
+
     application.status = BadgeApplicationStatus.REJECTED
     application.reviewer_id = reviewer.id
     application.review_note = note
@@ -167,14 +170,13 @@ def reject(
         )
     )
 
-    db.add(
-        Notification(
-            user_id=application.user_id,
-            type=NotificationType.BADGE_REJECTED,
-            source_user_id=reviewer.id,
-            target_type="badge_application",
-            target_id=application.id,
-        )
+    create_notification(
+        db,
+        recipient=target_user,
+        type=NotificationType.BADGE_REJECTED,
+        source_user=reviewer,
+        target_type="badge_application",
+        target_id=application.id,
     )
 
     db.flush()

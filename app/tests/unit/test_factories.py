@@ -214,6 +214,15 @@ def test_user_interest_region_factory(db: Session) -> None:
     assert uir.priority == 1
 
 
+def test_region_scoring_weight_factory_creates_row(db: Session) -> None:
+    from app.tests.factories import RegionScoringWeightFactory
+
+    w = RegionScoringWeightFactory()
+    assert w.region_id is not None
+    assert 0 <= w.activity_score <= 10
+    assert 0 <= w.budget_score <= 10
+
+
 def test_job_factory(db: Session) -> None:
     from app.models._enums import JobKind, JobStatus
     from app.tests.factories import JobFactory

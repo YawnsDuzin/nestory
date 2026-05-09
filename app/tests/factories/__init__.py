@@ -29,6 +29,7 @@ from app.tests.factories.post import (
 )
 from app.tests.factories.post_validation import PostValidationFactory
 from app.tests.factories.region import PilotRegionFactory, RegionFactory
+from app.tests.factories.region_scoring import RegionScoringWeightFactory
 from app.tests.factories.tag import TagFactory
 from app.tests.factories.user import (
     AdminUserFactory,
@@ -56,6 +57,7 @@ __all__ = [
     "PostValidationFactory",
     "QuestionPostFactory",
     "RegionFactory",
+    "RegionScoringWeightFactory",
     "RegionVerifiedUserFactory",
     "ReportFactory",
     "ResidentUserFactory",
