@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}관리자 · 콘텐츠 · Nestory{% endblock %}
+{% block content %}
+<section class="space-y-4">
+  <header class="flex items-center justify-between">
+    <h1 class="text-2xl font-bold text-slate-900">콘텐츠 모더레이션</h1>
+    <span class="text-sm text-slate-500">총 {{ total }}건</span>
+  </header>
+
+  <nav class="flex gap-2 text-sm">
+    {% for f, label in [('all', '전체'), ('published', '게시됨'), ('hidden', '숨김')] %}
+      <a href="/admin/content?status_filter={{ f }}"
+         class="rounded border px-3 py-1
+                {% if status_filter == f %}bg-emerald-600 text-white border-emerald-600
+                {% else %}bg-white text-slate-700 hover:bg-slate-50{% endif %}">
+        {{ label }}
+      </a>
+    {% endfor %}
+  </nav>
+
+  {% if posts %}
+    <table class="w-full text-sm bg-white border rounded">
+      <thead class="bg-slate-50 text-slate-600">
+        <tr>
+          <th class="text-left px-3 py-2">ID</th>
+          <th class="text-left px-3 py-2">type</th>
+          <th class="text-left px-3 py-2">제목</th>
+          <th class="text-left px-3 py-2">작성자</th>
+          <th class="text-left px-3 py-2">상태</th>
+          <th class="text-left px-3 py-2">작성일</th>
+          <th class="text-left px-3 py-2">액션</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for post in posts %}
+          <tr class="border-t {% if post.status.value == 'hidden' %}bg-rose-50{% endif %}">
+            <td class="px-3 py-2 text-slate-500">{{ post.id }}</td>
+            <td class="px-3 py-2 text-xs">{{ post.type.value }}</td>
+            <td class="px-3 py-2">
+              <a href="/post/{{ post.id }}" class="text-emerald-700 hover:underline">{{ post.title or '(제목 없음)' }}</a>
+            </td>
+            <td class="px-3 py-2 text-xs text-slate-600">user#{{ post.author_id }}</td>
+            <td class="px-3 py-2">
+              {% if post.status.value == 'hidden' %}
+                <span class="rounded bg-rose-100 text-rose-700 px-2 py-0.5 text-xs">숨김</span>
+              {% elif post.status.value == 'published' %}
+                <span class="rounded bg-emerald-100 text-emerald-700 px-2 py-0.5 text-xs">게시</span>
+              {% else %}
+                <span class="rounded bg-slate-100 text-slate-700 px-2 py-0.5 text-xs">{{ post.status.value }}</span>
+              {% endif %}
+            </td>
+            <td class="px-3 py-2 text-xs text-slate-500">
+              {{ post.created_at.strftime('%Y-%m-%d') if post.created_at else '' }}
+            </td>
+            <td class="px-3 py-2">
+              {% if post.status.value == 'hidden' %}
+                <form method="post" action="/admin/content/{{ post.id }}/unhide" class="inline">
+                  <button type="submit" class="rounded bg-emerald-600 px-2 py-1 text-xs text-white hover:bg-emerald-700">복원</button>
+                </form>
+              {% else %}
+                <form method="post" action="/admin/content/{{ post.id }}/hide" class="inline">
+                  <button type="submit" class="rounded bg-rose-600 px-2 py-1 text-xs text-white hover:bg-rose-700">숨김</button>
+                </form>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    {% with base_url='/admin/content', query_params={'status_filter': status_filter} %}
+      {% include "partials/pagination.html" %}
+    {% endwith %}
+  {% else %}
+    <div class="rounded border bg-white p-8 text-center text-slate-500">
+      게시글이 없습니다.
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,14 +1,16 @@
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from typing import Literal
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.deps import get_db, require_admin
-from app.models import BadgeApplication, BadgeEvidence, Region, User
+from app.models import BadgeApplication, BadgeEvidence, Post, Region, User
 from app.models._enums import JobKind
-from app.services import badges
+from app.models.user import BadgeLevel
+from app.services import admin_moderation, badges
 from app.templating import templates
 from app.workers import queue
 
@@ -124,3 +126,102 @@ def reject_application(
     queue.enqueue(db, JobKind.EVIDENCE_CLEANUP, {"application_id": app_obj.id})
     db.commit()
     return RedirectResponse("/admin/badge-queue", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@router.get("/content", response_class=HTMLResponse)
+def admin_content(
+    request: Request,
+    status_filter: Literal["all", "published", "hidden"] = "all",
+    page: int = 1,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> HTMLResponse:
+    result = admin_moderation.list_posts(
+        db, status_filter=status_filter, page=page
+    )
+    return templates.TemplateResponse(
+        request, "pages/admin_content.html",
+        {
+            "posts": result.posts, "total": result.total,
+            "page": page, "page_size": admin_moderation.PAGE_SIZE,
+            "status_filter": status_filter,
+            "current_user": current_user,
+        },
+    )
+
+
+@router.post("/content/{post_id}/hide", response_model=None)
+def admin_content_hide(
+    post_id: int,
+    reason: str = Form(""),
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> RedirectResponse:
+    post = db.get(Post, post_id)
+    if post is None:
+        raise HTTPException(404, "글을 찾을 수 없습니다")
+    admin_moderation.hide_post(db, current_user, post, reason=reason or None)
+    db.commit()
+    return RedirectResponse("/admin/content?status_filter=hidden", status_code=303)
+
+
+@router.post("/content/{post_id}/unhide", response_model=None)
+def admin_content_unhide(
+    post_id: int,
+    reason: str = Form(""),
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> RedirectResponse:
+    post = db.get(Post, post_id)
+    if post is None:
+        raise HTTPException(404, "글을 찾을 수 없습니다")
+    admin_moderation.unhide_post(db, current_user, post, reason=reason or None)
+    db.commit()
+    return RedirectResponse("/admin/content?status_filter=published", status_code=303)
+
+
+@router.get("/users", response_class=HTMLResponse)
+def admin_users(
+    request: Request,
+    q: str | None = None,
+    badge_level: str | None = None,
+    page: int = 1,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> HTMLResponse:
+    bl_enum: BadgeLevel | None = None
+    if badge_level:
+        try:
+            bl_enum = BadgeLevel(badge_level)
+        except ValueError:
+            bl_enum = None
+    result = admin_moderation.list_users(
+        db, q=q, badge_level=bl_enum, page=page,
+    )
+    return templates.TemplateResponse(
+        request, "pages/admin_users.html",
+        {
+            "users": result.users, "total": result.total,
+            "page": page, "page_size": admin_moderation.PAGE_SIZE,
+            "q": q or "", "badge_level": badge_level or "",
+            "current_user": current_user,
+        },
+    )
+
+
+@router.get("/reports", response_class=HTMLResponse)
+def admin_reports(
+    request: Request,
+    page: int = 1,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> HTMLResponse:
+    result = admin_moderation.list_pending_reports(db, page=page)
+    return templates.TemplateResponse(
+        request, "pages/admin_reports.html",
+        {
+            "reports": result.reports, "total": result.total,
+            "page": page, "page_size": admin_moderation.PAGE_SIZE,
+            "current_user": current_user,
+        },
+    )

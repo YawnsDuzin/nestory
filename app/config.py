@@ -30,6 +30,8 @@ class Settings(BaseSettings):
     max_upload_size: int = 10 * 1024 * 1024  # 10MB
     image_max_dimension: int = 6000  # px
     anthropic_oauth_token: str = ""
+    posthog_api_key: str = ""
+    posthog_host: str = "https://us.i.posthog.com"
 
 
 @lru_cache

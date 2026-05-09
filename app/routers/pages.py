@@ -35,3 +35,10 @@ async def signup_page(
     request: Request, current_user: User | None = Depends(get_current_user)
 ) -> HTMLResponse:
     return templates.TemplateResponse(request, "pages/signup.html", {"current_user": current_user})
+
+
+@router.get("/_offline", response_class=HTMLResponse)
+def offline_page(request: Request) -> HTMLResponse:
+    return templates.TemplateResponse(
+        request, "pages/_offline.html", {"current_user": None}
+    )
