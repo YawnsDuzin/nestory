@@ -32,6 +32,7 @@ from app.tests.factories import (
     PilotRegionFactory,
     PlanPostFactory,
     QuestionPostFactory,
+    RegionScoringWeightFactory,
     RegionVerifiedUserFactory,
     ResidentUserFactory,
     ReviewPostFactory,
@@ -124,6 +125,21 @@ def seed(reset: bool = False) -> None:
                 description="기차마을 곡성, 따뜻한 남부 정착.",
             ),
         }
+
+        # Region match wizard scoring weights (Pillar R, P1.4b)
+        # 마이그레이션은 regions가 비어 있으면 0 row를 넣음 → seed_demo가 함께 시드.
+        _SCORING = {
+            "yangpyeong": (8, 7, 9, 7, 6, "양평군: 한강·산림 활동, 의료 양호, 자녀 1시간."),
+            "yeongwol":   (7, 4, 4, 8, 9, "영월군: 자연 풍부, 의료 약함, 시세 매우 저렴."),
+            "hongcheon":  (8, 6, 7, 8, 7, "홍천군: 자연·농지, 수도권 1.5시간, 시세 중간."),
+            "gokseong":   (6, 5, 4, 9, 9, "곡성군: 농사 환경 최상, 시세 저렴."),
+        }
+        for slug, (a, m, fv, fa, b, notes) in _SCORING.items():
+            RegionScoringWeightFactory(
+                region=regions[slug],
+                activity_score=a, medical_score=m, family_visit_score=fv,
+                farming_score=fa, budget_score=b, notes=notes,
+            )
 
         # Users (1 admin + 2 residents + 2 region_verified + 1 interested)
         admin = AdminUserFactory(username="admin", display_name="관리자")
