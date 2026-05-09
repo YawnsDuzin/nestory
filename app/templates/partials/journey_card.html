@@ -1,16 +1,17 @@
+{% from "components/_status_chip.html" import status_chip %}
 {# partials/journey_card.html — Journey series card. Expects: journey, author, region, episode_count #}
-<article class="rounded-lg border bg-white p-5 hover:bg-slate-50">
-  <div class="flex items-center gap-2 text-xs text-amber-800">
-    <span class="rounded bg-amber-100 px-2 py-0.5">🗺️ Journey</span>
-    <span class="text-slate-500">{{ region.sigungu }}</span>
+<article class="rounded-lg border border-stone-200 bg-white p-5 hover:border-stone-300 hover:shadow-sm transition">
+  <div class="flex items-center gap-2 text-xs">
+    {{ status_chip("post_type", "journey_ep") }}
+    <span class="text-stone-500">{{ region.sigungu }}</span>
   </div>
   <a href="/journey/{{ journey.id }}" class="block mt-2">
-    <h3 class="font-bold text-slate-900">{{ journey.title }}</h3>
+    <h3 class="font-bold text-stone-900">{{ journey.title }}</h3>
   </a>
   {% if journey.description %}
-    <p class="mt-2 text-sm text-slate-600 line-clamp-2">{{ journey.description }}</p>
+    <p class="mt-2 text-sm text-stone-600 line-clamp-2">{{ journey.description }}</p>
   {% endif %}
-  <p class="mt-3 text-xs text-slate-500">
+  <p class="mt-3 text-xs text-stone-500">
     @{{ author.username }}
     {% if episode_count is defined %}· 에피소드 {{ episode_count }}편{% endif %}
     {% if journey.start_date %}· {{ journey.start_date.strftime("%Y-%m") }} 시작{% endif %}

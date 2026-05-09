@@ -3,8 +3,8 @@
 {% block content %}
 <section class="space-y-4">
   <header class="flex items-center justify-between">
-    <h1 class="text-2xl font-bold text-slate-900">신고 큐 (Pending)</h1>
-    <span class="text-sm text-slate-500">총 {{ total }}건</span>
+    <h1 class="text-2xl font-bold text-stone-900">신고 큐 (Pending)</h1>
+    <span class="text-sm text-stone-500">총 {{ total }}건</span>
   </header>
 
   <div class="rounded bg-amber-50 border border-amber-200 p-3 text-sm text-amber-900">
@@ -13,7 +13,7 @@
 
   {% if reports %}
     <table class="w-full text-sm bg-white border rounded">
-      <thead class="bg-slate-50 text-slate-600">
+      <thead class="bg-stone-50 text-stone-600">
         <tr>
           <th class="text-left px-3 py-2">ID</th>
           <th class="text-left px-3 py-2">신고자</th>
@@ -25,13 +25,13 @@
       </thead>
       <tbody>
         {% for r in reports %}
-          <tr class="border-t hover:bg-slate-50">
-            <td class="px-3 py-2 text-slate-500">{{ r.id }}</td>
+          <tr class="border-t hover:bg-stone-50">
+            <td class="px-3 py-2 text-stone-500">{{ r.id }}</td>
             <td class="px-3 py-2 text-xs">user#{{ r.reporter_id }}</td>
             <td class="px-3 py-2 text-xs">{{ r.target_type }}#{{ r.target_id }}</td>
             <td class="px-3 py-2 text-xs">{{ r.reason.value }}</td>
-            <td class="px-3 py-2 text-xs text-slate-600">{{ (r.detail or '')[:80] }}</td>
-            <td class="px-3 py-2 text-xs text-slate-500">
+            <td class="px-3 py-2 text-xs text-stone-600">{{ (r.detail or '')[:80] }}</td>
+            <td class="px-3 py-2 text-xs text-stone-500">
               {{ r.created_at.strftime('%Y-%m-%d %H:%M') if r.created_at else '' }}
             </td>
           </tr>
@@ -43,7 +43,7 @@
       {% include "partials/pagination.html" %}
     {% endwith %}
   {% else %}
-    <div class="rounded border bg-white p-8 text-center text-slate-500">
+    <div class="rounded border bg-white p-8 text-center text-stone-500">
       현재 처리 대기 중인 신고가 없습니다.
     </div>
   {% endif %}

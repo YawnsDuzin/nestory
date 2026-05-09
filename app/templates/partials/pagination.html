@@ -9,15 +9,15 @@
   {% endif %}
   <nav class="mt-6 flex items-center justify-between text-sm" aria-label="페이지">
     {% if page > 1 %}
-      <a href="{{ base_url }}?page={{ page - 1 }}{{ ns.qs }}" class="rounded border px-3 py-1 hover:bg-slate-50">← 이전</a>
+      <a href="{{ base_url }}?page={{ page - 1 }}{{ ns.qs }}" class="rounded border px-3 py-1 hover:bg-stone-50">← 이전</a>
     {% else %}
-      <span class="rounded border px-3 py-1 text-slate-300">← 이전</span>
+      <span class="rounded border px-3 py-1 text-stone-300">← 이전</span>
     {% endif %}
-    <span class="text-slate-500">{{ page }} / {{ total_pages }}</span>
+    <span class="text-stone-500">{{ page }} / {{ total_pages }}</span>
     {% if page < total_pages %}
-      <a href="{{ base_url }}?page={{ page + 1 }}{{ ns.qs }}" class="rounded border px-3 py-1 hover:bg-slate-50">다음 →</a>
+      <a href="{{ base_url }}?page={{ page + 1 }}{{ ns.qs }}" class="rounded border px-3 py-1 hover:bg-stone-50">다음 →</a>
     {% else %}
-      <span class="rounded border px-3 py-1 text-slate-300">다음 →</span>
+      <span class="rounded border px-3 py-1 text-stone-300">다음 →</span>
     {% endif %}
   </nav>
 {% endif %}

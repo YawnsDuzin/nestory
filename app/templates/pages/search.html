@@ -3,21 +3,21 @@
 {% block content %}
 <section class="space-y-6">
   <header>
-    <h1 class="text-2xl font-bold text-slate-900">검색</h1>
+    <h1 class="text-2xl font-bold text-stone-900">검색</h1>
   </header>
 
   {# Form — preserves all params on submit #}
   <form method="get" action="/search" class="space-y-3 rounded-lg border bg-white p-4">
     <div class="flex gap-2">
       <input type="search" name="q" value="{{ q }}" placeholder="키워드를 입력하세요"
-             class="flex-1 rounded border border-slate-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+             class="flex-1 rounded border border-stone-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
              maxlength="200" required minlength="2">
       <button type="submit" class="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700">검색</button>
     </div>
     <div class="grid gap-2 sm:grid-cols-3">
       <label class="text-sm">
-        <span class="text-slate-600">지역</span>
-        <select name="region" class="mt-1 w-full rounded border border-slate-300 p-2 text-sm">
+        <span class="text-stone-600">지역</span>
+        <select name="region" class="mt-1 w-full rounded border border-stone-300 p-2 text-sm">
           <option value="">전체</option>
           {% for r in all_regions %}
             <option value="{{ r.slug }}" {% if r.slug == region %}selected{% endif %}>{{ r.sigungu }}</option>
@@ -25,8 +25,8 @@
         </select>
       </label>
       <label class="text-sm">
-        <span class="text-slate-600">종류</span>
-        <select name="type" class="mt-1 w-full rounded border border-slate-300 p-2 text-sm">
+        <span class="text-stone-600">종류</span>
+        <select name="type" class="mt-1 w-full rounded border border-stone-300 p-2 text-sm">
           <option value="">전체</option>
           <option value="review" {% if type == "review" %}selected{% endif %}>후기</option>
           <option value="journey_episode" {% if type == "journey_episode" %}selected{% endif %}>Journey</option>
@@ -35,8 +35,8 @@
         </select>
       </label>
       <label class="text-sm">
-        <span class="text-slate-600">정렬</span>
-        <select name="sort" class="mt-1 w-full rounded border border-slate-300 p-2 text-sm">
+        <span class="text-stone-600">정렬</span>
+        <select name="sort" class="mt-1 w-full rounded border border-stone-300 p-2 text-sm">
           <option value="relevance" {% if sort == "relevance" %}selected{% endif %}>관련도</option>
           <option value="latest" {% if sort == "latest" %}selected{% endif %}>최신</option>
           <option value="popular" {% if sort == "popular" %}selected{% endif %}>인기</option>
@@ -47,7 +47,7 @@
 
   {% if result is not none %}
     <div class="flex items-center justify-between">
-      <p class="text-sm text-slate-500">{{ result.total }}건</p>
+      <p class="text-sm text-stone-500">{{ result.total }}건</p>
     </div>
     {% if result.posts %}
       <ul class="grid gap-3 sm:grid-cols-2">
@@ -60,7 +60,7 @@
         {% include "partials/pagination.html" %}
       {% endwith %}
     {% else %}
-      <p class="rounded border border-dashed bg-white p-6 text-center text-sm text-slate-500">검색 결과가 없습니다.</p>
+      <p class="rounded border border-dashed bg-white p-6 text-center text-sm text-stone-500">검색 결과가 없습니다.</p>
     {% endif %}
   {% endif %}
 </section>

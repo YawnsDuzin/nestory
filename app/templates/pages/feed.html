@@ -4,10 +4,10 @@
 <section class="space-y-6">
   <header class="flex items-end justify-between">
     <div>
-      <h1 class="text-2xl font-bold text-slate-900">전체 피드</h1>
-      <p class="mt-1 text-sm text-slate-600">최근 발행된 모든 글.</p>
+      <h1 class="text-2xl font-bold text-stone-900">전체 피드</h1>
+      <p class="mt-1 text-sm text-stone-600">최근 발행된 모든 글.</p>
     </div>
-    <p class="text-sm text-slate-500">{{ total }}건</p>
+    <p class="text-sm text-stone-500">{{ total }}건</p>
   </header>
 
   {% if posts %}
@@ -18,7 +18,7 @@
       {% include "partials/pagination.html" %}
     {% endwith %}
   {% else %}
-    <p class="rounded border border-dashed bg-white p-6 text-center text-sm text-slate-500">아직 글이 없습니다.</p>
+    <p class="rounded border border-dashed bg-white p-6 text-center text-sm text-stone-500">아직 글이 없습니다.</p>
   {% endif %}
 </section>
 {% endblock %}

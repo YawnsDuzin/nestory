@@ -1,5 +1,5 @@
 {# Hub tab nav — expects: region, active ("home" | "reviews" | "journeys" | "questions" | "neighbors") #}
-<nav class="border-b border-slate-200 text-sm">
+<nav class="border-b border-stone-200 text-sm">
   <ul class="flex flex-wrap gap-1">
     {% for tab, label in [
       ("home", "홈"),
@@ -14,7 +14,7 @@
         <a href="{{ href }}"
            class="block px-3 py-2 -mb-px border-b-2
                   {{ 'border-emerald-600 text-emerald-700 font-semibold' if is_active
-                     else 'border-transparent text-slate-600 hover:text-slate-900' }}">
+                     else 'border-transparent text-stone-600 hover:text-stone-900' }}">
           {{ label }}
         </a>
       </li>

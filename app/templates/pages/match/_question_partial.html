@@ -2,15 +2,15 @@
 {% block title %}질문 {{ n }}/{{ total }} · Nestory{% endblock %}
 {% block content %}
 <section class="space-y-6">
-  <div class="text-sm text-slate-500 text-center">
+  <div class="text-sm text-stone-500 text-center">
     <span class="font-semibold text-emerald-700">{{ n }}</span> / {{ total }}
   </div>
-  <div class="h-2 w-full rounded-full bg-slate-200">
+  <div class="h-2 w-full rounded-full bg-stone-200">
     <div class="h-2 rounded-full bg-emerald-600"
          style="width: {{ (n / total * 100) | round }}%"></div>
   </div>
 
-  <h2 class="text-2xl font-bold text-slate-900 text-center">{{ q.title }}</h2>
+  <h2 class="text-2xl font-bold text-stone-900 text-center">{{ q.title }}</h2>
 
   <form method="post"
         action="/match/wizard/submit"
@@ -40,7 +40,7 @@
     <div class="flex justify-between gap-3 pt-4">
       {% if n > 1 %}
         <a href="/match/wizard/q/{{ n - 1 }}{% if request.query_params %}?{{ request.query_params }}{% endif %}"
-           class="rounded-md bg-slate-200 px-5 py-3 text-lg text-slate-800 hover:bg-slate-300">
+           class="rounded-md bg-stone-200 px-5 py-3 text-lg text-stone-800 hover:bg-stone-300">
           ← 이전
         </a>
       {% else %}
@@ -58,14 +58,14 @@
                   window.location.href = '/match/wizard/q/{{ n + 1 }}?' + params.toString();
                 "
                 class="rounded-md bg-emerald-600 px-5 py-3 text-lg font-semibold text-white
-                       hover:bg-emerald-700 disabled:bg-slate-300 disabled:cursor-not-allowed">
+                       hover:bg-emerald-700 disabled:bg-stone-300 disabled:cursor-not-allowed">
           다음 →
         </button>
       {% else %}
         <button type="submit"
                 x-bind:disabled="!selected"
                 class="rounded-md bg-emerald-600 px-5 py-3 text-lg font-semibold text-white
-                       hover:bg-emerald-700 disabled:bg-slate-300 disabled:cursor-not-allowed">
+                       hover:bg-emerald-700 disabled:bg-stone-300 disabled:cursor-not-allowed">
           결과 보기 →
         </button>
       {% endif %}

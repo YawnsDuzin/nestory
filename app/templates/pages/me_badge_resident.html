@@ -1,14 +1,17 @@
 {% extends "base.html" %}
+{% from "components/_icon.html" import icon %}
 {% block title %}실거주자 인증 신청 · Nestory{% endblock %}
 {% block content %}
 <section class="mx-auto max-w-2xl p-6 space-y-4">
-  <h1 class="text-2xl font-bold">🏡 실거주자 인증 신청</h1>
-  <p class="text-sm text-slate-600">최소 1개 증빙 파일이 필요합니다. 모든 파일은 비공개 저장되며 승인 30일 후 자동 삭제됩니다.</p>
+  <h1 class="flex items-center gap-2 text-2xl font-bold text-stone-900">
+    <span class="text-emerald-600">{{ icon("home", 24) }}</span>실거주자 인증 신청
+  </h1>
+  <p class="text-sm text-stone-600">최소 1개 증빙 파일이 필요합니다. 모든 파일은 비공개 저장되며 승인 30일 후 자동 삭제됩니다.</p>
 
-  <form method="post" action="/me/badge/resident" enctype="multipart/form-data" class="space-y-4 rounded border p-4">
+  <form method="post" action="/me/badge/resident" enctype="multipart/form-data" class="space-y-4 rounded-lg border border-stone-200 bg-white p-5">
     <label class="block">
       <span class="text-sm font-medium">시군 선택</span>
-      <select name="region_id" required class="mt-1 w-full rounded border p-2">
+      <select name="region_id" required class="mt-1 w-full rounded-md border border-stone-300 p-2">
         <option value="">— 시군 선택 —</option>
         {% for r in regions %}
           <option value="{{ r.id }}">{{ r.sido }} {{ r.sigungu }}</option>
@@ -36,7 +39,7 @@
       </label>
     </fieldset>
 
-    <button type="submit" class="rounded bg-emerald-600 text-white px-4 py-2">신청</button>
+    <button type="submit" class="rounded-md bg-emerald-600 text-white px-4 py-2 hover:bg-emerald-700">신청</button>
   </form>
 </section>
 {% endblock %}

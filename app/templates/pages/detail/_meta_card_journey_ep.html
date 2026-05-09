@@ -1,4 +1,7 @@
-<div class="rounded border bg-slate-50 p-4 text-sm">
-  <span>📍 단계: {{ post.metadata_.journey_ep_meta.phase }}</span>
-  <span class="ml-3">🗓️ {{ post.metadata_.journey_ep_meta.period_label }}</span>
+{% from "components/_icon.html" import icon %}
+<div class="rounded-lg border border-stone-200 bg-stone-50 p-4 text-sm">
+  <div class="flex flex-wrap gap-4 text-stone-700">
+    <span class="inline-flex items-center gap-1.5"><span class="text-sky-600">{{ icon("map-pin", 16) }}</span>단계: {{ post.metadata_.journey_ep_meta.phase }}</span>
+    <span class="inline-flex items-center gap-1.5"><span class="text-stone-500">{{ icon("calendar-days", 16) }}</span>{{ post.metadata_.journey_ep_meta.period_label }}</span>
+  </div>
 </div>

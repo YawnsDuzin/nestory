@@ -1,34 +1,39 @@
 {% extends "base.html" %}
+{% from "components/_icon.html" import icon %}
 {% block title %}배지 신청 큐 · 관리자{% endblock %}
 {% block content %}
 <section class="mx-auto max-w-4xl p-6 space-y-4">
-  <h1 class="text-2xl font-bold">🛡 배지 신청 큐</h1>
-  <p class="text-sm text-slate-600">대기 중인 신청 {{ rows|length }}건. 오래된 순.</p>
+  <h1 class="flex items-center gap-2 text-2xl font-bold text-stone-900">
+    <span class="text-stone-600">{{ icon("shield", 22) }}</span>배지 신청 큐
+  </h1>
+  <p class="text-sm text-stone-600">대기 중인 신청 {{ rows|length }}건. 오래된 순.</p>
   {% if not rows %}
-    <p class="rounded border p-6 text-center text-slate-500">대기 중인 신청이 없습니다.</p>
+    <p class="rounded-lg border border-stone-200 bg-white p-6 text-center text-stone-500">대기 중인 신청이 없습니다.</p>
   {% else %}
-    <table class="w-full border-collapse">
-      <thead><tr class="bg-slate-100">
-        <th class="border p-2 text-left">#</th>
-        <th class="border p-2 text-left">신청자</th>
-        <th class="border p-2 text-left">레벨</th>
-        <th class="border p-2 text-left">시군</th>
-        <th class="border p-2 text-left">신청일</th>
-        <th class="border p-2"></th>
-      </tr></thead>
-      <tbody>
-      {% for row in rows %}
-        <tr>
-          <td class="border p-2">{{ row.app.id }}</td>
-          <td class="border p-2">@{{ row.applicant.username }}</td>
-          <td class="border p-2">{{ row.app.requested_level.value }}</td>
-          <td class="border p-2">{{ row.region.sido }} {{ row.region.sigungu }}</td>
-          <td class="border p-2">{{ row.app.applied_at.strftime("%Y-%m-%d") }}</td>
-          <td class="border p-2"><a href="/admin/badge-queue/{{ row.app.id }}" class="text-emerald-700 underline">상세</a></td>
-        </tr>
-      {% endfor %}
-      </tbody>
-    </table>
+    <div class="overflow-hidden rounded-lg border border-stone-200">
+      <table class="w-full">
+        <thead><tr class="bg-stone-100 text-left">
+          <th class="p-3 font-medium">#</th>
+          <th class="p-3 font-medium">신청자</th>
+          <th class="p-3 font-medium">레벨</th>
+          <th class="p-3 font-medium">시군</th>
+          <th class="p-3 font-medium">신청일</th>
+          <th class="p-3"></th>
+        </tr></thead>
+        <tbody class="divide-y divide-stone-200">
+        {% for row in rows %}
+          <tr class="hover:bg-stone-50">
+            <td class="p-3">{{ row.app.id }}</td>
+            <td class="p-3">@{{ row.applicant.username }}</td>
+            <td class="p-3">{{ row.app.requested_level.value }}</td>
+            <td class="p-3">{{ row.region.sido }} {{ row.region.sigungu }}</td>
+            <td class="p-3">{{ row.app.applied_at.strftime("%Y-%m-%d") }}</td>
+            <td class="p-3"><a href="/admin/badge-queue/{{ row.app.id }}" class="text-emerald-700 hover:underline">상세</a></td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
   {% endif %}
 </section>
 {% endblock %}
