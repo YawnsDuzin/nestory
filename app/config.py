@@ -1,5 +1,6 @@
 from functools import lru_cache
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -32,6 +33,16 @@ class Settings(BaseSettings):
     anthropic_oauth_token: str = ""
     posthog_api_key: str = ""
     posthog_host: str = "https://us.i.posthog.com"
+
+    @model_validator(mode="after")
+    def _enforce_prod_cookie_security(self) -> "Settings":
+        # prod 배포 시 session cookie hijack 방지 — Secure 플래그 미설정 사고 차단.
+        if self.app_env == "production" and not self.session_cookie_secure:
+            raise ValueError(
+                "session_cookie_secure must be true when app_env=production "
+                "(set SESSION_COOKIE_SECURE=true in .env)"
+            )
+        return self
 
 
 @lru_cache

@@ -1,13 +1,20 @@
 from collections.abc import Callable
 
-from fastapi import Depends, HTTPException, Request, status
+from fastapi import Depends, Header, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
 from app.models.user import BadgeLevel, User, UserRole
 
 
-def get_current_user(request: Request, db: Session = Depends(get_db)) -> User | None:
+def get_current_user(
+    request: Request,
+    db: Session = Depends(get_db),
+    authorization: str | None = Header(None),
+) -> User | None:
+    # P2 네이티브 클라이언트 Bearer 토큰 분기 placeholder — 현재 미사용.
+    # CLAUDE.md "네이티브 확장 대비 > 인증 가드 dual 시그니처" 참조.
+    _ = authorization
     user_id = request.session.get("user_id")
     if not user_id:
         return None

@@ -130,3 +130,25 @@ def test_require_resident_in_region_mismatch(db: Session) -> None:
     with TestClient(test_app) as c:
         c.cookies.set("session", _session_cookie(user.id))
         assert c.get(f"/region/{r2.id}").status_code == 403
+
+
+def test_get_current_user_ignores_authorization_header(db: Session) -> None:
+    """P2 Bearer placeholder: Authorization 헤더가 와도 현재는 세션 기반 인증만 사용."""
+    test_app = _build_app()
+    user = UserFactory()
+    db.commit()
+    with TestClient(test_app) as c:
+        c.cookies.set("session", _session_cookie(user.id))
+        r = c.get("/protected", headers={"Authorization": "Bearer ignored-token"})
+        assert r.status_code == 200
+        assert r.json() == {"id": user.id}
+
+
+def test_get_current_user_authorization_header_alone_does_not_authenticate(db: Session) -> None:
+    """P2 placeholder 검증: Authorization 헤더만 있고 세션이 없으면 401."""
+    test_app = _build_app()
+    user = UserFactory()
+    db.commit()
+    with TestClient(test_app) as c:
+        r = c.get("/protected", headers={"Authorization": f"Bearer user-{user.id}"})
+        assert r.status_code == 401
