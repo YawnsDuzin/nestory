@@ -850,11 +850,11 @@
 | 6 | 좋아요/스크랩 idempotent + HTMX swap | ✅ static | test_interactions_routes.py + test_interactions_service.py — docker-up PC에서 실행 필요 |
 | 7 | 댓글 1단 reply + validation | ✅ static | test_comment_route.py + test_comments_service.py — docker-up PC에서 실행 필요 |
 | 8 | home 동적 데이터 | ✅ static | test_home_dynamic.py exists — docker-up PC에서 실행 필요 |
-| 9 | GIN 인덱스 EXPLAIN 사용 확인 | ⏸ Docker 미가용 PC | docker-up PC에서 1회 수동: `EXPLAIN SELECT * FROM posts WHERE search_vector @@ plainto_tsquery('simple','단열')` |
-| 10 | services에 request.session 미포함 | ✅ | `grep -rn "request\.session" app/services/` returns 0 matches |
-| 11 | integration tests에 직접 Post(...) 미사용 | ✅ | `grep -rn "^\s*Post(" app/tests/integration/` returns 0 matches; `grep -rn "^\s*User\s*(" ...` 0 matches; `grep -rn "^\s*Region\s*(" ...` 0 matches; `grep -rn "^\s*Comment\s*(" ...` 0 matches; `grep -rn "^\s*Journey\s*(" ...` 0 matches |
+| 9 | GIN 인덱스 EXPLAIN 사용 확인 | 🟡 부분 (2026-05-10) | `ix_posts_search_fts`·`ix_posts_search_trgm` 인덱스 정의 확인. seed 32 row scale에서는 PG planner가 Seq Scan을 선호 — 실 plan 활용은 prod scale에서 ANALYZE 후 재검증 필요 |
+| 10 | services에 request.session 미포함 | ✅ | `grep -rn "request\.session" app/services/` returns 0 matches. scripts/check_anti_patterns.py로 회귀 가드 자동화 (commit 17353d0) |
+| 11 | integration tests에 직접 Post(...) 미사용 | ✅ | `grep -rn "^\s*Post(" app/tests/integration/` returns 0 matches; `grep -rn "^\s*User\s*(" ...` 0 matches; `grep -rn "^\s*Region\s*(" ...` 0 matches; `grep -rn "^\s*Comment\s*(" ...` 0 matches; `grep -rn "^\s*Journey\s*(" ...` 0 matches. scripts/check_anti_patterns.py로 회귀 가드 자동화 |
 | 12 | ruff clean | ✅ | `uv run ruff check app/` → All checks passed |
-| 13 | 풀 pytest pass | ⏸ Docker 미가용 | `uv run pytest app/tests/ -q` 실행 보류 — docker-up PC에서 실행 필요 |
+| 13 | 풀 pytest pass | 🟡 부분 (2026-05-10) | 508 PASS / 4 hang 파일 deferred (test_image_upload_route·test_image_resize_handler·test_worker_e2e·test_job_queue — handoff 명시 환경 의존 hang). 페이지네이션 회귀 2건은 post_card 마커 outdated → fix 완료 (commit 7469bdb) |
 
 ---
 

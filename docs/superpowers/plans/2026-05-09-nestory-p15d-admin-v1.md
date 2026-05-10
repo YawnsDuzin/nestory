@@ -1110,6 +1110,6 @@ Refs: docs/superpowers/specs/2026-05-09-nestory-p15d-admin-v1-design.md §7"
 - [x] 4 테스트 파일 작성 (service 7 + content 6 + users 4 + reports 3 = 20 신규 테스트). lint clean ✅
 - [x] 기존 `/admin/badge-queue` 그대로 유지 — 라우트 5개 모두 함께 등록 확인
 - [x] nav admin dropdown 3 신규 링크 노출 (admin role only)
-- [ ] ⏸ pytest 풀런 — Docker 미가용. 다음 docker-up PC.
+- [x] pytest 풀런 (2026-05-10) — admin v1 신규 20 테스트(service 7 + content 6 + users 4 + reports 3) 모두 PASS. 풀 pytest 508 PASS
 
 **구현 commits**: `4209f55..90959df` (7 commits).

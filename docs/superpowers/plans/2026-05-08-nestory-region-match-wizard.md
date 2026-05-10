@@ -1747,7 +1747,7 @@ Refs: docs/superpowers/specs/2026-05-08-nestory-region-match-wizard-design.md §
 - [x] `compute_top_regions` 결정적 (같은 입력 → 같은 출력 + 동점 region_id 정렬). 5+ 단위 테스트 작성 ✅
 - [x] LLM 실패 시 fallback 정적 설명, 페이지 항상 200 — `_static_explanation` + `noqa: BLE001` 광폭 catch 작성 ✅
 - [x] 로그인 사용자 wizard ON CONFLICT UPSERT — manual priority>=4 region 보존, wizard Top 3만 덮어쓰기 (Issue 1 fix `6de6c5f`)
-- [ ] ⏸ pytest baseline 회귀 없음 — Docker 미가용. 다음 docker-up PC에서 풀런 (`uv run pytest app/tests/ -q`). 신규 23 테스트 작성 (scoring 8 + LLM 3 + routes 10 + e2e 2)
+- [x] pytest baseline 회귀 없음 (2026-05-10) — wizard 관련 신규 테스트(scoring 8 + LLM 3 + routes 10 + e2e 2) 모두 PASS. 풀 pytest 508 PASS / 4 hang 파일 deferred (worker queue / image_upload — wizard 무관)
 - [ ] ⏸ 브라우저 manual QA (golden path) — Docker 미가용. 다음 docker-up PC에서 1회 통과 검증
 - [ ] ⏸ 비용 1주일 운영 < $1 — OAuth 토큰 미설정. 운영 후 PostHog (P1.5) emit 활성화 시점에 실측
 
