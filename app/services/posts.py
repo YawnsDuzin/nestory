@@ -7,8 +7,8 @@ via model_dump and pops type_tag (discriminator lives in Post.type column).
 from datetime import UTC, date, datetime
 
 from fastapi import HTTPException, status
-from sqlalchemy import func, select
-from sqlalchemy.orm import Session
+from sqlalchemy import func, select, update
+from sqlalchemy.orm import Session, selectinload
 
 from app.models import Journey, Post, Region, User
 from app.models._enums import JourneyStatus, NotificationType, PostStatus, PostType
@@ -165,10 +165,120 @@ def create_plan(
 
 
 def increment_view_count(db: Session, post: Post) -> None:
-    db.query(Post).filter(Post.id == post.id).update(
-        {Post.view_count: Post.view_count + 1}
+    db.execute(
+        update(Post).where(Post.id == post.id).values(view_count=Post.view_count + 1)
     )
     db.flush()
+
+
+def get_post_for_detail(db: Session, post_id: int) -> Post | None:
+    """published, non-Journey-episode/Answer 1건 + author/region eager. None if 미존재/숨김."""
+    post = db.scalars(
+        select(Post)
+        .options(selectinload(Post.author), selectinload(Post.region))
+        .where(Post.id == post_id)
+    ).first()
+    if (
+        post is None
+        or post.deleted_at is not None
+        or post.status != PostStatus.PUBLISHED
+        or post.type in (PostType.JOURNEY_EPISODE, PostType.ANSWER)
+    ):
+        return None
+    return post
+
+
+def get_question_for_detail(db: Session, post_id: int) -> Post | None:
+    """published QUESTION 1건 + author/region eager. None if 미존재/숨김/타입미스."""
+    post = db.scalars(
+        select(Post)
+        .options(selectinload(Post.author), selectinload(Post.region))
+        .where(Post.id == post_id)
+    ).first()
+    if (
+        post is None
+        or post.deleted_at is not None
+        or post.type != PostType.QUESTION
+        or post.status != PostStatus.PUBLISHED
+    ):
+        return None
+    return post
+
+
+def list_published_answers(db: Session, question_id: int) -> list[Post]:
+    """답변(ANSWER) 목록 — author eager, published_at asc."""
+    return list(
+        db.scalars(
+            select(Post)
+            .options(selectinload(Post.author))
+            .where(
+                Post.parent_post_id == question_id,
+                Post.type == PostType.ANSWER,
+                Post.deleted_at.is_(None),
+            )
+            .order_by(Post.published_at.asc())
+        ).all()
+    )
+
+
+def list_journey_episodes(db: Session, journey_id: int) -> list[Post]:
+    """journey 전체 published 에피소드 — author eager, episode_no asc."""
+    return list(
+        db.scalars(
+            select(Post)
+            .options(selectinload(Post.author))
+            .where(
+                Post.journey_id == journey_id,
+                Post.type == PostType.JOURNEY_EPISODE,
+                Post.deleted_at.is_(None),
+                Post.status == PostStatus.PUBLISHED,
+            )
+            .order_by(Post.episode_no.asc())
+        ).all()
+    )
+
+
+def get_journey_episode(db: Session, journey_id: int, ep_no: int) -> Post | None:
+    """journey + episode_no로 단일 published 에피소드 — author/region eager."""
+    return db.scalars(
+        select(Post)
+        .options(selectinload(Post.author), selectinload(Post.region))
+        .where(
+            Post.journey_id == journey_id,
+            Post.episode_no == ep_no,
+            Post.type == PostType.JOURNEY_EPISODE,
+            Post.deleted_at.is_(None),
+            Post.status == PostStatus.PUBLISHED,
+        )
+    ).first()
+
+
+def prev_journey_episode(db: Session, journey_id: int, ep_no: int) -> Post | None:
+    """현재 ep_no 이전의 가장 가까운 에피소드. 없으면 None."""
+    return db.scalars(
+        select(Post)
+        .where(
+            Post.journey_id == journey_id,
+            Post.episode_no < ep_no,
+            Post.type == PostType.JOURNEY_EPISODE,
+            Post.deleted_at.is_(None),
+        )
+        .order_by(Post.episode_no.desc())
+    ).first()
+
+
+def next_journey_episode(db: Session, journey_id: int, ep_no: int) -> Post | None:
+    """현재 ep_no 이후의 가장 가까운 에피소드. 없으면 None."""
+    return db.scalars(
+        select(Post)
+        .where(
+            Post.journey_id == journey_id,
+            Post.episode_no > ep_no,
+            Post.type == PostType.JOURNEY_EPISODE,
+            Post.deleted_at.is_(None),
+        )
+        .order_by(Post.episode_no.asc())
+    ).first()
 
 
 __all__ = [
@@ -179,6 +289,13 @@ __all__ = [
     "create_plan",
     "create_question",
     "create_review",
+    "get_journey_episode",
+    "get_post_for_detail",
+    "get_question_for_detail",
     "increment_view_count",
+    "list_journey_episodes",
+    "list_published_answers",
+    "next_journey_episode",
+    "prev_journey_episode",
     "validate_body_length",
 ]

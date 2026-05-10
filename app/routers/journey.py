@@ -6,24 +6,20 @@ from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from pydantic import ValidationError
 from sqlalchemy import select
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm import Session
 
 from app.deps import get_current_user, get_db, require_badge
-from app.models import Journey, Post, Region, User
-from app.models._enums import PostStatus, PostType
+from app.models import Journey, Region, User
 from app.models.user import BadgeLevel
 from app.schemas.post_metadata import JourneyEpisodeMetadata, JourneyEpMeta
 from app.services import comments as comments_service
 from app.services import images as images_service
 from app.services import interactions as interactions_service
 from app.services import posts as posts_service
+from app.services import regions as regions_service
 from app.templating import templates
 
 router = APIRouter(tags=["journey"])
-
-
-def _all_regions(db: Session) -> list[Region]:
-    return db.query(Region).order_by(Region.sigungu).all()
 
 
 @router.get("/write/journey", response_class=HTMLResponse)
@@ -34,7 +30,10 @@ def write_journey_form(
 ) -> HTMLResponse:
     return templates.TemplateResponse(
         request, "pages/write/journey_create.html",
-        {"user": user, "current_user": user, "regions": _all_regions(db)},
+        {
+            "user": user, "current_user": user,
+            "regions": regions_service.list_all_for_dropdown(db),
+        },
     )
 
 
@@ -139,18 +138,7 @@ def journey_detail(
         raise HTTPException(status.HTTP_404_NOT_FOUND)
     author = db.get(User, journey.author_id)
     region = db.get(Region, journey.region_id)
-    episodes = (
-        db.query(Post)
-        .options(selectinload(Post.author))
-        .filter(
-            Post.journey_id == journey_id,
-            Post.type == PostType.JOURNEY_EPISODE,
-            Post.deleted_at.is_(None),
-            Post.status == PostStatus.PUBLISHED,
-        )
-        .order_by(Post.episode_no.asc())
-        .all()
-    )
+    episodes = posts_service.list_journey_episodes(db, journey_id)
     return templates.TemplateResponse(
         request, "pages/detail/journey.html",
         {
@@ -174,45 +162,14 @@ def journey_episode_detail(
     journey = db.get(Journey, journey_id)
     if journey is None or journey.deleted_at is not None:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
-    post = (
-        db.query(Post)
-        .options(selectinload(Post.author), selectinload(Post.region))
-        .filter(
-            Post.journey_id == journey_id,
-            Post.episode_no == ep_no,
-            Post.type == PostType.JOURNEY_EPISODE,
-            Post.deleted_at.is_(None),
-            Post.status == PostStatus.PUBLISHED,
-        )
-        .first()
-    )
+    post = posts_service.get_journey_episode(db, journey_id, ep_no)
     if post is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
     posts_service.increment_view_count(db, post)
     db.commit()
     db.refresh(post)
-    prev_ep = (
-        db.query(Post)
-        .filter(
-            Post.journey_id == journey_id,
-            Post.episode_no < ep_no,
-            Post.type == PostType.JOURNEY_EPISODE,
-            Post.deleted_at.is_(None),
-        )
-        .order_by(Post.episode_no.desc())
-        .first()
-    )
-    next_ep = (
-        db.query(Post)
-        .filter(
-            Post.journey_id == journey_id,
-            Post.episode_no > ep_no,
-            Post.type == PostType.JOURNEY_EPISODE,
-            Post.deleted_at.is_(None),
-        )
-        .order_by(Post.episode_no.asc())
-        .first()
-    )
+    prev_ep = posts_service.prev_journey_episode(db, journey_id, ep_no)
+    next_ep = posts_service.next_journey_episode(db, journey_id, ep_no)
     liked = (
         interactions_service.is_liked_by(db, post.id, current_user.id)
         if current_user

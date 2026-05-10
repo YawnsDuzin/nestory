@@ -29,12 +29,9 @@ ROUTERS_DIR = ROOT / "app" / "routers"
 SERVICES_DIR = ROOT / "app" / "services"
 TESTS_DIR = ROOT / "app" / "tests" / "integration"
 
-# 알려진 위반 — P1.6 cleanup 대상. 새로 추가하지 말 것.
-ROUTER_DBQ_ALLOWLIST: set[str] = {
-    "content.py",  # 14건 — P1.6에서 services로 이전 예정
-    "journey.py",
-    "me.py",
-}
+# 라우트의 db.query는 services 레이어 위반 — 새로 추가하지 말 것.
+# 2026-05-10 commit으로 content/journey/me 14건 모두 services로 이전 완료.
+ROUTER_DBQ_ALLOWLIST: set[str] = set()
 
 # 정당한 직접 생성자 사용 (CLAUDE.md "테스트 데이터 (factory-boy)" 3 경우)
 TEST_CTOR_ALLOWLIST: set[str] = {
