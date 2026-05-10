@@ -2,11 +2,16 @@ import uuid
 from pathlib import Path
 
 from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+from slowapi.errors import RateLimitExceeded
+from sqlalchemy import text
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.config import get_settings
+from app.db.session import SessionLocal
 from app.logging_setup import configure_logging, init_sentry
+from app.rate_limit import limiter
 from app.routers import admin as admin_router
 from app.routers import auth as auth_router
 from app.routers import content as content_router
@@ -31,6 +36,15 @@ init_sentry(settings.sentry_dsn, settings.app_env)
 BASE_DIR = Path(__file__).resolve().parent
 
 app = FastAPI(title="Nestory", debug=settings.app_env == "local")
+app.state.limiter = limiter
+
+
+@app.exception_handler(RateLimitExceeded)
+async def _rate_limit_handler(request: Request, exc: RateLimitExceeded) -> JSONResponse:
+    return JSONResponse(
+        {"detail": f"요청이 너무 많습니다. 잠시 후 다시 시도해주세요. ({exc.detail})"},
+        status_code=429,
+    )
 
 
 # NOTE: middleware 등록 순서 — Starlette는 add_middleware/decorator 시 list의
@@ -86,5 +100,15 @@ app.include_router(search_router.router)
 
 
 @app.get("/healthz")
-async def healthz() -> dict[str, str]:
-    return {"status": "ok", "env": settings.app_env}
+async def healthz() -> JSONResponse:
+    response: dict[str, str] = {"status": "ok", "env": settings.app_env}
+    status_code = 200
+    try:
+        with SessionLocal() as db:
+            db.execute(text("SELECT 1"))
+        response["db"] = "ok"
+    except Exception:  # noqa: BLE001 — healthz는 어떤 DB 오류든 degraded 표기
+        response["status"] = "degraded"
+        response["db"] = "error"
+        status_code = 503
+    return JSONResponse(response, status_code=status_code)

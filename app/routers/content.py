@@ -5,25 +5,21 @@ from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from pydantic import ValidationError
 from sqlalchemy import select
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm import Session
 
 from app.deps import get_current_user, get_db, require_badge, require_user
 from app.models import Post, Region, User
-from app.models._enums import PostStatus, PostType
+from app.models._enums import PostType
 from app.models.user import BadgeLevel
 from app.schemas.post_metadata import PlanMetadata, QuestionMetadata, ReviewMetadata
 from app.services import comments as comments_service
 from app.services import images as images_service
 from app.services import interactions as interactions_service
 from app.services import posts as posts_service
+from app.services import regions as regions_service
 from app.templating import templates
 
 router = APIRouter(tags=["content"])
-
-
-def _all_regions_options(db: Session) -> list[Region]:
-    """All regions, sorted by sigungu. Used by all write/* forms."""
-    return db.query(Region).order_by(Region.sigungu).all()
 
 
 @router.get("/write/review", response_class=HTMLResponse)
@@ -40,7 +36,7 @@ def write_review_form(
             "page_title": "후기 작성",
             "page_subtitle": "정착 회고를 남겨주세요. Pillar C — 후회 비용을 데이터로.",
             "form_action": "/write/review",
-            "regions": _all_regions_options(db),
+            "regions": regions_service.list_all_for_dropdown(db),
             "form": None,
         },
     )
@@ -89,7 +85,7 @@ def write_question_form(
             "page_title": "질문 작성",
             "page_subtitle": "지역에 사는 분들께 직접 물어보세요.",
             "form_action": "/write/question",
-            "regions": _all_regions_options(db),
+            "regions": regions_service.list_all_for_dropdown(db),
             "form": None,
         },
     )
@@ -133,7 +129,7 @@ def write_plan_form(
             "page_title": "정착 계획 작성",
             "page_subtitle": "예비 입주자를 위한 콘텐츠. 다른 분들의 조언을 받아보세요.",
             "form_action": "/write/plan",
-            "regions": _all_regions_options(db),
+            "regions": regions_service.list_all_for_dropdown(db),
             "form": None,
         },
     )
@@ -202,19 +198,9 @@ def post_detail(
     db: Session = Depends(get_db),
     current_user: User | None = Depends(get_current_user),
 ) -> HTMLResponse:
-    post = (
-        db.query(Post)
-        .options(selectinload(Post.author), selectinload(Post.region))
-        .filter(Post.id == post_id)
-        .first()
-    )
-    if (
-        post is None
-        or post.deleted_at is not None
-        or post.status != PostStatus.PUBLISHED
-        or post.type in (PostType.JOURNEY_EPISODE, PostType.ANSWER)
+    post = posts_service.get_post_for_detail(db, post_id)
+    if post is None:
         # JOURNEY_EPISODE uses /journey/.../ep/.., ANSWER renders inside /question/{id}
-    ):
         raise HTTPException(status.HTTP_404_NOT_FOUND)
     posts_service.increment_view_count(db, post)
     db.commit()
@@ -261,33 +247,13 @@ def question_detail(
     user: User | None = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> HTMLResponse:
-    question = (
-        db.query(Post)
-        .options(selectinload(Post.author), selectinload(Post.region))
-        .filter(Post.id == question_id)
-        .first()
-    )
-    if (
-        question is None
-        or question.deleted_at is not None
-        or question.type != PostType.QUESTION
-        or question.status != PostStatus.PUBLISHED
-    ):
+    question = posts_service.get_question_for_detail(db, question_id)
+    if question is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
     posts_service.increment_view_count(db, question)
     db.commit()
     db.refresh(question)
-    answers = (
-        db.query(Post)
-        .options(selectinload(Post.author))
-        .filter(
-            Post.parent_post_id == question.id,
-            Post.type == PostType.ANSWER,
-            Post.deleted_at.is_(None),
-        )
-        .order_by(Post.published_at.asc())
-        .all()
-    )
+    answers = posts_service.list_published_answers(db, question.id)
     liked = (
         interactions_service.is_liked_by(db, question.id, user.id) if user else False
     )

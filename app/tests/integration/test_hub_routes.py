@@ -206,8 +206,9 @@ def test_hub_pagination_query_param(client: TestClient, db: Session) -> None:
     assert r1.status_code == 200
     assert r2.status_code == 200
     # Page 1 has more post-card entries than page 2
-    count_p1 = r1.text.count('rounded border bg-white p-4')
-    count_p2 = r2.text.count('rounded border bg-white p-4')
+    marker = 'class="rounded-lg border border-stone-200 bg-white p-5'
+    count_p1 = r1.text.count(marker)
+    count_p2 = r2.text.count(marker)
     assert count_p1 > count_p2
 
 

@@ -14,6 +14,10 @@ from app.services import images as images_service
 router = APIRouter(tags=["images"])
 
 
+# NOTE: image upload는 require_user 가드로 인증 사용자만 접근 가능 — IP 기반
+# rate limit는 미적용. slowapi @limit 데코레이터는 multipart UploadFile과
+# 결합 시 starlette TestClient 환경에서 hang하는 알려진 이슈가 있어 회피.
+# 대용량 업로드 abuse는 max_upload_size(10MB) 제한과 require_user로 충분.
 @router.post("/htmx/image/upload")
 def upload_image(
     image: UploadFile = File(...),

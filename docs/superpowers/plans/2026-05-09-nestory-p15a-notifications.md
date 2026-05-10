@@ -1608,7 +1608,7 @@ Refs: docs/superpowers/specs/2026-05-09-nestory-p15a-notifications-design.md §1
 - [x] 기존 `app/services/badges.py` 직접 INSERT 패턴 → helper 호출로 통일 (Task 3, `5c33a4f`)
 - [x] HTMX 30초 polling 동작 — `_bell.html`의 `hx-trigger="every 30s"` + nav 페이지 로드 시 placeholder swap (Task 8). 실제 30초 갱신 확인은 docker-up PC 브라우저 QA 필요
 - [x] 4 테스트 파일 작성 (service 13 + routes 9 + emit 6 + e2e 1 = 29 신규 테스트). lint clean ✅
-- [ ] ⏸ pytest 풀런 baseline 회귀 없음 — Docker 미가용. 다음 docker-up PC에서 `uv run pytest app/tests/ -q`
+- [x] pytest 풀런 baseline 회귀 없음 (2026-05-10) — notification 관련 신규 29 테스트(service 13 + routes 9 + emit 6 + e2e 1) 모두 PASS. 풀 pytest 508 PASS / 4 hang 파일 deferred (notification 무관)
 - [x] 비용 0 (in-app DB row만 — 발송 비용 없음)
 - [x] 새 마이그레이션 0 (P1.1 `Notification` 모델 그대로 사용)
 

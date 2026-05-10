@@ -47,6 +47,11 @@ def dequeue(db: Session, *, worker_id: str) -> Job | None:
 
     Uses FOR UPDATE SKIP LOCKED for safe concurrent worker pickup.
     Returns None if queue is empty. Caller must commit on success/failure.
+
+    None 리턴 시 SELECT FOR UPDATE가 연 transaction은 자체적으로 rollback —
+    caller가 commit/rollback을 잊어도 PG row lock이 잔존하지 않음.
+    (테스트 격리 + 공유 DB 환경 안전성. caller 측 변경 손실 위험은
+    "dequeue 직전 commit" 호출 패턴으로 회피 — runner.py 참조.)
     """
     stmt = (
         select(Job)
@@ -60,6 +65,7 @@ def dequeue(db: Session, *, worker_id: str) -> Job | None:
     )
     job = db.scalar(stmt)
     if job is None:
+        db.rollback()
         return None
     job.status = JobStatus.RUNNING
     job.locked_at = datetime.now(UTC)

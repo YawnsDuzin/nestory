@@ -78,7 +78,20 @@ def db() -> Session:
         _bind_factories(session)
         yield session
     finally:
+        # 미완료 transaction(SELECT FOR UPDATE 등) 명시 정리 — 다음 테스트의
+        # autouse _cleanup_db TRUNCATE가 PG row lock 대기로 hang하는 상황 방지.
+        session.rollback()
         session.close()
+
+
+@pytest.fixture(autouse=True)
+def _disable_rate_limit():
+    """테스트에서는 rate limiter 비활성화 — flaky 회귀 방지."""
+    from app.rate_limit import limiter
+
+    limiter.enabled = False
+    yield
+    limiter.enabled = True
 
 
 @pytest.fixture

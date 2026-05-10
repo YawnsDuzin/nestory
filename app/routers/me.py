@@ -6,9 +6,10 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.deps import get_db, require_user
-from app.models import BadgeApplication, Region, User
-from app.models._enums import BadgeApplicationStatus, BadgeRequestedLevel, EvidenceType
+from app.models import Region, User
+from app.models._enums import BadgeRequestedLevel, EvidenceType
 from app.services import badges, evidence_storage
+from app.services import regions as regions_service
 from app.templating import templates
 
 router = APIRouter(prefix="/me", tags=["me"])
@@ -20,16 +21,8 @@ def badge_page(
     user: User = Depends(require_user),
     db: Session = Depends(get_db),
 ) -> HTMLResponse:
-    pending = (
-        db.query(BadgeApplication)
-        .filter(
-            BadgeApplication.user_id == user.id,
-            BadgeApplication.status == BadgeApplicationStatus.PENDING,
-        )
-        .order_by(BadgeApplication.applied_at.desc())
-        .first()
-    )
-    regions = db.query(Region).order_by(Region.sigungu).all()
+    pending = badges.get_user_pending_application(db, user.id)
+    regions = regions_service.list_all_for_dropdown(db)
     return templates.TemplateResponse(
         request,
         "pages/me_badge.html",
@@ -47,16 +40,7 @@ def apply_region(
     if region is None:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Invalid region")
 
-    # Block duplicate pending applications
-    existing = (
-        db.query(BadgeApplication)
-        .filter(
-            BadgeApplication.user_id == user.id,
-            BadgeApplication.status == BadgeApplicationStatus.PENDING,
-        )
-        .first()
-    )
-    if existing is not None:
+    if badges.get_user_pending_application(db, user.id) is not None:
         raise HTTPException(status.HTTP_409_CONFLICT, "Pending application exists")
 
     badges.submit_application(
@@ -75,7 +59,7 @@ def resident_form(
     user: User = Depends(require_user),
     db: Session = Depends(get_db),
 ) -> HTMLResponse:
-    regions = db.query(Region).order_by(Region.sigungu).all()
+    regions = regions_service.list_all_for_dropdown(db)
     return templates.TemplateResponse(
         request,
         "pages/me_badge_resident.html",
@@ -115,16 +99,7 @@ async def apply_resident(
     if region is None:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Invalid region")
 
-    # Block duplicate pending
-    existing = (
-        db.query(BadgeApplication)
-        .filter(
-            BadgeApplication.user_id == user.id,
-            BadgeApplication.status == BadgeApplicationStatus.PENDING,
-        )
-        .first()
-    )
-    if existing is not None:
+    if badges.get_user_pending_application(db, user.id) is not None:
         raise HTTPException(status.HTTP_409_CONFLICT, "Pending application exists")
 
     application = badges.submit_application(

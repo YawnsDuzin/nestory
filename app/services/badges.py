@@ -76,6 +76,19 @@ def list_pending(db: Session) -> Sequence[BadgeApplication]:
     return db.scalars(stmt).all()
 
 
+def get_user_pending_application(db: Session, user_id: int) -> BadgeApplication | None:
+    """현재 사용자의 PENDING 신청 1건 (가장 최근). 없으면 None — /me/badge 페이지에서
+    재신청 차단 + 안내 표시용."""
+    return db.scalars(
+        select(BadgeApplication)
+        .where(
+            BadgeApplication.user_id == user_id,
+            BadgeApplication.status == BadgeApplicationStatus.PENDING,
+        )
+        .order_by(BadgeApplication.applied_at.desc())
+    ).first()
+
+
 def approve(
     db: Session,
     *,
