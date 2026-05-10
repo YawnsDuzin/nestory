@@ -81,6 +81,16 @@ def db() -> Session:
         session.close()
 
 
+@pytest.fixture(autouse=True)
+def _disable_rate_limit():
+    """테스트에서는 rate limiter 비활성화 — flaky 회귀 방지."""
+    from app.rate_limit import limiter
+
+    limiter.enabled = False
+    yield
+    limiter.enabled = True
+
+
 @pytest.fixture
 def client() -> TestClient:
     return TestClient(app)

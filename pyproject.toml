@@ -22,6 +22,7 @@ dependencies = [
   "markdown>=3.6",
   "anthropic>=0.40",
   "posthog>=3.0",
+  "slowapi>=0.1.9",
 ]
 
 [dependency-groups]

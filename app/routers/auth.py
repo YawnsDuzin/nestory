@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.deps import get_db
+from app.rate_limit import limiter
 from app.schemas.auth import LoginForm, SignupForm
 from app.services.auth import (
     create_user_with_password,
@@ -21,6 +22,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/signup")
+@limiter.limit("5/minute")
 async def signup(
     request: Request,
     email: str = Form(...),
@@ -52,6 +54,7 @@ async def signup(
 
 
 @router.post("/login")
+@limiter.limit("10/minute")
 async def login(
     request: Request,
     email: str = Form(...),

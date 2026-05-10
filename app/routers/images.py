@@ -2,20 +2,23 @@
 import mimetypes
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
 from fastapi.responses import FileResponse, JSONResponse
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.deps import get_db, require_user
 from app.models import Image, User
+from app.rate_limit import limiter
 from app.services import images as images_service
 
 router = APIRouter(tags=["images"])
 
 
 @router.post("/htmx/image/upload")
+@limiter.limit("20/minute")
 def upload_image(
+    request: Request,
     image: UploadFile = File(...),
     user: User = Depends(require_user),
     db: Session = Depends(get_db),
