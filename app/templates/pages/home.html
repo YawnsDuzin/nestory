@@ -4,15 +4,36 @@
 {% block content %}
 {% if current_user %}
   <section class="space-y-8">
-    <div class="space-y-3">
-      <h1 class="text-2xl sm:text-3xl font-bold text-stone-900">Nestory에 오신 것을 환영합니다</h1>
-      <p class="text-stone-600">
-        전원생활 정착의 전 과정을 실거주자의 여정으로 아카이빙하는 커뮤니티입니다.
-      </p>
-    </div>
-    <div class="rounded-lg bg-emerald-50 p-4 text-emerald-800">
-      반갑습니다, <strong>@{{ current_user.username }}</strong>.
-    </div>
+    <header class="rounded-xl border border-emerald-100 bg-gradient-to-br from-emerald-50 via-white to-white p-4 sm:p-5 shadow-sm">
+      <div class="flex items-center gap-4">
+        <span class="flex h-14 w-14 sm:h-16 sm:w-16 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-xl sm:text-2xl font-bold text-white shadow-md ring-4 ring-white">
+          {{ current_user.username[:1] | upper }}
+        </span>
+        <div class="min-w-0 flex-1 space-y-2">
+          <h1 class="text-lg sm:text-2xl font-bold text-stone-900 tracking-tight break-keep">
+            안녕하세요, <span class="text-emerald-700">@{{ current_user.username }}</span> 님
+          </h1>
+          {% set _bv = current_user.badge_level.value %}
+          {% if _bv == "resident" %}
+            <span class="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-white px-3 py-1 text-sm font-medium text-emerald-700 shadow-sm">
+              <span class="text-emerald-600">{{ icon("home", 14) }}</span>거주자 인증
+            </span>
+          {% elif _bv == "ex_resident" %}
+            <span class="inline-flex items-center gap-1.5 rounded-full border border-stone-200 bg-white px-3 py-1 text-sm font-medium text-stone-700 shadow-sm">
+              <span class="text-stone-600">{{ icon("home", 14) }}</span>전 거주자
+            </span>
+          {% elif _bv == "region_verified" %}
+            <span class="inline-flex items-center gap-1.5 rounded-full border border-sky-200 bg-white px-3 py-1 text-sm font-medium text-sky-700 shadow-sm">
+              <span class="text-sky-600">{{ icon("check-circle", 14) }}</span>지역 인증
+            </span>
+          {% else %}
+            <span class="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-white px-3 py-1 text-sm font-medium text-emerald-700 shadow-sm">
+              <span class="text-emerald-600">{{ icon("heart", 14) }}</span>관심자
+            </span>
+          {% endif %}
+        </div>
+      </div>
+    </header>
 
     <section class="space-y-4">
       <h2 class="flex items-center gap-2 text-lg font-semibold text-stone-900">
