@@ -31,9 +31,46 @@ def mig():
     return _load_migration_module()
 
 
-def test_read_admin_spec_returns_none_when_email_missing(mig, monkeypatch) -> None:
+def test_read_admin_spec_returns_none_in_production_without_env(mig, monkeypatch) -> None:
+    """prod 환경 + ENV 미설정 → 보안상 default admin 만들지 않음."""
     monkeypatch.delenv("ADMIN_EMAIL", raising=False)
+    monkeypatch.delenv("ADMIN_BOOTSTRAP_PASSWORD", raising=False)
+    monkeypatch.setenv("APP_ENV", "production")
     assert mig._read_admin_spec() is None
+
+
+def test_read_admin_spec_uses_dev_default_in_local(mig, monkeypatch) -> None:
+    """비-prod + ENV 미설정 → dev default(admin@nestory.local)로 자동 시드."""
+    monkeypatch.delenv("ADMIN_EMAIL", raising=False)
+    monkeypatch.delenv("ADMIN_BOOTSTRAP_PASSWORD", raising=False)
+    monkeypatch.delenv("ADMIN_USERNAME", raising=False)
+    monkeypatch.delenv("ADMIN_DISPLAY_NAME", raising=False)
+    monkeypatch.setenv("APP_ENV", "local")
+
+    spec = mig._read_admin_spec()
+    assert spec == ("admin@nestory.local", "admin1234!", "admin", "관리자")
+
+
+def test_read_admin_spec_uses_dev_default_when_app_env_unset(mig, monkeypatch) -> None:
+    """APP_ENV 자체가 미설정이면 'local' 가정 — dev default."""
+    monkeypatch.delenv("ADMIN_EMAIL", raising=False)
+    monkeypatch.delenv("ADMIN_BOOTSTRAP_PASSWORD", raising=False)
+    monkeypatch.delenv("APP_ENV", raising=False)
+
+    spec = mig._read_admin_spec()
+    assert spec is not None
+    assert spec[0] == "admin@nestory.local"
+    assert spec[1] == "admin1234!"
+
+
+def test_read_admin_spec_explicit_env_overrides_in_production(mig, monkeypatch) -> None:
+    """prod 환경이라도 ENV 명시되면 그대로 사용."""
+    monkeypatch.setenv("APP_ENV", "production")
+    monkeypatch.setenv("ADMIN_EMAIL", "ops@example.com")
+    monkeypatch.setenv("ADMIN_BOOTSTRAP_PASSWORD", "very-strong-pass")
+
+    spec = mig._read_admin_spec()
+    assert spec == ("ops@example.com", "very-strong-pass", "admin", "관리자")
 
 
 def test_read_admin_spec_normalizes_email_and_defaults(mig, monkeypatch) -> None:
