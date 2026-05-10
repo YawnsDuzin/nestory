@@ -88,9 +88,10 @@ def test_feed_pagination_query_param(client: TestClient, db: Session) -> None:
     r2 = client.get("/feed?page=2")
     assert r1.status_code == 200
     assert r2.status_code == 200
-    # post_card.html renders a distinctive class; count occurrences per page
-    count_p1 = r1.text.count("rounded border bg-white p-4")
-    count_p2 = r2.text.count("rounded border bg-white p-4")
+    # post_card.html article tag — count card occurrences per page
+    marker = 'class="rounded-lg border border-stone-200 bg-white p-5'
+    count_p1 = r1.text.count(marker)
+    count_p2 = r2.text.count(marker)
     assert count_p1 > count_p2
 
 
