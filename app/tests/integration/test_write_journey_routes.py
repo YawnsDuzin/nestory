@@ -4,7 +4,13 @@ from sqlalchemy.orm import Session
 
 from app.models import Journey, Post
 from app.models._enums import PostType
-from app.tests.factories import JourneyFactory, RegionFactory, ResidentUserFactory, UserFactory
+from app.tests.factories import (
+    ImageFactory,
+    JourneyFactory,
+    RegionFactory,
+    ResidentUserFactory,
+    UserFactory,
+)
 
 
 def test_get_write_journey_renders(client: TestClient, db: Session, login) -> None:
@@ -89,3 +95,61 @@ def test_journey_episode_blocks_non_owner(client: TestClient, db: Session, login
         data={"title": "x", "body": "y", "phase": "입주", "period_label": "2026-04"},
     )
     assert r.status_code == 403
+
+
+def test_post_write_journey_with_cover_image(client: TestClient, db: Session, login) -> None:
+    user = ResidentUserFactory()
+    region = RegionFactory()
+    img = ImageFactory(owner=user)
+    db.commit()
+    login(user.id)
+    r = client.post(
+        "/write/journey",
+        data={
+            "title": "표지 있는 정착기",
+            "region_id": str(region.id),
+            "cover_image_id": str(img.id),
+        },
+        follow_redirects=False,
+    )
+    assert r.status_code == 303
+    j = db.query(Journey).one()
+    assert j.cover_image_id == img.id
+
+
+def test_post_write_journey_rejects_other_users_cover_image(
+    client: TestClient, db: Session, login,
+) -> None:
+    user = ResidentUserFactory()
+    other = UserFactory()
+    region = RegionFactory()
+    other_img = ImageFactory(owner=other)
+    db.commit()
+    login(user.id)
+    r = client.post(
+        "/write/journey",
+        data={
+            "title": "도용 시도",
+            "region_id": str(region.id),
+            "cover_image_id": str(other_img.id),
+        },
+    )
+    assert r.status_code == 400
+
+
+def test_post_write_journey_rejects_invalid_cover_image_id(
+    client: TestClient, db: Session, login,
+) -> None:
+    user = ResidentUserFactory()
+    region = RegionFactory()
+    db.commit()
+    login(user.id)
+    r = client.post(
+        "/write/journey",
+        data={
+            "title": "잘못된 입력",
+            "region_id": str(region.id),
+            "cover_image_id": "not-a-number",
+        },
+    )
+    assert r.status_code == 400

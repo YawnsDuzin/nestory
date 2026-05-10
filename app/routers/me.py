@@ -79,7 +79,12 @@ def resident_form(
     return templates.TemplateResponse(
         request,
         "pages/me_badge_resident.html",
-        {"user": user, "current_user": user, "regions": regions, "evidence_types": list(EvidenceType)},
+        {
+            "user": user,
+            "current_user": user,
+            "regions": regions,
+            "evidence_types": list(EvidenceType),
+        },
     )
 
 

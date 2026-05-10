@@ -1,11 +1,16 @@
 from logging.config import fileConfig
 
 from alembic import context
+from dotenv import load_dotenv
 from sqlalchemy import engine_from_config, pool
 
-from app.config import get_settings
-from app.db.base import Base
-from app.models import region, user  # noqa: F401
+# .env를 os.environ으로 주입 — 마이그레이션이 ENV 변수에 의존할 때 일관 동작.
+# 이미 설정된 OS env는 덮어쓰지 않음 (override=False default).
+load_dotenv()
+
+from app.config import get_settings  # noqa: E402 — load_dotenv 후 import
+from app.db.base import Base  # noqa: E402
+from app.models import region, user  # noqa: F401, E402
 
 config = context.config
 config.set_main_option("sqlalchemy.url", get_settings().database_url)

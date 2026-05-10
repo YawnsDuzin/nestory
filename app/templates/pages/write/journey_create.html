@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "components/_icon.html" import icon %}
 {% block title %}Journey 시작 · Nestory{% endblock %}
 {% block content %}
 <section class="mx-auto max-w-2xl p-6 space-y-6">
@@ -13,10 +14,43 @@
         <input type="text" name="title" required maxlength="200"
                class="mt-1 w-full rounded border p-2">
       </label>
+
+      <div>
+        <span class="text-sm font-semibold">대표 이미지 (선택)</span>
+        <div class="mt-1 flex items-start gap-3">
+          <img id="cover-preview" src="" alt=""
+               class="hidden h-24 w-24 rounded object-cover border border-stone-200">
+          <label class="inline-flex items-center gap-2 rounded-md bg-stone-100 px-3 py-2 text-sm cursor-pointer hover:bg-stone-200">
+            <span class="text-stone-600">{{ icon("paperclip", 16) }}</span>
+            <span id="cover-label">이미지 선택</span>
+            <input type="file" name="image" accept="image/jpeg,image/png,image/webp" class="hidden"
+                   hx-post="/htmx/image/upload"
+                   hx-trigger="change"
+                   hx-encoding="multipart/form-data"
+                   hx-on::after-request="if (event.detail.successful) { const d = JSON.parse(event.detail.xhr.responseText); document.getElementById('cover-image-id').value = d.image_id; const p = document.getElementById('cover-preview'); p.src = d.url; p.classList.remove('hidden'); document.getElementById('cover-label').textContent = '이미지 교체'; }">
+          </label>
+        </div>
+        <input type="hidden" name="cover_image_id" id="cover-image-id" value="">
+        <p class="text-xs text-stone-500 mt-1">JPEG/PNG/WebP, 최대 10MB</p>
+      </div>
+
       <label class="block">
-        <span class="text-sm font-semibold">설명 (선택)</span>
-        <textarea name="description" rows="3" class="mt-1 w-full rounded border p-2"></textarea>
+        <span class="text-sm font-semibold">설명 (선택, 마크다운 지원)</span>
+        <textarea name="description" id="description-textarea" rows="4"
+                  class="mt-1 w-full rounded border p-2 font-mono text-sm"></textarea>
       </label>
+      <div>
+        <label class="inline-flex items-center gap-2 rounded-md bg-stone-100 px-3 py-2 text-sm cursor-pointer hover:bg-stone-200">
+          <span class="text-stone-600">{{ icon("paperclip", 16) }}</span>설명에 이미지 삽입
+          <input type="file" name="image" accept="image/jpeg,image/png,image/webp" class="hidden"
+                 hx-post="/htmx/image/upload"
+                 hx-trigger="change"
+                 hx-encoding="multipart/form-data"
+                 hx-on::after-request="if (event.detail.successful) { const d = JSON.parse(event.detail.xhr.responseText); document.getElementById('description-textarea').value += '\n\n![](' + d.url + ')'; }">
+        </label>
+        <p class="text-xs text-stone-500 mt-1">JPEG/PNG/WebP, 최대 10MB</p>
+      </div>
+
       <label class="block">
         <span class="text-sm font-semibold">지역</span>
         <select name="region_id" required class="mt-1 w-full rounded border p-2">
