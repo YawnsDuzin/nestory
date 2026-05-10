@@ -78,6 +78,9 @@ def db() -> Session:
         _bind_factories(session)
         yield session
     finally:
+        # 미완료 transaction(SELECT FOR UPDATE 등) 명시 정리 — 다음 테스트의
+        # autouse _cleanup_db TRUNCATE가 PG row lock 대기로 hang하는 상황 방지.
+        session.rollback()
         session.close()
 
 
