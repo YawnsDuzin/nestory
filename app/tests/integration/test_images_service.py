@@ -155,3 +155,41 @@ def test_validate_image_ownership_rejects_missing_image(db: Session) -> None:
         images_service.validate_image_ownership(db, body, user)
     assert exc.value.status_code == 400
     assert "존재하지 않는" in exc.value.detail
+
+
+def test_validate_cover_image_none_passes(db: Session) -> None:
+    """None은 허용 (cover image는 선택)."""
+    user = UserFactory()
+    db.commit()
+    images_service.validate_cover_image(db, None, user)
+
+
+def test_validate_cover_image_owner_passes(db: Session) -> None:
+    from app.tests.factories import ImageFactory
+
+    user = UserFactory()
+    img = ImageFactory(owner=user)
+    db.commit()
+    images_service.validate_cover_image(db, img.id, user)
+
+
+def test_validate_cover_image_rejects_missing(db: Session) -> None:
+    user = UserFactory()
+    db.commit()
+    with pytest.raises(HTTPException) as exc:
+        images_service.validate_cover_image(db, 99999, user)
+    assert exc.value.status_code == 400
+    assert "존재하지 않는" in exc.value.detail
+
+
+def test_validate_cover_image_rejects_other_owner(db: Session) -> None:
+    from app.tests.factories import ImageFactory
+
+    owner = UserFactory()
+    other = UserFactory()
+    img = ImageFactory(owner=owner)
+    db.commit()
+    with pytest.raises(HTTPException) as exc:
+        images_service.validate_cover_image(db, img.id, other)
+    assert exc.value.status_code == 400
+    assert "본인이 업로드하지 않은" in exc.value.detail

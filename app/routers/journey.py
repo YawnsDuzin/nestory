@@ -46,6 +46,7 @@ def submit_journey(
     description: str = Form(""),
     region_id: int = Form(...),
     start_date: str = Form(""),
+    cover_image_id: str = Form(""),
 ) -> RedirectResponse:
     region = db.get(Region, region_id)
     if region is None:
@@ -56,7 +57,18 @@ def submit_journey(
             parsed_start = date_type.fromisoformat(start_date)
         except ValueError as e:
             raise HTTPException(status.HTTP_400_BAD_REQUEST, "Invalid start_date") from e
-    j = posts_service.create_journey(db, user, region, title, description or None, parsed_start)
+    parsed_cover: int | None = None
+    if cover_image_id:
+        try:
+            parsed_cover = int(cover_image_id)
+        except ValueError as e:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "Invalid cover_image_id") from e
+    images_service.validate_cover_image(db, parsed_cover, user)
+    images_service.validate_image_ownership(db, description, user)
+    j = posts_service.create_journey(
+        db, user, region, title, description or None, parsed_start,
+        cover_image_id=parsed_cover,
+    )
     db.commit()
     return RedirectResponse(f"/journey/{j.id}", status_code=status.HTTP_303_SEE_OTHER)
 

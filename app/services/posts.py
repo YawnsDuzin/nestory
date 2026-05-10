@@ -63,10 +63,12 @@ def create_review(
 def create_journey(
     db: Session, author: User, region: Region,
     title: str, description: str | None, start_date: date | None,
+    cover_image_id: int | None = None,
 ) -> Journey:
     j = Journey(
         author_id=author.id, region_id=region.id,
         title=title, description=description, start_date=start_date,
+        cover_image_id=cover_image_id,
         status=JourneyStatus.IN_PROGRESS,
     )
     db.add(j)

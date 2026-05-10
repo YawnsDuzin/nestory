@@ -174,12 +174,34 @@ def validate_image_ownership(db: Session, body: str, owner: User) -> None:
         )
 
 
+def validate_cover_image(db: Session, image_id: int | None, owner: User) -> None:
+    """Single-image variant of validate_image_ownership for cover/thumbnail FKs.
+
+    None is allowed (cover image is optional). Raises 400 if the image is
+    missing or owned by a different user.
+    """
+    if image_id is None:
+        return
+    row = db.query(Image.id, Image.owner_id).filter(Image.id == image_id).first()
+    if row is None:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            f"존재하지 않는 이미지: {image_id}",
+        )
+    if row.owner_id != owner.id:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            f"본인이 업로드하지 않은 이미지: {image_id}",
+        )
+
+
 __all__ = [
     "dispatch_resize",
     "extract_image_ids",
     "store_original",
     "strip_exif",
     "upload_image",
+    "validate_cover_image",
     "validate_image_ownership",
     "validate_upload",
 ]
