@@ -1,0 +1,18 @@
+{# 상대 시간 표시 — Threads 의 "16시간" 형식. 사용:
+   {% from "components/_relative_time.html" import relative_time %}
+   {{ relative_time(post.published_at) }}
+   ※ datetime 비교를 위해 now 는 Jinja 전역 또는 인자로 받음. 인자 미제공 시 절대시간으로 fallback. #}
+{% macro relative_time(dt, now=None) -%}
+  {%- if not dt -%}{# nothing #}
+  {%- elif now -%}
+    {%- set delta = (now - dt).total_seconds() | int -%}
+    {%- if delta < 60 -%}방금
+    {%- elif delta < 3600 -%}{{ (delta // 60) | int }}분
+    {%- elif delta < 86400 -%}{{ (delta // 3600) | int }}시간
+    {%- elif delta < 604800 -%}{{ (delta // 86400) | int }}일
+    {%- else -%}{{ dt.strftime("%Y-%m-%d") }}
+    {%- endif -%}
+  {%- else -%}
+    {{ dt.strftime("%Y-%m-%d") }}
+  {%- endif -%}
+{%- endmacro %}

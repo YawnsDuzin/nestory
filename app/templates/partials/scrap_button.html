@@ -1,5 +1,5 @@
 {% from "components/_icon.html" import icon %}
-{# partials/scrap_button.html — bookmark toggle. Expects: post, scrapped (bool), count (int).
+{# partials/scrap_button.html — bookmark toggle (Threads-style ghost button). Expects: post, scrapped (bool), count (int).
    HTMX swap target — endpoint POSTs to /post/{id}/{scrap|unscrap} and returns this same partial. #}
 <button
   type="button"
@@ -7,12 +7,12 @@
   hx-post="{{ '/post/' ~ post.id ~ '/' ~ ('unscrap' if scrapped else 'scrap') }}"
   hx-target="#scrap-btn-{{ post.id }}"
   hx-swap="outerHTML"
-  class="inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm
-         {{ 'border-emerald-300 bg-emerald-50 text-emerald-700' if scrapped
-            else 'border-stone-200 text-stone-600 hover:bg-stone-50' }}"
+  class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-2 text-sm transition
+         {{ 'text-emerald-700 hover:bg-emerald-50' if scrapped
+            else 'text-stone-600 hover:bg-stone-100 hover:text-emerald-700' }}"
   aria-pressed="{{ 'true' if scrapped else 'false' }}"
   aria-label="{{ '스크랩 취소' if scrapped else '스크랩' }}"
 >
-  {{ icon("bookmark-fill" if scrapped else "bookmark", 16) }}
-  <span>{{ count }}</span>
+  {{ icon("bookmark-fill" if scrapped else "bookmark", 18) }}
+  <span class="tabular-nums">{{ count }}</span>
 </button>

@@ -1,0 +1,18 @@
+{# Threads-style 동그란 이니셜 아바타. 사용:
+   {% from "components/_avatar.html" import avatar %}
+   {{ avatar(post.author, 40) }}
+   유저 없을 때(익명·삭제)도 안전. #}
+{% macro avatar(user, size=40) -%}
+  {% set letter = (user.username[:1] | upper) if user and user.username else "?" %}
+  {% set classes = {
+    28: "h-7 w-7 text-xs",
+    32: "h-8 w-8 text-sm",
+    36: "h-9 w-9 text-sm",
+    40: "h-10 w-10 text-sm",
+    44: "h-11 w-11 text-base",
+    48: "h-12 w-12 text-base",
+    56: "h-14 w-14 text-lg",
+  }.get(size, "h-10 w-10 text-sm") %}
+  <span class="inline-flex shrink-0 items-center justify-center rounded-full bg-emerald-600 font-semibold text-white {{ classes }}"
+        aria-hidden="true">{{ letter }}</span>
+{%- endmacro %}
