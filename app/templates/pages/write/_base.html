@@ -1,16 +1,27 @@
 {% extends "base.html" %}
+{% from "components/_avatar.html" import avatar %}
+{% from "components/_icon.html" import icon %}
 {% block title %}{{ page_title }} · Nestory{% endblock %}
 {% block content %}
-<section class="mx-auto max-w-2xl p-6 space-y-6">
-  <header class="rounded border bg-white p-4">
-    <h1 class="text-xl font-bold">{{ page_title }}</h1>
-    {% if page_subtitle %}<p class="text-sm text-stone-600 mt-1">{{ page_subtitle }}</p>{% endif %}
+<section class="mx-auto max-w-xl">
+  <header class="flex items-center justify-between py-3">
+    <h1 class="text-base font-bold text-stone-900">새 스레드 · {{ page_title }}</h1>
+    <a href="/" class="rounded-full p-1.5 text-stone-400 hover:bg-stone-100 hover:text-stone-600" aria-label="닫기">{{ icon("x", 18) }}</a>
   </header>
 
-  <form method="post" action="{{ form_action }}" class="space-y-6"
+  <form method="post" action="{{ form_action }}"
         enctype="application/x-www-form-urlencoded">
-    {% include "pages/write/_common_fields.html" %}
-    {% block meta_fields %}{% endblock %}
+    <div class="flex gap-3 pt-2">
+      <div class="pt-0.5">{{ avatar(current_user, 40) }}</div>
+      <div class="min-w-0 flex-1 space-y-2">
+        <div class="text-[15px] font-semibold text-stone-900">{{ current_user.username }}</div>
+        {% if page_subtitle %}
+          <p class="text-xs text-stone-500 -mt-1">{{ page_subtitle }}</p>
+        {% endif %}
+        {% include "pages/write/_common_fields.html" %}
+        {% block meta_fields %}{% endblock %}
+      </div>
+    </div>
     {% block publish_card %}{% include "pages/write/_publish_card.html" %}{% endblock %}
   </form>
 </section>

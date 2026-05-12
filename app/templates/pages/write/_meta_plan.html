@@ -1,23 +1,26 @@
-<div class="rounded border bg-white p-4 space-y-3">
-  <h2 class="font-semibold text-sm">정착 계획</h2>
-  <label class="block">
-    <span class="text-xs text-stone-600">목표 이주 연도 (2026-2050)</span>
-    <input type="number" name="target_move_year" required min="2026" max="2050"
-           class="mt-1 w-full rounded border p-2">
-  </label>
-  <label class="block">
-    <span class="text-xs text-stone-600">예산 범위 (만원)</span>
-    <select name="budget_total_manwon_band" required class="mt-1 w-full rounded border p-2">
-      <option value="<5000">5,000 미만</option>
-      <option value="5000-10000">5,000-10,000</option>
-      <option value="10000-20000">10,000-20,000</option>
-      <option value="20000-40000">20,000-40,000</option>
-      <option value="40000+">40,000 이상</option>
-    </select>
-  </label>
+{# 정착 계획 메타 — 컴포저 본문 아래 컴팩트 폼. #}
+<div class="mt-2 rounded-2xl bg-stone-50 p-4 space-y-3">
+  <h2 class="text-xs font-semibold text-stone-500 uppercase tracking-wide">정착 계획</h2>
+  <div class="grid grid-cols-2 gap-3">
+    <label class="block">
+      <span class="text-xs text-stone-600">목표 이주 연도</span>
+      <input type="number" name="target_move_year" required min="2026" max="2050"
+             class="mt-1 w-full rounded-lg border border-stone-200 bg-white p-2 text-sm">
+    </label>
+    <label class="block">
+      <span class="text-xs text-stone-600">예산 (만원)</span>
+      <select name="budget_total_manwon_band" required class="mt-1 w-full rounded-lg border border-stone-200 bg-white p-2 text-sm">
+        <option value="<5000">5,000 미만</option>
+        <option value="5000-10000">5,000-10,000</option>
+        <option value="10000-20000">10,000-20,000</option>
+        <option value="20000-40000">20,000-40,000</option>
+        <option value="40000+">40,000 이상</option>
+      </select>
+    </label>
+  </div>
   <label class="block">
     <span class="text-xs text-stone-600">건축 의향</span>
-    <select name="construction_intent" required class="mt-1 w-full rounded border p-2">
+    <select name="construction_intent" required class="mt-1 w-full rounded-lg border border-stone-200 bg-white p-2 text-sm">
       <option value="self_build">직접 건축</option>
       <option value="buy_existing">기존 매입</option>
       <option value="rent_first">임대 먼저</option>

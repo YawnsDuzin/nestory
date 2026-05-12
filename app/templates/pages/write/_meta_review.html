@@ -1,21 +1,24 @@
-<div class="rounded border bg-white p-4 space-y-3">
-  <h2 class="font-semibold text-sm">후기 정보</h2>
+{# 후기 메타 — 컴포저 본문 아래 컴팩트 폼. #}
+<div class="mt-2 rounded-2xl bg-stone-50 p-4 space-y-3">
+  <h2 class="text-xs font-semibold text-stone-500 uppercase tracking-wide">후기 정보</h2>
   <label class="block">
     <span class="text-xs text-stone-600">주택 유형</span>
-    <select name="house_type" required class="mt-1 w-full rounded border p-2">
+    <select name="house_type" required class="mt-1 w-full rounded-lg border border-stone-200 bg-white p-2 text-sm">
       <option value="단독">단독</option>
       <option value="타운하우스">타운하우스</option>
       <option value="듀플렉스">듀플렉스</option>
     </select>
   </label>
-  <label class="block">
-    <span class="text-xs text-stone-600">평수</span>
-    <input type="number" name="size_pyeong" required min="1" max="500"
-           class="mt-1 w-full rounded border p-2">
-  </label>
-  <label class="block">
-    <span class="text-xs text-stone-600">전반적 만족도 (1-5)</span>
-    <input type="number" name="satisfaction_overall" required min="1" max="5"
-           class="mt-1 w-full rounded border p-2">
-  </label>
+  <div class="grid grid-cols-2 gap-3">
+    <label class="block">
+      <span class="text-xs text-stone-600">평수</span>
+      <input type="number" name="size_pyeong" required min="1" max="500"
+             class="mt-1 w-full rounded-lg border border-stone-200 bg-white p-2 text-sm">
+    </label>
+    <label class="block">
+      <span class="text-xs text-stone-600">만족도 (1-5)</span>
+      <input type="number" name="satisfaction_overall" required min="1" max="5"
+             class="mt-1 w-full rounded-lg border border-stone-200 bg-white p-2 text-sm">
+    </label>
+  </div>
 </div>

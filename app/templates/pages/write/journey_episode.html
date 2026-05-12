@@ -1,9 +1,22 @@
 {% extends "pages/write/_base.html" %}
+{% from "components/_icon.html" import icon %}
 {% block meta_fields %}
   {% include "pages/write/_meta_journey_episode.html" %}
 {% endblock %}
 {% block publish_card %}
-  <div class="rounded border bg-white p-4">
-    <button type="submit" class="w-full rounded bg-emerald-600 text-white px-4 py-3 font-semibold hover:bg-emerald-700">에피소드 발행</button>
-  </div>
+<div class="mt-5 flex items-center justify-between pt-3 border-t border-stone-200">
+  <label class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-2 text-sm text-stone-500 hover:bg-stone-100 hover:text-stone-700 cursor-pointer"
+         title="이미지 첨부 (JPEG/PNG/WebP, 최대 10MB)">
+    {{ icon("image", 18) }}
+    <input type="file" name="image" accept="image/jpeg,image/png,image/webp" class="hidden"
+           hx-post="/htmx/image/upload"
+           hx-trigger="change"
+           hx-encoding="multipart/form-data"
+           hx-on::after-request="if (event.detail.successful) { const d = JSON.parse(event.detail.xhr.responseText); document.getElementById('body-textarea').value += '\n\n![](' + d.url + ')'; document.getElementById('body-textarea').dispatchEvent(new Event('input')); }">
+  </label>
+  <button type="submit"
+          class="rounded-full bg-stone-900 text-white px-5 py-2 text-sm font-semibold hover:bg-stone-700">
+    게시
+  </button>
+</div>
 {% endblock %}

@@ -1,18 +1,22 @@
-<div class="rounded border bg-white p-4 space-y-3">
-  <h2 class="font-semibold text-sm">에피소드 메타</h2>
-  <label class="block">
-    <span class="text-xs text-stone-600">단계</span>
-    <select name="phase" required class="mt-1 w-full rounded border p-2">
-      <option value="터">터잡기</option>
-      <option value="건축">건축</option>
-      <option value="입주">입주</option>
-      <option value="1년차">1년차</option>
-      <option value="3년차">3년차</option>
-    </select>
-  </label>
-  <label class="block">
-    <span class="text-xs text-stone-600">기간 라벨 (예: 2026-04, 2025-09~10)</span>
-    <input type="text" name="period_label" required maxlength="40"
-           class="mt-1 w-full rounded border p-2">
-  </label>
+{# 에피소드 메타 — 컴포저 본문 아래 컴팩트 폼. #}
+<div class="mt-2 rounded-2xl bg-stone-50 p-4 space-y-3">
+  <h2 class="text-xs font-semibold text-stone-500 uppercase tracking-wide">에피소드 메타</h2>
+  <div class="grid grid-cols-2 gap-3">
+    <label class="block">
+      <span class="text-xs text-stone-600">단계</span>
+      <select name="phase" required class="mt-1 w-full rounded-lg border border-stone-200 bg-white p-2 text-sm">
+        <option value="터">터잡기</option>
+        <option value="건축">건축</option>
+        <option value="입주">입주</option>
+        <option value="1년차">1년차</option>
+        <option value="3년차">3년차</option>
+      </select>
+    </label>
+    <label class="block">
+      <span class="text-xs text-stone-600">기간 라벨</span>
+      <input type="text" name="period_label" required maxlength="40"
+             placeholder="2026-04 또는 2025-09~10"
+             class="mt-1 w-full rounded-lg border border-stone-200 bg-white p-2 text-sm">
+    </label>
+  </div>
 </div>

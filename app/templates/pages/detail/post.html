@@ -1,35 +1,76 @@
 {% extends "base.html" %}
+{% from "components/_avatar.html" import avatar %}
+{% from "components/_relative_time.html" import relative_time %}
+{% from "components/_icon.html" import icon %}
+{% from "components/_status_chip.html" import status_chip %}
 {% block title %}{{ post.title or "포스트" }} · Nestory{% endblock %}
 {% block content %}
-<article class="mx-auto max-w-2xl p-6 space-y-4">
-  <header>
-    {% if post.title %}<h1 class="text-2xl font-bold">{{ post.title }}</h1>{% endif %}
-    <p class="text-xs text-stone-500 mt-1">
-      {{ author.display_name }} · {{ region.sido }} {{ region.sigungu }}
-      {% if post.published_at %}· {{ post.published_at.strftime("%Y-%m-%d") }}{% endif %}
-      · 조회 {{ post.view_count }}
-    </p>
+<article class="mx-auto max-w-xl">
+  <header class="flex gap-3 pb-3">
+    <div class="pt-0.5">{{ avatar(author, 44) }}</div>
+    <div class="min-w-0 flex-1">
+      <div class="flex items-center gap-1 text-[15px]">
+        <a href="/u/{{ author.username }}" class="font-semibold text-stone-900 truncate hover:underline">
+          {{ author.username }}
+        </a>
+        {% if author.badge_level.value in ("resident", "ex_resident") %}
+          <span title="거주자 인증" class="inline-flex">{{ icon("verified", 14) }}</span>
+        {% endif %}
+        {% if post.published_at %}
+          <span class="ml-1.5 text-sm text-stone-500">{{ relative_time(post.published_at, now()) }}</span>
+        {% endif %}
+        <button type="button" class="ml-auto rounded-full p-1 text-stone-400 hover:bg-stone-100 hover:text-stone-600" aria-label="더보기">{{ icon("more-horizontal", 18) }}</button>
+      </div>
+      <div class="mt-1 flex items-center gap-2 text-xs text-stone-500">
+        {% set type_value = {
+          "review": "review",
+          "journey_episode": "journey_ep",
+          "question": "question",
+          "answer": "answer",
+          "plan": "plan",
+        }.get(post.type.value) %}
+        {% if type_value %}{{ status_chip("post_type", type_value) }}{% endif %}
+        <span class="inline-flex items-center gap-1">
+          <span class="text-stone-400">{{ icon("map-pin", 12) }}</span>{{ region.sido }} {{ region.sigungu }}
+        </span>
+        <span>· 조회 {{ post.view_count }}</span>
+      </div>
+    </div>
   </header>
-  {% if post.type.value == "review" %}
-    {% include "pages/detail/_meta_card_review.html" %}
-  {% elif post.type.value == "plan" %}
-    {% include "pages/detail/_meta_card_plan.html" %}
-  {% endif %}
-  <div class="prose max-w-none">{{ post.body | markdown | safe }}</div>
 
-  {# Like / scrap actions — current_user gating handled inline #}
-  <div class="mt-6 flex items-center gap-3">
+  <div class="space-y-4">
+    {% if post.title %}
+      <h1 class="text-[17px] font-semibold leading-snug text-stone-900">{{ post.title }}</h1>
+    {% endif %}
+    {% if post.type.value == "review" %}
+      {% include "pages/detail/_meta_card_review.html" %}
+    {% elif post.type.value == "plan" %}
+      {% include "pages/detail/_meta_card_plan.html" %}
+    {% endif %}
+    <div class="prose prose-stone max-w-none text-[15px] leading-relaxed">{{ post.body | markdown | safe }}</div>
+  </div>
+
+  {# 4-아이콘 액션 행 — Threads 와 동일 순서: heart · comment · scrap(=repost 자리) · share #}
+  <div class="mt-5 -ml-2 flex items-center gap-1">
     {% if current_user %}
       {% include "partials/like_button.html" %}
+      <a href="#comments" aria-label="댓글로 이동"
+         class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-2 text-sm text-stone-600 hover:bg-stone-100 hover:text-stone-900">
+        {{ icon("message-circle", 18) }}<span class="tabular-nums">{{ comments | length }}</span>
+      </a>
       {% include "partials/scrap_button.html" %}
+      <button type="button" aria-label="공유"
+              onclick="if (navigator.share) { navigator.share({title: document.title, url: location.href}); } else { navigator.clipboard.writeText(location.href); }"
+              class="inline-flex h-9 w-9 items-center justify-center rounded-full text-stone-600 hover:bg-stone-100 hover:text-stone-900">
+        {{ icon("send", 18) }}
+      </button>
     {% else %}
-      <a href="/auth/login" class="text-sm text-stone-500 hover:underline">로그인하고 좋아요·스크랩</a>
+      <a href="/auth/login" class="rounded-full px-3 py-2 text-sm text-stone-500 hover:bg-stone-100 hover:text-stone-900">로그인하고 좋아요·스크랩</a>
     {% endif %}
   </div>
 
-  {# Comments #}
   <section id="comments" class="mt-8 border-t border-stone-200 pt-6">
-    <h2 class="font-semibold text-stone-900">댓글 {{ comments | length }}</h2>
+    <h2 class="text-sm font-semibold text-stone-900">댓글 {{ comments | length }}</h2>
     {% include "partials/comment_list.html" %}
     {% include "partials/comment_form.html" %}
   </section>

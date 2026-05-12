@@ -1,18 +1,17 @@
-<div class="rounded border bg-white p-4 space-y-3">
-  {% if regions %}
-    <label class="block">
-      <span class="text-sm font-semibold">지역</span>
-      <select name="region_id" required class="mt-1 w-full rounded border p-2">
-        {% for r in regions %}
-          <option value="{{ r.id }}"
-                  {% if form and form.region_id == r.id %}selected{% endif %}>
-            {{ r.sido }} {{ r.sigungu }}
-          </option>
-        {% endfor %}
-      </select>
-    </label>
-  {% endif %}
-  <button type="submit" class="w-full rounded bg-emerald-600 text-white px-4 py-3 font-semibold hover:bg-emerald-700">
-    발행
+{% from "components/_icon.html" import icon %}
+{# Threads 컴포저 푸터 — 좌측 이미지 아이콘, 우측 "게시" 블랙 pill. #}
+<div class="mt-5 flex items-center justify-between pt-3 border-t border-stone-200">
+  <label class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-2 text-sm text-stone-500 hover:bg-stone-100 hover:text-stone-700 cursor-pointer"
+         title="이미지 첨부 (JPEG/PNG/WebP, 최대 10MB)">
+    {{ icon("image", 18) }}
+    <input type="file" name="image" accept="image/jpeg,image/png,image/webp" class="hidden"
+           hx-post="/htmx/image/upload"
+           hx-trigger="change"
+           hx-encoding="multipart/form-data"
+           hx-on::after-request="if (event.detail.successful) { const d = JSON.parse(event.detail.xhr.responseText); document.getElementById('body-textarea').value += '\n\n![](' + d.url + ')'; document.getElementById('body-textarea').dispatchEvent(new Event('input')); }">
+  </label>
+  <button type="submit"
+          class="rounded-full bg-stone-900 text-white px-5 py-2 text-sm font-semibold hover:bg-stone-700">
+    게시
   </button>
 </div>

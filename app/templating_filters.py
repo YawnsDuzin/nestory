@@ -9,6 +9,27 @@ _DANGEROUS_HREF_RE = re.compile(
     r'href="\s*(?:javascript|data|vbscript)\s*:[^"]*"',
     flags=re.IGNORECASE,
 )
+_MD_IMAGE_RE = re.compile(r"!\[[^\]]*\]\(([^)]+)\)")
+
+
+def first_image_url(text: str | None) -> str | None:
+    """Return the first markdown image URL in `text`, mapping /orig → /medium for list previews."""
+    if not text:
+        return None
+    m = _MD_IMAGE_RE.search(text)
+    if not m:
+        return None
+    url = m.group(1).strip()
+    if url.startswith("/img/") and url.endswith("/orig"):
+        return url[: -len("/orig")] + "/medium"
+    return url
+
+
+def strip_markdown_images(text: str | None) -> str:
+    """Strip markdown image syntax — for plain-text body excerpts in list cards."""
+    if not text:
+        return ""
+    return _MD_IMAGE_RE.sub("", text).strip()
 
 
 def markdown_to_html(text: str | None) -> str:
@@ -30,4 +51,4 @@ def markdown_to_html(text: str | None) -> str:
     return html
 
 
-__all__ = ["markdown_to_html"]
+__all__ = ["first_image_url", "markdown_to_html", "strip_markdown_images"]

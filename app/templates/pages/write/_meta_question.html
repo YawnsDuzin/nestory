@@ -1,8 +1,7 @@
-<div class="rounded border bg-white p-4 space-y-3">
-  <h2 class="font-semibold text-sm">질문 정보</h2>
-  <label class="block">
-    <span class="text-xs text-stone-600">태그 (콤마 구분, 최대 10개)</span>
-    <input type="text" name="tags" placeholder="단열,지붕,난방"
-           class="mt-1 w-full rounded border p-2">
-  </label>
-</div>
+{% from "components/_icon.html" import icon %}
+{# 질문 메타 — 태그 한 줄. Threads 의 #해시태그 입력처럼 가볍게. #}
+<label class="mt-2 flex items-center gap-2 text-sm">
+  <span class="text-stone-400">{{ icon("hash", 16) }}</span>
+  <input type="text" name="tags" placeholder="단열, 지붕, 난방 (콤마 구분, 최대 10개)"
+         class="flex-1 border-0 bg-transparent p-0 text-stone-700 placeholder-stone-400 focus:outline-none focus:ring-0">
+</label>

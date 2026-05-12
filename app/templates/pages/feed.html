@@ -1,18 +1,15 @@
 {% extends "base.html" %}
 {% block title %}전체 피드 · Nestory{% endblock %}
 {% block content %}
-<section class="space-y-6">
-  <header class="flex items-end justify-between">
-    <div>
-      <h1 class="text-2xl font-bold text-stone-900">전체 피드</h1>
-      <p class="mt-1 text-sm text-stone-600">최근 발행된 모든 글.</p>
-    </div>
-    <p class="text-sm text-stone-500">{{ total }}건</p>
+<section class="mx-auto max-w-xl">
+  <header class="flex items-end justify-between pb-3 border-b border-stone-200">
+    <h1 class="text-lg font-bold text-stone-900">전체 피드</h1>
+    <p class="text-xs text-stone-500">{{ total }}건</p>
   </header>
 
   {% if posts %}
-    <ul class="grid gap-3 sm:grid-cols-2">
-      {% for post in posts %}<li>{% include "partials/post_card.html" %}</li>{% endfor %}
+    <ul>
+      {% for post in posts %}<li class="border-b border-stone-100">{% include "partials/post_card.html" %}</li>{% endfor %}
     </ul>
     {% with base_url = "/feed", query_params = {} %}
       {% include "partials/pagination.html" %}
