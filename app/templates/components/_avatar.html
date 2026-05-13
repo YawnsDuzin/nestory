@@ -1,9 +1,9 @@
-{# Threads-style 동그란 이니셜 아바타. 사용:
+{# Threads-style 동그란 아바타. 사진 있으면 <img>, 없으면 이니셜.
+   사용:
    {% from "components/_avatar.html" import avatar %}
    {{ avatar(post.author, 40) }}
    유저 없을 때(익명·삭제)도 안전. #}
 {% macro avatar(user, size=40) -%}
-  {% set letter = (user.username[:1] | upper) if user and user.username else "?" %}
   {% set classes = {
     28: "h-7 w-7 text-xs",
     32: "h-8 w-8 text-sm",
@@ -13,6 +13,14 @@
     48: "h-12 w-12 text-base",
     56: "h-14 w-14 text-lg",
   }.get(size, "h-10 w-10 text-sm") %}
-  <span class="inline-flex shrink-0 items-center justify-center rounded-full bg-emerald-600 font-semibold text-white {{ classes }}"
-        aria-hidden="true">{{ letter }}</span>
+  {% if user and user.avatar_image_id %}
+    <img src="/img/{{ user.avatar_image_id }}/medium"
+         alt=""
+         loading="lazy"
+         class="inline-flex shrink-0 rounded-full object-cover bg-stone-100 {{ classes }}">
+  {% else %}
+    {% set letter = (user.username[:1] | upper) if user and user.username else "?" %}
+    <span class="inline-flex shrink-0 items-center justify-center rounded-full bg-emerald-600 font-semibold text-white {{ classes }}"
+          aria-hidden="true">{{ letter }}</span>
+  {% endif %}
 {%- endmacro %}
