@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
-from app.models import Image, Post, User
+from app.models import Image, Post, Region, User
 from app.models._enums import PostStatus, PostType
 from app.models.interaction import post_scraps
 
@@ -134,7 +134,33 @@ def update_profile_basic(
     notify_kakao_enabled: bool,
 ) -> User:
     """Update display_name/bio/region/notify settings. flush only — caller commits."""
-    raise NotImplementedError
+    name = display_name.strip()
+    if not name:
+        raise ProfileError("표시 이름을 입력해 주세요")
+    if len(name) > DISPLAY_NAME_MAX:
+        raise ProfileError(f"표시 이름은 {DISPLAY_NAME_MAX}자 이하")
+
+    bio_value: str | None = None
+    if bio is not None:
+        bio_stripped = bio.strip()
+        if len(bio_stripped) > BIO_MAX:
+            raise ProfileError(f"자기소개는 {BIO_MAX}자 이하")
+        bio_value = bio_stripped or None  # 빈 문자열은 None으로 정규화
+
+    region_id: int | None = None
+    if primary_region_id is not None:
+        region = db.get(Region, primary_region_id)
+        if region is None:
+            raise ProfileError("유효하지 않은 지역")
+        region_id = region.id
+
+    user.display_name = name
+    user.bio = bio_value
+    user.primary_region_id = region_id
+    user.notify_email_enabled = bool(notify_email_enabled)
+    user.notify_kakao_enabled = bool(notify_kakao_enabled)
+    db.flush()
+    return user
 
 
 def set_avatar(db: Session, user: User, image: Image) -> User:
