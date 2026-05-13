@@ -29,9 +29,11 @@ def test_excerpt_skips_image_only_paragraphs():
 def test_excerpt_keeps_paragraph_with_text_and_inline_image():
     body = "텍스트와 ![](/img/1/orig) 이미지가 섞임"
     out = excerpt(body)
-    # image-only 가 아니므로 paragraph 전체 보존
+    # image-only 가 아니므로 paragraph 전체 보존, but inline image syntax stripped
     assert "텍스트와" in out
     assert "이미지가 섞임" in out
+    assert "![" not in out  # inline image markdown not leaked
+    assert "/img/1/orig" not in out
 
 
 def test_excerpt_joins_multiple_paragraphs_with_space():
@@ -73,3 +75,19 @@ def test_excerpt_alice_yp_seed_review_round_trip():
 def test_excerpt_returns_empty_when_only_images():
     body = "![](/img/1/orig)\n\n![](/img/2/orig)"
     assert excerpt(body) == ""
+
+
+def test_excerpt_keeps_caption_after_image_on_same_line():
+    """Image syntax followed by caption text on the same line: caption survives."""
+    body = "![](/img/1.png) 단열 시공 사진"
+    out = excerpt(body)
+    # paragraph survives because the line is not image-only after the caption
+    assert "단열 시공 사진" in out
+    assert "![" not in out  # image syntax stripped
+
+
+def test_excerpt_drops_paragraph_when_only_image_with_alt_text():
+    """Image with alt text but nothing else on the line is still image-only."""
+    body = "![alt text describing image](/img/2.png)\n\n실제 본문"
+    out = excerpt(body)
+    assert out == "실제 본문"

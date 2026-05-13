@@ -53,11 +53,12 @@ def markdown_to_html(text: str | None) -> str:
 
 _BOLD_RE = re.compile(r"\*\*(.+?)\*\*")
 _HEADING_RE = re.compile(r"^#+\s+", flags=re.MULTILINE)
+_IMG_ONLY_LINE_RE = re.compile(r"^!\[[^\]]*\]\([^)]+\)\s*$")
 
 
 def _is_image_only_paragraph(paragraph: str) -> bool:
     lines = [ln.strip() for ln in paragraph.splitlines() if ln.strip()]
-    return bool(lines) and all(ln.startswith("![") for ln in lines)
+    return bool(lines) and all(_IMG_ONLY_LINE_RE.fullmatch(ln) for ln in lines)
 
 
 def excerpt(body: str | None, max_chars: int = 140) -> str:
@@ -71,6 +72,7 @@ def excerpt(body: str | None, max_chars: int = 140) -> str:
             continue
         cleaned = _HEADING_RE.sub("", stripped)
         cleaned = _BOLD_RE.sub(r"\1", cleaned)
+        cleaned = _MD_IMAGE_RE.sub("", cleaned)  # strip inline image syntax
         cleaned = " ".join(line.strip() for line in cleaned.splitlines() if line.strip())
         chunks.append(cleaned)
     text = " ".join(chunks)
