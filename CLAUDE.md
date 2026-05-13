@@ -31,12 +31,17 @@ uv run alembic revision --autogenerate -m "<설명>"
 # 개발 서버 (호스트에서 직접 — --reload 자동 갱신)
 uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
-# 풀스택 테스트 환경 (app + nginx + 별도 postgres, host 포트 8080)
-docker compose -f docker-compose.test.yml up -d
+# 풀스택 테스트 환경 (app + nginx + 별도 postgres, host 포트 8080 — 5433 충돌 없음)
+docker compose -f docker-compose.test.yml up -d              # 약 10–20초 후 http://localhost:8080
+docker compose -f docker-compose.test.yml up -d --build      # 코드 변경 후 이미지 재빌드 (첫 빌드 1–2분, 캐시 시 즉시)
 docker compose -f docker-compose.test.yml down
 
 # 워커 (PG 기반 작업 큐)
 uv run python -m app.workers.runner
+
+# 데모 데이터 시드 (alembic upgrade head 선행 필요)
+uv run python -m scripts.seed_regions                  # 지역 마스터 (양평군 slug=yangpyeong 포함)
+uv run python -m scripts.seed_yangpyeong_demo          # 양평군 허브 4탭(후기·Journey·질문·이웃) + 샘플 이미지 + 5 데모 계정. idempotent
 
 # 테스트 — Postgres 컨테이너 기동된 상태여야 함
 uv run pytest app/tests/ -q
@@ -52,6 +57,28 @@ docker exec nestory-postgres-local psql -U nestory -d nestory -c "\dt"
 ```
 
 DB 접속 정보 (DBeaver 등): host `localhost`, port **`5433`** (5432 아님 — 호스트 PG 충돌 회피), db/user/password 모두 `nestory`.
+
+**데모 계정** (시드 후 사용, 모두 비밀번호 `demo1234`):
+
+| Email | 페르소나 | Badge |
+|---|---|---|
+| `alice.yp@example.com` | 5년차 거주자 | RESIDENT |
+| `bob.yp@example.com` | 직접 건축 | RESIDENT |
+| `carol.yp@example.com` | 1년차 | RESIDENT |
+| `evan.yp@example.com` | 원격근무 | RESIDENT |
+| `dave.yp@example.com` | 예비 입주자 | REGION_VERIFIED (질문 작성 권한 테스트용) |
+
+## 운영 갱신 (Linux 서버)
+
+`deploy/systemd/` 의 service 유닛으로 nestory-app·nestory-worker 분리 기동. 코드 갱신:
+
+```bash
+cd /home/dzp/dzp-main/program/nestory
+git pull
+uv sync                                              # 의존성 변경 시
+uv run alembic upgrade head                          # 새 마이그레이션 적용
+sudo systemctl restart nestory-app nestory-worker
+```
 
 ## Architecture
 
