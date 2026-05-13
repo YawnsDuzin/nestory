@@ -1,16 +1,44 @@
 import base64
 import json
+import os
 
-import pytest
-from fastapi.testclient import TestClient
-from itsdangerous import TimestampSigner
-from sqlalchemy import text
-from sqlalchemy.orm import Session
+from dotenv import load_dotenv
 
-import app.models  # noqa: F401  # Base.metadata에 모든 모델 등록
-from app.config import get_settings
-from app.db.session import SessionLocal, engine
-from app.main import app
+# ⚠️ CRITICAL — dev DB 보호 가드. autouse `_cleanup_db`가 모든 도메인 테이블을
+# TRUNCATE CASCADE 하므로 반드시 별도 test DB에서 실행해야 한다. dev/test 공용
+# DB 사용 사고를 두 번 겪고 도입 (2026-05-13). 두 URL이 같으면 import 시점에 fail.
+#
+# .env 예:
+#   DATABASE_URL=postgresql+psycopg://nestory:nestory@localhost:5432/nestory   # dev
+#   TEST_DATABASE_URL=postgresql+psycopg://nestory:nestory@localhost:5433/nestory_test  # test
+load_dotenv()
+_TEST_DB_URL = (os.environ.get("TEST_DATABASE_URL") or "").strip()
+_DEV_DB_URL = (os.environ.get("DATABASE_URL") or "").strip()
+if not _TEST_DB_URL:
+    raise RuntimeError(
+        "TEST_DATABASE_URL not set. pytest TRUNCATEs all tables — refusing to run "
+        "without a dedicated test DB. Set TEST_DATABASE_URL in .env to a non-dev DB "
+        "(e.g. postgresql+psycopg://nestory:nestory@localhost:5433/nestory)."
+    )
+if _DEV_DB_URL and _TEST_DB_URL == _DEV_DB_URL:
+    raise RuntimeError(
+        f"TEST_DATABASE_URL must differ from DATABASE_URL. Both = {_TEST_DB_URL!r}. "
+        "Use a separate test DB instance."
+    )
+# Override DATABASE_URL so app.config / app.db.session pick up the test DB before
+# any app module touches the engine.
+os.environ["DATABASE_URL"] = _TEST_DB_URL
+
+import pytest  # noqa: E402
+from fastapi.testclient import TestClient  # noqa: E402
+from itsdangerous import TimestampSigner  # noqa: E402
+from sqlalchemy import text  # noqa: E402
+from sqlalchemy.orm import Session  # noqa: E402
+
+import app.models  # noqa: F401, E402  # Base.metadata에 모든 모델 등록
+from app.config import get_settings  # noqa: E402
+from app.db.session import SessionLocal, engine  # noqa: E402
+from app.main import app  # noqa: E402
 
 
 @pytest.fixture(scope="session", autouse=True)
