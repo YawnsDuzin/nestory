@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}프로필 편집 · Nestory{% endblock %}
+{% block content %}
+<div class="space-y-6 max-w-2xl mx-auto py-8 px-4">
+  <h1 class="text-2xl font-bold text-stone-900">프로필 편집</h1>
+
+  {% set _flash = request.session.pop("flash", None) %}
+  {% if _flash %}
+    <div class="rounded bg-emerald-50 p-3 text-emerald-800 text-sm">{{ _flash }}</div>
+  {% endif %}
+
+  <section class="space-y-3 border-b border-stone-200 pb-6">
+    <h2 class="font-semibold text-stone-900">프로필 사진</h2>
+    {% include "pages/me/profile/_avatar_card.html" %}
+  </section>
+
+  <section class="space-y-3 border-b border-stone-200 pb-6">
+    <h2 class="font-semibold text-stone-900">기본 정보</h2>
+    {% include "pages/me/profile/_basic_form.html" %}
+  </section>
+
+  <section class="space-y-3 border-b border-stone-200 pb-6">
+    <h2 class="font-semibold text-stone-900">사용자명</h2>
+    <p class="text-sm text-stone-600">현재 — <code class="rounded bg-stone-100 px-1.5 py-0.5">@{{ current_user.username }}</code></p>
+    <a href="/me/profile/username" class="text-sm text-emerald-700 hover:underline">변경하기 →</a>
+  </section>
+
+  <section class="space-y-3">
+    <h2 class="font-semibold text-stone-900">비밀번호</h2>
+    {% if current_user.password_hash %}
+      <a href="/me/profile/password" class="text-sm text-emerald-700 hover:underline">변경하기 →</a>
+    {% else %}
+      <p class="text-sm text-stone-500">카카오 계정으로 가입하셨습니다 — 비밀번호 미사용</p>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

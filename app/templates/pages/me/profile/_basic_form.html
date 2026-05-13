@@ -1,0 +1,46 @@
+<form action="/me/profile" method="post" class="space-y-4">
+  <label class="block">
+    <span class="text-sm text-stone-700">표시 이름</span>
+    <input type="text" name="display_name" value="{{ current_user.display_name }}"
+           required maxlength="64"
+           class="mt-1 w-full rounded border border-stone-300 px-3 py-2 focus:border-emerald-500 focus:outline-none">
+  </label>
+
+  <label class="block">
+    <span class="text-sm text-stone-700">자기소개 <span class="text-stone-400">(500자 이내)</span></span>
+    <textarea name="bio" rows="4" maxlength="500"
+              class="mt-1 w-full rounded border border-stone-300 px-3 py-2 focus:border-emerald-500 focus:outline-none">{{ current_user.bio or "" }}</textarea>
+  </label>
+
+  <label class="block">
+    <span class="text-sm text-stone-700">관심 시군 <span class="text-stone-400">(선택)</span></span>
+    <select name="primary_region_id"
+            class="mt-1 w-full rounded border border-stone-300 px-3 py-2 focus:border-emerald-500 focus:outline-none">
+      <option value="">선택 안 함</option>
+      {% for region in regions %}
+        <option value="{{ region.id }}"
+                {% if current_user.primary_region_id == region.id %}selected{% endif %}>
+          {{ region.sido }} {{ region.sigungu }}
+        </option>
+      {% endfor %}
+    </select>
+  </label>
+
+  <fieldset class="space-y-2">
+    <legend class="text-sm font-medium text-stone-700">알림 수신</legend>
+    <label class="flex items-center gap-2">
+      <input type="checkbox" name="notify_email_enabled" value="1"
+             {% if current_user.notify_email_enabled %}checked{% endif %}>
+      <span class="text-sm">이메일</span>
+    </label>
+    <label class="flex items-center gap-2">
+      <input type="checkbox" name="notify_kakao_enabled" value="1"
+             {% if current_user.notify_kakao_enabled %}checked{% endif %}>
+      <span class="text-sm">카카오 알림톡 <span class="text-stone-400">(별도 비용 발생 가능)</span></span>
+    </label>
+  </fieldset>
+
+  <button type="submit" class="rounded bg-emerald-600 px-4 py-2 font-medium text-white hover:bg-emerald-700">
+    저장
+  </button>
+</form>

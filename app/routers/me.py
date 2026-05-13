@@ -133,3 +133,41 @@ async def apply_resident(
 
     db.commit()
     return RedirectResponse("/me/badge", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@router.get("/profile", response_class=HTMLResponse)
+def profile_edit_page(
+    request: Request,
+    user: User = Depends(require_user),
+    db: Session = Depends(get_db),
+) -> HTMLResponse:
+    regions = regions_service.list_all_for_dropdown(db)
+    return templates.TemplateResponse(
+        request,
+        "pages/me/profile/edit.html",
+        {"current_user": user, "regions": regions},
+    )
+
+
+@router.get("/profile/username", response_class=HTMLResponse)
+def profile_username_page(
+    request: Request,
+    user: User = Depends(require_user),
+) -> HTMLResponse:
+    return templates.TemplateResponse(
+        request,
+        "pages/me/profile/username.html",
+        {"current_user": user},
+    )
+
+
+@router.get("/profile/password", response_class=HTMLResponse)
+def profile_password_page(
+    request: Request,
+    user: User = Depends(require_user),
+) -> HTMLResponse:
+    return templates.TemplateResponse(
+        request,
+        "pages/me/profile/password.html",
+        {"current_user": user},
+    )
