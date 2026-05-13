@@ -1,6 +1,7 @@
 """Jinja filters for templates."""
 import html as _html
 import re
+from datetime import UTC, datetime
 
 import markdown as md
 
@@ -81,4 +82,22 @@ def excerpt(body: str | None, max_chars: int = 140) -> str:
     return text
 
 
-__all__ = ["excerpt", "first_image_url", "markdown_to_html", "strip_markdown_images"]
+def resident_year(verified_at: datetime | None) -> str:
+    """Return '{N}년차' label, or '' when verified_at is None.
+
+    0년차도 1년차로 표시 (UI 친화), 미래 시각은 1년차로 clamp.
+    """
+    if verified_at is None:
+        return ""
+    days = (datetime.now(UTC) - verified_at).days
+    years = max(1, days // 365)
+    return f"{years}년차"
+
+
+__all__ = [
+    "excerpt",
+    "first_image_url",
+    "markdown_to_html",
+    "resident_year",
+    "strip_markdown_images",
+]
