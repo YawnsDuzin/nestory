@@ -18,9 +18,9 @@ from datetime import UTC, datetime, timedelta
 
 from sqlalchemy.orm import Session
 
-from app.models._enums import PostStatus
+from app.models._enums import PostStatus, PostType
 from app.services import feed as feed_service
-from app.services.feed import RegionActivity, region_activity_summary
+from app.services.feed import RegionActivity, home_mixed_feed, region_activity_summary
 from app.tests.factories import (
     JourneyEpisodePostFactory,
     JourneyFactory,
@@ -29,6 +29,7 @@ from app.tests.factories import (
     RegionFactory,
     ReviewPostFactory,
     UserFactory,
+    UserInterestRegionFactory,
     add_journey_follow,
 )
 
@@ -352,3 +353,150 @@ def test_region_activity_preserves_input_order(db: Session) -> None:
     db.flush()
     result = region_activity_summary(db, [r2, r3, r1])
     assert [ra.region.id for ra in result] == [r2.id, r3.id, r1.id]
+
+
+# ---------------------------------------------------------------------------
+# 13. home_mixed_feed — limit 준수
+# ---------------------------------------------------------------------------
+
+
+def test_home_mixed_feed_returns_max_limit(db: Session) -> None:
+    """후보가 충분할 때 limit 개수까지만 반환."""
+    user = UserFactory()
+    region = RegionFactory(slug="mf-region")
+    for i in range(15):
+        _published_review(region, view_count=i)
+    db.flush()
+    feed = home_mixed_feed(db, user, limit=8)
+    assert len(feed) == 8
+
+
+# ---------------------------------------------------------------------------
+# 14. home_mixed_feed — 3가지 타입 혼합
+# ---------------------------------------------------------------------------
+
+
+def test_home_mixed_feed_includes_all_three_types(db: Session) -> None:
+    """review + journey_episode + question을 혼합한다."""
+    user = UserFactory()
+    region = RegionFactory(slug="mf-types")
+    journey = JourneyFactory(author=user, region=region)
+    for _ in range(3):
+        _published_review(region)
+    for _ in range(3):
+        _published_episode(region, journey)
+    for _ in range(3):
+        QuestionPostFactory(
+            region=region, status=PostStatus.PUBLISHED,
+            published_at=datetime.now(UTC),
+        )
+    db.flush()
+    feed = home_mixed_feed(db, user, limit=9)
+    types = {p.type for p in feed}
+    assert PostType.REVIEW in types
+    assert PostType.JOURNEY_EPISODE in types
+    assert PostType.QUESTION in types
+
+
+# ---------------------------------------------------------------------------
+# 15. home_mixed_feed — 팔로우 journey 부스트
+# ---------------------------------------------------------------------------
+
+
+def test_home_mixed_feed_boosts_followed_journey(db: Session) -> None:
+    """팔로우 중인 journey의 ep가 비-팔로우 동시점 ep보다 상위."""
+    user = UserFactory()
+    region = RegionFactory(slug="mf-follow")
+    same_published = datetime.now(UTC) - timedelta(days=3)
+    followed_j = JourneyFactory(author=UserFactory(), region=region, title="팔로우저니")
+    other_j = JourneyFactory(author=UserFactory(), region=region, title="다른저니")
+    followed_ep = _published_episode(
+        region, followed_j, published_at=same_published, title="팔로우에피"
+    )
+    other_ep = _published_episode(
+        region, other_j, published_at=same_published, title="비팔로우에피"
+    )
+    add_journey_follow(db, user, followed_j)
+    db.flush()
+
+    feed = home_mixed_feed(db, user, limit=8)
+    followed_idx = next(i for i, p in enumerate(feed) if p.id == followed_ep.id)
+    other_idx = next(i for i, p in enumerate(feed) if p.id == other_ep.id)
+    assert followed_idx < other_idx
+
+
+# ---------------------------------------------------------------------------
+# 16. home_mixed_feed — 관심 시군 부스트
+# ---------------------------------------------------------------------------
+
+
+def test_home_mixed_feed_boosts_interest_region(db: Session) -> None:
+    """관심 시군 post가 비-관심 시군 동시점 post보다 상위."""
+    user = UserFactory()
+    interest_region = RegionFactory(slug="mf-interest")
+    other_region = RegionFactory(slug="mf-other")
+    same_published = datetime.now(UTC) - timedelta(days=3)
+    interest_post = _published_review(
+        interest_region, published_at=same_published, title="관심후기"
+    )
+    other_post = _published_review(
+        other_region, published_at=same_published, title="비관심후기"
+    )
+    UserInterestRegionFactory(user=user, region=interest_region)
+    db.flush()
+
+    feed = home_mixed_feed(db, user, limit=8)
+    interest_idx = next(i for i, p in enumerate(feed) if p.id == interest_post.id)
+    other_idx = next(i for i, p in enumerate(feed) if p.id == other_post.id)
+    assert interest_idx < other_idx
+
+
+# ---------------------------------------------------------------------------
+# 17. home_mixed_feed — DRAFT·삭제 제외
+# ---------------------------------------------------------------------------
+
+
+def test_home_mixed_feed_excludes_draft_and_deleted(db: Session) -> None:
+    user = UserFactory()
+    region = RegionFactory(slug="mf-excl")
+    ReviewPostFactory(region=region, status=PostStatus.DRAFT, title="드래프트")
+    _published_review(region, title="삭제됨").deleted_at = datetime.now(UTC)
+    _published_review(region, title="공개")
+    db.flush()
+    feed = home_mixed_feed(db, user, limit=8)
+    titles = {p.title for p in feed}
+    assert "공개" in titles
+    assert "드래프트" not in titles
+    assert "삭제됨" not in titles
+
+
+# ---------------------------------------------------------------------------
+# 18. home_mixed_feed — 콘텐츠 없을 때 빈 리스트
+# ---------------------------------------------------------------------------
+
+
+def test_home_mixed_feed_empty_when_no_content(db: Session) -> None:
+    user = UserFactory()
+    db.flush()
+    assert home_mixed_feed(db, user, limit=8) == []
+
+
+# ---------------------------------------------------------------------------
+# 19. home_mixed_feed — 14일 윈도 밖 post 제외
+# ---------------------------------------------------------------------------
+
+
+def test_home_mixed_feed_excludes_old_posts(db: Session) -> None:
+    """14일 윈도 밖 post는 후보 제외."""
+    user = UserFactory()
+    region = RegionFactory(slug="mf-old")
+    _published_review(
+        region, published_at=datetime.now(UTC) - timedelta(days=20), title="옛글"
+    )
+    recent = _published_review(
+        region, published_at=datetime.now(UTC) - timedelta(days=1), title="새글"
+    )
+    db.flush()
+    feed = home_mixed_feed(db, user, limit=8)
+    ids = {p.id for p in feed}
+    assert recent.id in ids

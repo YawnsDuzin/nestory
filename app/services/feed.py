@@ -1,11 +1,12 @@
 """Feed service — home page data and global post feed."""
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from math import log10
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
-from app.models import Post, Region, User
+from app.models import Post, Region, User, UserInterestRegion
 from app.models._enums import PostStatus, PostType
 from app.models.interaction import journey_follows
 
@@ -147,11 +148,107 @@ def global_feed(db: Session, *, page: int = 1) -> tuple[list[Post], int]:
     return list(db.scalars(base).all()), total
 
 
+_FEED_WINDOW_DAYS = 14
+_FEED_CANDIDATE_LIMIT = 30
+_MAX_PER_TYPE = 3  # 같은 type이 3개 이상이면 페널티 적용
+
+
+def _score_post(
+    post: Post,
+    *,
+    now: datetime,
+    followed_journey_ids: set[int],
+    interest_region_ids: set[int],
+    selected_type_counts: dict[PostType, int],
+) -> float:
+    """단일 post의 mixed feed 정렬용 score.
+
+    base recency (0..1) + log popularity + follow boost + interest_region boost
+    - diversity penalty (selected_type_counts >= _MAX_PER_TYPE 시).
+    """
+    days = (
+        (now - post.published_at).total_seconds() / 86400
+        if post.published_at
+        else _FEED_WINDOW_DAYS
+    )
+    recency = max(0.0, (_FEED_WINDOW_DAYS - days) / _FEED_WINDOW_DAYS)  # 0..1
+    popularity = min(0.6, log10(max(post.view_count, 0) + 1) * 0.3)
+    follow = 0.5 if post.journey_id and post.journey_id in followed_journey_ids else 0.0
+    interest = 0.3 if post.region_id in interest_region_ids else 0.0
+    penalty = -0.2 if selected_type_counts.get(post.type, 0) >= _MAX_PER_TYPE else 0.0
+    return recency + popularity + follow + interest + penalty
+
+
+def home_mixed_feed(db: Session, user: User, *, limit: int = 8) -> list[Post]:
+    """로그인 사용자의 "오늘의 발견" mixed feed 8개.
+
+    Score 기반 정렬: recency + popularity + follow boost + interest_region boost
+    - diversity penalty. 단일 query로 후보 30개를 가져온 뒤 Python에서 정렬.
+    """
+    cutoff = datetime.now(UTC) - timedelta(days=_FEED_WINDOW_DAYS)
+    candidates = list(
+        db.scalars(
+            select(Post)
+            .where(
+                Post.type.in_([PostType.REVIEW, PostType.JOURNEY_EPISODE, PostType.QUESTION]),
+                Post.status == PostStatus.PUBLISHED,
+                Post.deleted_at.is_(None),
+                Post.published_at >= cutoff,
+            )
+            .options(selectinload(Post.author), selectinload(Post.region))
+            .order_by(Post.published_at.desc())
+            .limit(_FEED_CANDIDATE_LIMIT)
+        ).all()
+    )
+    if not candidates:
+        return []
+
+    followed_journey_ids: set[int] = set(
+        db.scalars(
+            select(journey_follows.c.journey_id).where(
+                journey_follows.c.user_id == user.id
+            )
+        ).all()
+    )
+    interest_region_ids: set[int] = set(
+        db.scalars(
+            select(UserInterestRegion.region_id).where(
+                UserInterestRegion.user_id == user.id
+            )
+        ).all()
+    )
+
+    now = datetime.now(UTC)
+    selected: list[Post] = []
+    selected_type_counts: dict[PostType, int] = {}
+    remaining = list(candidates)
+
+    while remaining and len(selected) < limit:
+        # 매 라운드마다 (selected_type_counts 변동) score 재계산 후 best 선택
+        scored = sorted(
+            remaining,
+            key=lambda p: _score_post(
+                p, now=now,
+                followed_journey_ids=followed_journey_ids,
+                interest_region_ids=interest_region_ids,
+                selected_type_counts=selected_type_counts,
+            ),
+            reverse=True,
+        )
+        pick = scored[0]
+        selected.append(pick)
+        selected_type_counts[pick.type] = selected_type_counts.get(pick.type, 0) + 1
+        remaining.remove(pick)
+
+    return selected
+
+
 __all__ = [
     "PAGE_SIZE",
     "HomeData",
     "RegionActivity",
     "home_data",
+    "home_mixed_feed",
     "region_activity_summary",
     "global_feed",
 ]
