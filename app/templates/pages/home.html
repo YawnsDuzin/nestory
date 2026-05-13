@@ -1,14 +1,13 @@
 {% extends "base.html" %}
 {% from "components/_icon.html" import icon %}
+{% from "components/_avatar.html" import avatar %}
 {% block title %}{% if current_user %}홈 · Nestory{% else %}Nestory · 전원생활 정착 커뮤니티{% endif %}{% endblock %}
 {% block content %}
 {% if current_user %}
   <section class="space-y-8">
     <header class="rounded-xl border border-emerald-100 bg-gradient-to-br from-emerald-50 via-white to-white p-4 sm:p-5 shadow-sm">
       <div class="flex items-center gap-4">
-        <span class="flex h-14 w-14 sm:h-16 sm:w-16 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-xl sm:text-2xl font-bold text-white shadow-md ring-4 ring-white">
-          {{ current_user.username[:1] | upper }}
-        </span>
+        {{ avatar(current_user, 56, "shadow-md ring-4 ring-white") }}
         <div class="min-w-0 flex-1 space-y-2">
           <h1 class="text-lg sm:text-2xl font-bold text-stone-900 tracking-tight break-keep">
             안녕하세요, <span class="text-emerald-700">@{{ current_user.username }}</span> 님
@@ -139,7 +138,7 @@
 
   {# 1. Hero — T축(시계열) 직접 노출 + featured testimonial + 페르소나 통합 #}
   <section class="rounded-2xl bg-gradient-to-br from-emerald-50 via-white to-emerald-50 px-4 sm:px-8 py-12 sm:py-16">
-    <h1 class="text-3xl sm:text-5xl font-bold text-stone-900 leading-tight tracking-tight break-keep text-center">
+    <h1 class="text-2xl sm:text-4xl font-bold text-stone-900 leading-tight tracking-tight break-keep text-center">
       <span class="block">1년차에 좋다는 후기는 많아도,</span>
       <span class="block sm:inline">3년차의 진실은 어디서 듣나요?</span>
     </h1>
@@ -350,7 +349,7 @@
 
   {# 6. Bottom CTA #}
   <section class="mt-12 rounded-lg bg-emerald-600 py-12 px-6 text-center text-white">
-    <h2 class="text-3xl sm:text-5xl font-bold leading-tight tracking-tight break-keep">
+    <h2 class="text-2xl sm:text-4xl font-bold leading-tight tracking-tight break-keep">
       <span class="block sm:inline">당신의 정착,</span>
       <span class="block sm:inline">더 이상 혼자 헤매지 마세요</span>
     </h2>

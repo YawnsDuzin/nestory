@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}사용자명 변경 · Nestory{% endblock %}
+{% block content %}
+<div class="max-w-md mx-auto py-8 px-4 space-y-4">
+  <h1 class="text-2xl font-bold text-stone-900">사용자명 변경</h1>
+
+  {% set _flash = request.session.pop("flash", None) %}
+  {% if _flash %}
+    <div class="rounded bg-amber-50 p-3 text-amber-800 text-sm">{{ _flash }}</div>
+  {% endif %}
+
+  {% set last = current_user.username_changed_at %}
+  {% if last %}
+    {% set elapsed_days = (now() - last).days %}
+    {% set remaining = 30 - elapsed_days %}
+    {% if remaining > 0 %}
+      <div class="rounded bg-amber-50 p-3 text-amber-800 text-sm">
+        마지막 변경 후 {{ elapsed_days }}일 경과 — {{ remaining }}일 후 변경 가능합니다.
+      </div>
+    {% endif %}
+  {% endif %}
+
+  <form action="/me/profile/username" method="post" class="space-y-3">
+    <label class="block">
+      <span class="text-sm text-stone-700">새 사용자명 <span class="text-stone-400">(3-32자, 영소문자·숫자·_·-)</span></span>
+      <input type="text" name="new_username"
+             pattern="[a-z0-9_\-]{3,32}" required
+             value="{{ current_user.username }}"
+             class="mt-1 w-full rounded border border-stone-300 px-3 py-2 lowercase focus:border-emerald-500 focus:outline-none">
+    </label>
+    <div class="flex items-center gap-3">
+      <button type="submit" class="rounded bg-emerald-600 px-4 py-2 font-medium text-white hover:bg-emerald-700">
+        변경
+      </button>
+      <a href="/me/profile" class="text-sm text-stone-500 hover:underline">취소</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -1,11 +1,25 @@
 {% from "components/_status_chip.html" import status_chip %}
+{% from "components/_avatar.html" import avatar %}
+{% from "components/_icon.html" import icon %}
 {# Profile header — expects: profile_user, data (ProfileData), current_user (optional) #}
 <header class="space-y-2">
-  <div class="flex items-center justify-between">
-    <h1 class="text-2xl font-bold text-stone-900">@{{ profile_user.username }}</h1>
-    {% if profile_user.badge_level.value in ("resident", "ex_resident", "region_verified") %}
-      {{ status_chip("badge_level", profile_user.badge_level.value) }}
-    {% endif %}
+  <div class="flex items-center gap-3">
+    {{ avatar(profile_user, 48) }}
+    <div class="flex-1 flex items-center justify-between gap-2">
+      <h1 class="text-2xl font-bold text-stone-900">@{{ profile_user.username }}</h1>
+      <div class="flex items-center gap-2">
+        {% if profile_user.badge_level.value in ("resident", "ex_resident", "region_verified") %}
+          {{ status_chip("badge_level", profile_user.badge_level.value) }}
+        {% endif %}
+        {% if current_user and current_user.id == profile_user.id %}
+          <a href="/me/profile"
+             class="inline-flex items-center gap-1 rounded-full border border-stone-300 px-2.5 py-1 text-xs font-medium text-stone-700 hover:bg-stone-50">
+            {{ icon("pencil", 14) }}
+            <span>편집</span>
+          </a>
+        {% endif %}
+      </div>
+    </div>
   </div>
   {% if profile_user.bio %}<p class="text-sm text-stone-700">{{ profile_user.bio }}</p>{% endif %}
   {% if data is defined %}
