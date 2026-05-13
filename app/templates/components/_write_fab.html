@@ -1,0 +1,47 @@
+{% from "components/_icon.html" import icon %}
+{# components/_write_fab.html — 우하단 floating "+ 쓰기" FAB.
+   Expects: current_user. 권한 분기는 표시 단순화용 — 실제 가드는 라우트에서. #}
+{% set is_resident = current_user.badge_level.value in ("resident", "ex_resident") %}
+<div class="fixed bottom-6 right-6 z-40 sm:bottom-8 sm:right-8"
+     x-data="{ open: false }"
+     @keydown.escape.window="open = false"
+     @click.outside="open = false">
+  {# TODO(P1.5 PostHog): home_fab_open on toggle to true #}
+  <button type="button"
+          class="inline-flex h-14 w-14 items-center justify-center rounded-full bg-emerald-600 text-white shadow-lg hover:bg-emerald-700 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+          @click="open = !open"
+          :aria-expanded="open.toString()"
+          aria-label="쓰기 메뉴 열기">
+    <span x-show="!open">{{ icon("pencil", 24) }}</span>
+    <span x-show="open" x-cloak>{{ icon("x", 24) }}</span>
+  </button>
+  <div x-show="open" x-cloak x-transition
+       class="absolute bottom-16 right-0 w-56 rounded-xl border border-stone-200 bg-white py-2 shadow-lg">
+    {# TODO(P1.5 PostHog): home_fab_action {action: "review"} on click #}
+    <a href="{{ '/write/review' if is_resident else '/me/badge' }}"
+       class="flex items-center gap-3 px-4 py-2.5 text-sm text-stone-900 hover:bg-stone-50">
+      <span class="text-emerald-600">{{ icon("file-pen", 18) }}</span>
+      <span>후기 작성</span>
+      {% if not is_resident %}<span class="ml-auto text-xs text-stone-400">🔒</span>{% endif %}
+    </a>
+    {# TODO(P1.5 PostHog): home_fab_action {action: "journey"} on click #}
+    <a href="{{ '/write/journey' if is_resident else '/me/badge' }}"
+       class="flex items-center gap-3 px-4 py-2.5 text-sm text-stone-900 hover:bg-stone-50">
+      <span class="text-amber-600">{{ icon("map", 18) }}</span>
+      <span>Journey 시작</span>
+      {% if not is_resident %}<span class="ml-auto text-xs text-stone-400">🔒</span>{% endif %}
+    </a>
+    {# TODO(P1.5 PostHog): home_fab_action {action: "question"} on click #}
+    <a href="/write/question"
+       class="flex items-center gap-3 px-4 py-2.5 text-sm text-stone-900 hover:bg-stone-50">
+      <span class="text-sky-600">{{ icon("help-circle", 18) }}</span>
+      <span>질문 작성</span>
+    </a>
+    {# TODO(P1.5 PostHog): home_fab_action {action: "plan"} on click #}
+    <a href="/write/plan"
+       class="flex items-center gap-3 px-4 py-2.5 text-sm text-stone-900 hover:bg-stone-50">
+      <span class="text-violet-600">{{ icon("calendar", 18) }}</span>
+      <span>정착 계획</span>
+    </a>
+  </div>
+</div>
