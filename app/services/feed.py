@@ -17,6 +17,7 @@ class HomeData:
     popular_reviews: list[Post]
     recent_journeys: list[Post]
     followed_episodes: list[Post]
+    featured_testimonial: Post | None
 
 
 def home_data(db: Session, user: User | None) -> HomeData:
@@ -83,6 +84,7 @@ def home_data(db: Session, user: User | None) -> HomeData:
         popular_reviews=popular_reviews,
         recent_journeys=recent_journeys,
         followed_episodes=followed_episodes,
+        featured_testimonial=popular_reviews[0] if popular_reviews else None,
     )
 
 

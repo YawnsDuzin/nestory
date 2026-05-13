@@ -27,17 +27,29 @@ def test_home_anonymous_renders_recommended_regions(client: TestClient, db: Sess
 
 
 def test_home_anonymous_renders_popular_reviews(client: TestClient, db: Session) -> None:
+    """Top review surfaces as featured_testimonial; second review appears in 인기 후기 grid."""
     region = PilotRegionFactory(slug="rec-pop-region")
     user = ResidentUserFactory()
+    # 1순위 — featured_testimonial 자리. body 발췌가 hero 인용 카드에 표시됨.
     ReviewPostFactory(
-        author=user, region=region, title="홈인기리뷰테스트",
+        author=user, region=region, title="홈인기리뷰페이처드",
+        body="featured 인용 카드에 들어갈 본문입니다.",
         status=PostStatus.PUBLISHED,
         published_at=datetime.now(UTC), view_count=999,
+    )
+    # 2순위 — 인기 후기 그리드에서 카드로 노출. 카드는 제목/본문 머리를 표시.
+    ReviewPostFactory(
+        author=user, region=region, title="홈인기리뷰그리드",
+        status=PostStatus.PUBLISHED,
+        published_at=datetime.now(UTC), view_count=500,
     )
     db.commit()
     r = client.get("/")
     assert r.status_code == 200
-    assert "홈인기리뷰테스트" in r.text
+    # 2순위 review의 title이 "인기 후기" 그리드 카드에 표시
+    assert "홈인기리뷰그리드" in r.text
+    # 1순위 review의 본문 일부가 hero featured 카드에 표시 (excerpt)
+    assert "featured 인용 카드에 들어갈 본문입니다" in r.text
 
 
 def test_home_logged_in_user_sees_followed_journey_episodes(

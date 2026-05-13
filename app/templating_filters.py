@@ -1,6 +1,7 @@
 """Jinja filters for templates."""
 import html as _html
 import re
+from datetime import UTC, datetime
 
 import markdown as md
 
@@ -51,4 +52,52 @@ def markdown_to_html(text: str | None) -> str:
     return html
 
 
-__all__ = ["first_image_url", "markdown_to_html", "strip_markdown_images"]
+_BOLD_RE = re.compile(r"\*\*(.+?)\*\*")
+_HEADING_RE = re.compile(r"^#+\s+", flags=re.MULTILINE)
+_IMG_ONLY_LINE_RE = re.compile(r"^!\[[^\]]*\]\([^)]+\)\s*$")
+
+
+def _is_image_only_paragraph(paragraph: str) -> bool:
+    lines = [ln.strip() for ln in paragraph.splitlines() if ln.strip()]
+    return bool(lines) and all(_IMG_ONLY_LINE_RE.fullmatch(ln) for ln in lines)
+
+
+def excerpt(body: str | None, max_chars: int = 140) -> str:
+    """Strip image-only paragraphs + light markdown, join with space, truncate."""
+    if not body:
+        return ""
+    chunks: list[str] = []
+    for paragraph in body.split("\n\n"):
+        stripped = paragraph.strip()
+        if not stripped or _is_image_only_paragraph(stripped):
+            continue
+        cleaned = _HEADING_RE.sub("", stripped)
+        cleaned = _BOLD_RE.sub(r"\1", cleaned)
+        cleaned = _MD_IMAGE_RE.sub("", cleaned)  # strip inline image syntax
+        cleaned = " ".join(line.strip() for line in cleaned.splitlines() if line.strip())
+        chunks.append(cleaned)
+    text = " ".join(chunks)
+    if len(text) > max_chars:
+        return text[:max_chars].rstrip() + "…"
+    return text
+
+
+def resident_year(verified_at: datetime | None) -> str:
+    """Return '{N}년차' label, or '' when verified_at is None.
+
+    0년차도 1년차로 표시 (UI 친화), 미래 시각은 1년차로 clamp.
+    """
+    if verified_at is None:
+        return ""
+    days = (datetime.now(UTC) - verified_at).days
+    years = max(1, days // 365)
+    return f"{years}년차"
+
+
+__all__ = [
+    "excerpt",
+    "first_image_url",
+    "markdown_to_html",
+    "resident_year",
+    "strip_markdown_images",
+]
