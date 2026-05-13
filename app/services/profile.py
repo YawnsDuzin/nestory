@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session, selectinload
 from app.models import Image, Post, Region, User
 from app.models._enums import PostStatus, PostType
 from app.models.interaction import post_scraps
+from app.services import auth
 
 PAGE_SIZE = 20
 USERNAME_CHANGE_THROTTLE_DAYS = 30
@@ -209,7 +210,15 @@ def change_password(
     db: Session, user: User, *, current_password: str, new_password: str
 ) -> User:
     """Verify current + apply new hash. Raises PasswordChangeNotAllowed (kakao), ProfileError."""
-    raise NotImplementedError
+    if user.password_hash is None:
+        raise PasswordChangeNotAllowed()
+    if not auth.verify_password(current_password, user.password_hash):
+        raise ProfileError("현재 비밀번호가 일치하지 않습니다")
+    if len(new_password) < PASSWORD_MIN_LENGTH:
+        raise ProfileError(f"비밀번호는 최소 {PASSWORD_MIN_LENGTH}자 이상")
+    user.password_hash = auth.hash_password(new_password)
+    db.flush()
+    return user
 
 
 __all__ = [

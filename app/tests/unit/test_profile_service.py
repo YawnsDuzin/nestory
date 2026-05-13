@@ -6,6 +6,7 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from sqlalchemy.orm import Session
 
+from app.services import auth as auth_service
 from app.services import profile
 from app.tests.factories import RegionFactory, UserFactory
 
@@ -207,3 +208,49 @@ def test_change_username_after_throttle_window_allowed(db: Session) -> None:
     db.flush()
     updated = profile.change_username(db, user, new_username="newname")
     assert updated.username == "newname"
+
+
+def test_change_password_happy(db: Session) -> None:
+    user = UserFactory(password_hash=auth_service.hash_password("oldPassword!"))
+    db.flush()
+    updated = profile.change_password(
+        db, user,
+        current_password="oldPassword!",
+        new_password="newPassword!",
+    )
+    assert auth_service.verify_password("newPassword!", updated.password_hash) is True
+    assert auth_service.verify_password("oldPassword!", updated.password_hash) is False
+
+
+def test_change_password_rejects_kakao_user(db: Session) -> None:
+    """Kakao OAuth user has password_hash=None — change must be denied."""
+    user = UserFactory(password_hash=None, kakao_id="kakao_abc123")
+    db.flush()
+    with pytest.raises(profile.PasswordChangeNotAllowed):
+        profile.change_password(
+            db, user,
+            current_password="anything",
+            new_password="newPassword!",
+        )
+
+
+def test_change_password_rejects_wrong_current(db: Session) -> None:
+    user = UserFactory(password_hash=auth_service.hash_password("realPassword"))
+    db.flush()
+    with pytest.raises(profile.ProfileError):
+        profile.change_password(
+            db, user,
+            current_password="wrongPassword",
+            new_password="newPassword!",
+        )
+
+
+def test_change_password_rejects_short_new(db: Session) -> None:
+    user = UserFactory(password_hash=auth_service.hash_password("realPassword"))
+    db.flush()
+    with pytest.raises(profile.ProfileError):
+        profile.change_password(
+            db, user,
+            current_password="realPassword",
+            new_password="short",  # < PASSWORD_MIN_LENGTH (8)
+        )
