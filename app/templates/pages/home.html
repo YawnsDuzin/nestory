@@ -151,7 +151,7 @@
     {# Featured testimonial — popular_reviews[0] 가 있을 때만 #}
     {% if data.featured_testimonial %}
       {% set t = data.featured_testimonial %}
-      {# TODO(P1.5 PostHog): emit landing_testimonial_click {post_id: t.id} on click #}
+      {# TODO(P1.5 PostHog): landing_testimonial_click {post_id: t.id} on click #}
       <a href="/post/{{ t.id }}"
          class="block mt-8 mx-auto max-w-2xl rounded-xl border border-emerald-200 bg-white/80 backdrop-blur p-5 sm:p-6 hover:border-emerald-300 hover:shadow-sm transition">
         <p class="text-stone-800 leading-relaxed">
@@ -300,14 +300,15 @@
   </section>
   {% endif %}
 
-  {# 4b. 인기 후기 (dynamic) #}
-  {% if data.popular_reviews %}
+  {# 4b. 인기 후기 (dynamic) — featured testimonial과 중복되지 않는 post만 #}
+  {% set _grid_posts = data.popular_reviews | rejectattr("id", "equalto", data.featured_testimonial.id if data.featured_testimonial else -1) | list %}
+  {% if _grid_posts %}
   <section class="py-12 border-t border-stone-200">
     <h2 class="flex items-center justify-center gap-2 text-2xl font-bold text-stone-900 mb-10">
       <span class="text-emerald-600">{{ icon("file-pen", 24) }}</span>인기 후기
     </h2>
     <div class="grid gap-4 sm:grid-cols-2">
-      {% for post in data.popular_reviews if not (data.featured_testimonial and post.id == data.featured_testimonial.id) %}
+      {% for post in _grid_posts %}
         {% include "partials/post_card.html" %}
       {% endfor %}
     </div>
@@ -347,7 +348,7 @@
     </div>
   </section>
 
-  {# 5. Bottom CTA #}
+  {# 6. Bottom CTA #}
   <section class="mt-12 rounded-lg bg-emerald-600 py-12 px-6 text-center text-white">
     <h2 class="text-3xl sm:text-5xl font-bold leading-tight tracking-tight break-keep">
       <span class="block sm:inline">당신의 정착,</span>
