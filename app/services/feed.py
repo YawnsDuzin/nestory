@@ -94,7 +94,11 @@ def home_data(db: Session, user: User | None) -> HomeData:
                 Post.status == PostStatus.PUBLISHED,
                 Post.deleted_at.is_(None),
             )
-            .options(selectinload(Post.author), selectinload(Post.region))
+            .options(
+                selectinload(Post.author),
+                selectinload(Post.region),
+                selectinload(Post.journey),
+            )
             .order_by(Post.published_at.desc())
             .limit(4)
         ).all()
@@ -115,7 +119,11 @@ def home_data(db: Session, user: User | None) -> HomeData:
                     Post.status == PostStatus.PUBLISHED,
                     Post.deleted_at.is_(None),
                 )
-                .options(selectinload(Post.author), selectinload(Post.region))
+                .options(
+                    selectinload(Post.author),
+                    selectinload(Post.region),
+                    selectinload(Post.journey),
+                )
                 .order_by(Post.published_at.desc())
                 .limit(8)
             ).all()
@@ -179,7 +187,7 @@ def global_feed(db: Session, *, page: int = 1) -> tuple[list[Post], int]:
             Post.status == PostStatus.PUBLISHED,
             Post.deleted_at.is_(None),
         )
-        .options(selectinload(Post.author), selectinload(Post.region))
+        .options(selectinload(Post.author), selectinload(Post.region), selectinload(Post.journey))
     )
     total = db.scalar(select(func.count()).select_from(base.subquery())) or 0
     base = base.order_by(Post.published_at.desc()).offset((page - 1) * PAGE_SIZE).limit(PAGE_SIZE)
