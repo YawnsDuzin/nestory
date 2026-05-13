@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from datetime import UTC, datetime
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
@@ -184,7 +185,24 @@ def change_username(db: Session, user: User, *, new_username: str) -> User:
 
     Raises UsernameThrottledError, UsernameTakenError, ProfileError.
     """
-    raise NotImplementedError
+    normalized = new_username.strip().lower()
+    if not USERNAME_PATTERN.fullmatch(normalized):
+        raise ProfileError(
+            "사용자명은 3-32자, 영소문자·숫자·_·- 만 사용할 수 있습니다"
+        )
+    if normalized == user.username:
+        return user  # no-op — throttle 미적용
+    if user.username_changed_at is not None:
+        elapsed = (datetime.now(UTC) - user.username_changed_at).days
+        if elapsed < USERNAME_CHANGE_THROTTLE_DAYS:
+            raise UsernameThrottledError(USERNAME_CHANGE_THROTTLE_DAYS - elapsed)
+    exists = db.scalar(select(User.id).where(User.username == normalized))
+    if exists is not None:
+        raise UsernameTakenError(normalized)
+    user.username = normalized
+    user.username_changed_at = datetime.now(UTC)
+    db.flush()
+    return user
 
 
 def change_password(

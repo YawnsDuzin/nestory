@@ -1,6 +1,8 @@
 """Unit tests for app.services.profile — uses real DB session via factories."""
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
+
 import pytest
 from sqlalchemy.orm import Session
 
@@ -141,3 +143,67 @@ def test_clear_avatar_when_already_none(db: Session) -> None:
     db.flush()
     updated = profile.clear_avatar(db, user)
     assert updated.avatar_image_id is None
+
+
+def test_change_username_happy(db: Session) -> None:
+    user = UserFactory(username="oldname")
+    db.flush()
+    before = datetime.now(UTC)
+    updated = profile.change_username(db, user, new_username="newname")
+    assert updated.username == "newname"
+    assert updated.username_changed_at is not None
+    assert updated.username_changed_at >= before
+
+
+def test_change_username_normalizes_to_lowercase(db: Session) -> None:
+    user = UserFactory(username="oldname")
+    db.flush()
+    updated = profile.change_username(db, user, new_username="  NewName  ")
+    assert updated.username == "newname"
+
+
+def test_change_username_no_op_when_same(db: Session) -> None:
+    """Same username (after normalization) — no-op, no throttle update."""
+    user = UserFactory(username="samename", username_changed_at=None)
+    db.flush()
+    updated = profile.change_username(db, user, new_username="SameName")
+    assert updated.username == "samename"
+    assert updated.username_changed_at is None  # not touched
+
+
+def test_change_username_rejects_invalid_pattern(db: Session) -> None:
+    user = UserFactory()
+    db.flush()
+    for bad in ("ab", "with spaces", "한글이름", "a" * 33):
+        with pytest.raises(profile.ProfileError):
+            profile.change_username(db, user, new_username=bad)
+
+
+def test_change_username_rejects_duplicate(db: Session) -> None:
+    UserFactory(username="taken")
+    user = UserFactory(username="mine")
+    db.flush()
+    with pytest.raises(profile.UsernameTakenError):
+        profile.change_username(db, user, new_username="taken")
+
+
+def test_change_username_within_throttle_window_rejected(db: Session) -> None:
+    user = UserFactory(
+        username="oldname",
+        username_changed_at=datetime.now(UTC) - timedelta(days=10),
+    )
+    db.flush()
+    with pytest.raises(profile.UsernameThrottledError) as exc_info:
+        profile.change_username(db, user, new_username="newname")
+    # 30 - 10 = 20 days remaining (allow ±1 day for test execution drift)
+    assert 19 <= exc_info.value.days_remaining <= 21
+
+
+def test_change_username_after_throttle_window_allowed(db: Session) -> None:
+    user = UserFactory(
+        username="oldname",
+        username_changed_at=datetime.now(UTC) - timedelta(days=31),
+    )
+    db.flush()
+    updated = profile.change_username(db, user, new_username="newname")
+    assert updated.username == "newname"
