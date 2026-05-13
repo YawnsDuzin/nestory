@@ -1,0 +1,371 @@
+{% extends "base.html" %}
+{% from "components/_icon.html" import icon %}
+{% from "components/_avatar.html" import avatar %}
+{% block title %}{% if current_user %}홈 · Nestory{% else %}Nestory · 전원생활 정착 커뮤니티{% endif %}{% endblock %}
+{% block content %}
+{% if current_user %}
+  <section class="space-y-8">
+    <header class="rounded-xl border border-emerald-100 bg-gradient-to-br from-emerald-50 via-white to-white p-4 sm:p-5 shadow-sm">
+      <div class="flex items-center gap-4">
+        {{ avatar(current_user, 56, "shadow-md ring-4 ring-white") }}
+        <div class="min-w-0 flex-1 space-y-2">
+          <h1 class="text-lg sm:text-2xl font-bold text-stone-900 tracking-tight break-keep">
+            안녕하세요, <span class="text-emerald-700">@{{ current_user.username }}</span> 님
+          </h1>
+          {% set _bv = current_user.badge_level.value %}
+          {% if _bv == "resident" %}
+            <span class="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-white px-3 py-1 text-sm font-medium text-emerald-700 shadow-sm">
+              <span class="text-emerald-600">{{ icon("home", 14) }}</span>거주자 인증
+            </span>
+          {% elif _bv == "ex_resident" %}
+            <span class="inline-flex items-center gap-1.5 rounded-full border border-stone-200 bg-white px-3 py-1 text-sm font-medium text-stone-700 shadow-sm">
+              <span class="text-stone-600">{{ icon("home", 14) }}</span>전 거주자
+            </span>
+          {% elif _bv == "region_verified" %}
+            <span class="inline-flex items-center gap-1.5 rounded-full border border-sky-200 bg-white px-3 py-1 text-sm font-medium text-sky-700 shadow-sm">
+              <span class="text-sky-600">{{ icon("check-circle", 14) }}</span>지역 인증
+            </span>
+          {% else %}
+            <span class="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-white px-3 py-1 text-sm font-medium text-emerald-700 shadow-sm">
+              <span class="text-emerald-600">{{ icon("heart", 14) }}</span>관심자
+            </span>
+          {% endif %}
+        </div>
+      </div>
+    </header>
+
+    <section class="space-y-4">
+      <h2 class="flex items-center gap-2 text-lg font-semibold text-stone-900">
+        <span class="text-stone-500">{{ icon("pencil", 20) }}</span>쓰기
+      </h2>
+      <div class="grid gap-3 sm:grid-cols-2">
+        {% set is_resident = current_user.badge_level.value in ("resident", "ex_resident") %}
+        <a href="{{ '/write/review' if is_resident else '/me/badge' }}"
+           class="rounded-lg border border-stone-200 bg-white p-5 hover:border-stone-300 hover:shadow-sm transition">
+          <div class="flex items-center gap-2 font-semibold text-stone-900">
+            <span class="text-emerald-600">{{ icon("file-pen", 20) }}</span>후기 작성
+          </div>
+          <p class="text-sm text-stone-600 mt-2">
+            {% if is_resident %}정착 회고를 남겨주세요{% else %}거주자 인증 후 작성 가능{% endif %}
+          </p>
+        </a>
+        <a href="{{ '/write/journey' if is_resident else '/me/badge' }}"
+           class="rounded-lg border border-stone-200 bg-white p-5 hover:border-stone-300 hover:shadow-sm transition">
+          <div class="flex items-center gap-2 font-semibold text-stone-900">
+            <span class="text-amber-600">{{ icon("map", 20) }}</span>Journey 시작
+          </div>
+          <p class="text-sm text-stone-600 mt-2">
+            {% if is_resident %}정착 과정을 연재로{% else %}거주자 인증 후 작성 가능{% endif %}
+          </p>
+        </a>
+        <a href="/write/question" class="rounded-lg border border-stone-200 bg-white p-5 hover:border-stone-300 hover:shadow-sm transition">
+          <div class="flex items-center gap-2 font-semibold text-stone-900">
+            <span class="text-sky-600">{{ icon("help-circle", 20) }}</span>질문 작성
+          </div>
+          <p class="text-sm text-stone-600 mt-2">지역에 사는 분들께 직접 물어보세요</p>
+        </a>
+        <a href="/write/plan" class="rounded-lg border border-stone-200 bg-white p-5 hover:border-stone-300 hover:shadow-sm transition">
+          <div class="flex items-center gap-2 font-semibold text-stone-900">
+            <span class="text-violet-600">{{ icon("calendar", 20) }}</span>정착 계획
+          </div>
+          <p class="text-sm text-stone-600 mt-2">예비 입주자의 검토 노트</p>
+        </a>
+      </div>
+      {% if not is_resident %}
+        <p class="text-xs text-stone-500">
+          후기·Journey는 거주자 배지가 필요합니다 →
+          <a href="/me/badge" class="text-emerald-700 hover:underline">배지 신청</a>
+        </p>
+      {% endif %}
+    </section>
+
+    {# Dynamic: followed Journey episodes #}
+    <section class="space-y-4 border-t border-stone-200 pt-8">
+      <h2 class="flex items-center gap-2 text-lg font-semibold text-stone-900">
+        <span class="text-amber-600">{{ icon("sparkles", 20) }}</span>팔로우 중인 Journey 새 에피소드
+      </h2>
+      {% if data.followed_episodes %}
+        <div class="grid gap-3 sm:grid-cols-2">
+          {% for post in data.followed_episodes %}
+            {% include "partials/post_card.html" %}
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="text-sm text-stone-500">
+          아직 팔로우하는 Journey가 없습니다.
+          <a href="/discover" class="text-emerald-700 hover:underline">Journey 탐색하기</a>
+        </p>
+      {% endif %}
+    </section>
+
+    {# Region Match Wizard 진입 — 신규 사용자가 관심 시군 발견 안 했을 때 #}
+    <section class="space-y-4 border-t border-stone-200 pt-8">
+      <h2 class="flex items-center gap-2 text-lg font-semibold text-stone-900">
+        <span class="text-emerald-600">{{ icon("target", 20) }}</span>나에게 맞는 시군 찾기
+      </h2>
+      <a href="/match/wizard"
+         class="block rounded-lg border border-emerald-200 bg-emerald-50 p-5 hover:border-emerald-300 hover:shadow-sm transition">
+        <p class="font-semibold text-stone-900">5개 질문으로 Top 3 추천</p>
+        <p class="text-sm text-stone-700 mt-2">
+          라이프스타일을 분석해 가장 잘 맞는 시군을 알려드립니다.
+        </p>
+      </a>
+    </section>
+
+    {# Dynamic: recommended region hubs #}
+    {% if data.recommended_regions %}
+    <section class="space-y-4 border-t border-stone-200 pt-8">
+      <h2 class="flex items-center gap-2 text-lg font-semibold text-stone-900">
+        <span class="text-emerald-600">{{ icon("trees", 20) }}</span>추천 시군 허브
+      </h2>
+      <div class="grid gap-3 sm:grid-cols-2">
+        {% for region in data.recommended_regions %}
+          <a href="/hub/{{ region.slug }}"
+             class="rounded-lg border border-stone-200 bg-white p-5 hover:border-stone-300 hover:shadow-sm transition">
+            <p class="font-semibold text-stone-900">{{ region.sigungu }}</p>
+            <p class="text-xs text-stone-500 mt-1">{{ region.sido }}</p>
+            {% if region.description %}
+              <p class="text-sm text-stone-600 mt-2 line-clamp-2">{{ region.description }}</p>
+            {% endif %}
+          </a>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+  </section>
+{% else %}
+  {# === 비로그인 방문자용 marketing landing === #}
+
+  {# 1. Hero — T축(시계열) 직접 노출 + featured testimonial + 페르소나 통합 #}
+  <section class="rounded-2xl bg-gradient-to-br from-emerald-50 via-white to-emerald-50 px-4 sm:px-8 py-12 sm:py-16">
+    <h1 class="text-2xl sm:text-4xl font-bold text-stone-900 leading-tight tracking-tight break-keep text-center">
+      <span class="block">1년차에 좋다는 후기는 많아도,</span>
+      <span class="block sm:inline">3년차의 진실은 어디서 듣나요?</span>
+    </h1>
+    <p class="mt-6 text-base sm:text-lg text-stone-600 max-w-xl mx-auto text-center">
+      같은 사람의 1년차 → 3년차 회고로<br>
+      가짜 후기 없이 정착의 진실을 봅니다.
+    </p>
+
+    {# Featured testimonial — popular_reviews[0] 가 있을 때만 #}
+    {% if data.featured_testimonial %}
+      {% set t = data.featured_testimonial %}
+      {# TODO(P1.5 PostHog): landing_testimonial_click {post_id: t.id} on click #}
+      <a href="/post/{{ t.id }}"
+         class="block mt-8 mx-auto max-w-2xl rounded-xl border border-emerald-200 bg-white/80 backdrop-blur p-5 sm:p-6 hover:border-emerald-300 hover:shadow-sm transition">
+        <p class="text-stone-800 leading-relaxed">
+          "{{ t.body | excerpt(140) }}"
+        </p>
+        <p class="mt-3 text-sm text-stone-500">
+          — {{ t.region.sigungu }}
+          {% set _yl = t.author.resident_verified_at | resident_year %}
+          {% if _yl %} {{ _yl }}{% endif %}
+          @{{ t.author.username }} · 후기 보기 →
+        </p>
+      </a>
+    {% endif %}
+
+    {# 페르소나 자가선택 — 기존 하단 섹션을 hero 로 흡수 #}
+    <div class="mt-10">
+      <h2 class="text-lg sm:text-xl font-semibold text-stone-900 text-center mb-4">
+        당신은 어떤 분이신가요?
+      </h2>
+      <div class="grid gap-3 sm:grid-cols-3 max-w-3xl mx-auto">
+        {# TODO(P1.5 PostHog): landing_persona_select {persona: "considering"} on click #}
+        <a href="/match/wizard"
+           class="rounded-lg border border-emerald-200 bg-white p-4 hover:border-emerald-400 hover:shadow-sm transition">
+          <span class="inline-flex h-9 w-9 items-center justify-center rounded-md bg-emerald-50 text-emerald-700">{{ icon("search", 18) }}</span>
+          <h3 class="mt-2 font-bold text-stone-900">예비 입주자</h3>
+          <p class="mt-1 text-sm text-stone-600">정착 검토 중이신가요?</p>
+          <p class="mt-2 text-sm font-medium text-emerald-700">→ 5문항 매칭</p>
+        </a>
+        {# TODO(P1.5 PostHog): landing_persona_select {persona: "early_resident"} on click #}
+        <a href="/auth/signup"
+           class="rounded-lg border border-emerald-200 bg-white p-4 hover:border-emerald-400 hover:shadow-sm transition">
+          <span class="inline-flex h-9 w-9 items-center justify-center rounded-md bg-emerald-50 text-emerald-700">{{ icon("home", 18) }}</span>
+          <h3 class="mt-2 font-bold text-stone-900">1-3년차 거주자</h3>
+          <p class="mt-1 text-sm text-stone-600">겪은 일을 데이터로</p>
+          <p class="mt-2 text-sm font-medium text-emerald-700">→ 가입하고 후기 남기기</p>
+        </a>
+        {# TODO(P1.5 PostHog): landing_persona_select {persona: "veteran"} on click #}
+        <a href="/auth/signup"
+           class="rounded-lg border border-emerald-200 bg-white p-4 hover:border-emerald-400 hover:shadow-sm transition">
+          <span class="inline-flex h-9 w-9 items-center justify-center rounded-md bg-emerald-50 text-emerald-700">{{ icon("trees", 18) }}</span>
+          <h3 class="mt-2 font-bold text-stone-900">5년+ 베테랑</h3>
+          <p class="mt-1 text-sm text-stone-600">정착 전 과정 아카이빙</p>
+          <p class="mt-2 text-sm font-medium text-emerald-700">→ Journey 연재</p>
+        </a>
+      </div>
+    </div>
+
+    {# 1차 CTA = 카카오. 이메일은 보조 텍스트 링크로 강등. #}
+    <div class="mt-10 flex flex-col items-center gap-3">
+      {# TODO(P1.5 PostHog): landing_cta_kakao_click on click #}
+      <a href="/auth/kakao/start"
+         class="inline-flex items-center justify-center gap-2 rounded-md bg-yellow-300 px-8 py-3 text-base font-semibold text-stone-900 hover:bg-yellow-400">
+        {{ icon("message-circle", 20) }}카카오로 1초 시작
+      </a>
+      <p class="text-sm text-stone-500">
+        {# TODO(P1.5 PostHog): landing_cta_signup_click on click #}
+        <a href="/auth/signup" class="text-emerald-700 hover:underline">이메일로 가입</a>
+        ·
+        이미 계정이 있으신가요?
+        <a href="/auth/login" class="text-emerald-700 hover:underline">로그인</a>
+      </p>
+    </div>
+  </section>
+
+  {# 2. 4 Pillar #}
+  <section class="py-12 border-t border-stone-200">
+    <h2 class="text-2xl font-bold text-center text-stone-900 mb-2">
+      Nestory가 다른 이유
+    </h2>
+    <p class="text-center text-sm text-stone-600 mb-10">
+      네 가지 차별화 축으로 가짜 후기·과장 광고와 다릅니다.
+    </p>
+    <div class="grid gap-4 sm:grid-cols-2">
+      <div class="rounded-lg border border-stone-200 bg-white p-6">
+        <span class="inline-flex h-10 w-10 items-center justify-center rounded-md bg-emerald-50 text-emerald-700">{{ icon("clock", 22) }}</span>
+        <h3 class="mt-3 font-bold text-stone-900">시계열 회고</h3>
+        <p class="mt-2 text-sm text-stone-600">
+          입주 1년차·3년차 시점마다 같은 사람의 회고를 추적합니다.
+          시간이 만들어낸 진짜 후회가 보입니다.
+        </p>
+      </div>
+      <div class="rounded-lg border border-stone-200 bg-white p-6">
+        <span class="inline-flex h-10 w-10 items-center justify-center rounded-md bg-amber-50 text-amber-700">{{ icon("banknote", 22) }}</span>
+        <h3 class="mt-3 font-bold text-stone-900">후회 비용 데이터</h3>
+        <p class="mt-2 text-sm text-stone-600">
+          "단열에서 후회"라는 한 줄이 아니라
+          카테고리·금액·기간을 정량 데이터로 누적합니다.
+        </p>
+      </div>
+      <div class="rounded-lg border border-stone-200 bg-white p-6">
+        <span class="inline-flex h-10 w-10 items-center justify-center rounded-md bg-sky-50 text-sky-700">{{ icon("map-pin", 22) }}</span>
+        <h3 class="mt-3 font-bold text-stone-900">지역 매칭</h3>
+        <p class="mt-2 text-sm text-stone-600">
+          양평·가평·춘천 등 시군별 허브.
+          실제 그 지역에 사는 분들의 답변을 직접 받습니다.
+        </p>
+      </div>
+      <div class="rounded-lg border border-stone-200 bg-white p-6">
+        <span class="inline-flex h-10 w-10 items-center justify-center rounded-md bg-emerald-50 text-emerald-700">{{ icon("check-circle", 22) }}</span>
+        <h3 class="mt-3 font-bold text-stone-900">거주자 검증</h3>
+        <p class="mt-2 text-sm text-stone-600">
+          같은 시군에 사는 거주자만 후기를 검증할 수 있습니다.
+          가짜 후기·홍보 글은 살아남지 못합니다.
+        </p>
+      </div>
+    </div>
+  </section>
+
+
+  {# 3.5. Region Match Wizard CTA #}
+  <section class="py-12 border-t border-stone-200">
+    <div class="rounded-lg bg-emerald-50 p-8 text-center space-y-4">
+      <span class="inline-flex h-12 w-12 items-center justify-center rounded-full bg-white text-emerald-700">{{ icon("target", 26) }}</span>
+      <h2 class="text-2xl font-bold text-stone-900">
+        나에게 맞는 시군 찾기
+      </h2>
+      <p class="text-stone-600 max-w-lg mx-auto">
+        라이프스타일·예산·의료·자녀 방문 등을 종합해 5개 질문으로 Top 3 시군을 알려드립니다.
+        비로그인도 사용 가능합니다.
+      </p>
+      <a href="/match/wizard"
+         class="inline-block rounded-md bg-emerald-600 px-6 py-3 font-semibold text-white hover:bg-emerald-700">
+        시작하기 →
+      </a>
+    </div>
+  </section>
+
+  {# 4a. 지금 활발한 시군 (dynamic) #}
+  {% if data.recommended_regions %}
+  <section class="py-12 border-t border-stone-200">
+    <h2 class="flex items-center justify-center gap-2 text-2xl font-bold text-stone-900 mb-10">
+      <span class="text-emerald-600">{{ icon("trees", 24) }}</span>지금 활발한 시군
+    </h2>
+    <div class="grid gap-4 sm:grid-cols-2">
+      {% for region in data.recommended_regions %}
+        <a href="/hub/{{ region.slug }}"
+           class="rounded-lg border border-stone-200 bg-white p-6 hover:border-stone-300 hover:shadow-sm transition block">
+          <p class="font-bold text-stone-900">{{ region.sigungu }}</p>
+          <p class="text-xs text-stone-500 mt-1">{{ region.sido }}</p>
+          {% if region.description %}
+            <p class="mt-2 text-sm text-stone-600 line-clamp-2">{{ region.description }}</p>
+          {% endif %}
+        </a>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  {# 4b. 인기 후기 (dynamic) — featured testimonial과 중복되지 않는 post만 #}
+  {% set _grid_posts = data.popular_reviews | rejectattr("id", "equalto", data.featured_testimonial.id if data.featured_testimonial else -1) | list %}
+  {% if _grid_posts %}
+  <section class="py-12 border-t border-stone-200">
+    <h2 class="flex items-center justify-center gap-2 text-2xl font-bold text-stone-900 mb-10">
+      <span class="text-emerald-600">{{ icon("file-pen", 24) }}</span>인기 후기
+    </h2>
+    <div class="grid gap-4 sm:grid-cols-2">
+      {% for post in _grid_posts %}
+        {% include "partials/post_card.html" %}
+      {% endfor %}
+    </div>
+    <div class="mt-6 text-center">
+      <a href="/discover" class="text-emerald-700 hover:underline text-sm">후기 더 보기 →</a>
+    </div>
+  </section>
+  {% endif %}
+
+  {# 5. How it works #}
+  <section class="py-12 border-t border-stone-200">
+    <h2 class="text-2xl font-bold text-center text-stone-900 mb-10">
+      이렇게 시작하세요
+    </h2>
+    <div class="grid gap-6 sm:grid-cols-3">
+      <div class="text-center">
+        <div class="mx-auto w-12 h-12 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-lg">1</div>
+        <h3 class="mt-3 font-bold text-stone-900">회원가입</h3>
+        <p class="mt-2 text-sm text-stone-600">
+          카카오 또는 이메일로 30초 내 가입.
+        </p>
+      </div>
+      <div class="text-center">
+        <div class="mx-auto w-12 h-12 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-lg">2</div>
+        <h3 class="mt-3 font-bold text-stone-900">관심 지역 선택</h3>
+        <p class="mt-2 text-sm text-stone-600">
+          양평·가평·춘천 등 시군별 허브 탐색.
+        </p>
+      </div>
+      <div class="text-center">
+        <div class="mx-auto w-12 h-12 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-lg">3</div>
+        <h3 class="mt-3 font-bold text-stone-900">참여하기</h3>
+        <p class="mt-2 text-sm text-stone-600">
+          질문·정착계획 작성, 거주 인증 후 후기·Journey 공유.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  {# 6. Bottom CTA #}
+  <section class="mt-12 rounded-lg bg-emerald-600 py-12 px-6 text-center text-white">
+    <h2 class="text-2xl sm:text-4xl font-bold leading-tight tracking-tight break-keep">
+      <span class="block sm:inline">당신의 정착,</span>
+      <span class="block sm:inline">더 이상 혼자 헤매지 마세요</span>
+    </h2>
+    <p class="mt-3 text-emerald-50">
+      먼저 도착한 사람들이 기다리고 있습니다.
+    </p>
+    <div class="mt-6 flex flex-col sm:flex-row justify-center gap-3">
+      <a href="/auth/kakao/start"
+         class="inline-flex items-center justify-center gap-2 rounded-md bg-yellow-300 px-6 py-3 font-semibold text-stone-900 hover:bg-yellow-400">
+        {{ icon("message-circle", 20) }}카카오로 1초 시작
+      </a>
+      <a href="/auth/signup"
+         class="rounded-md bg-white px-6 py-3 font-semibold text-emerald-700 hover:bg-stone-50">
+        이메일로 가입
+      </a>
+    </div>
+  </section>
+{% endif %}
+{% endblock %}
