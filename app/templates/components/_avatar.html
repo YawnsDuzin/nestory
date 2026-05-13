@@ -3,7 +3,7 @@
    {% from "components/_avatar.html" import avatar %}
    {{ avatar(post.author, 40) }}
    유저 없을 때(익명·삭제)도 안전. #}
-{% macro avatar(user, size=40) -%}
+{% macro avatar(user, size=40, extra_class="") -%}
   {% set classes = {
     28: "h-7 w-7 text-xs",
     32: "h-8 w-8 text-sm",
@@ -17,10 +17,10 @@
     <img src="/img/{{ user.avatar_image_id }}/medium"
          alt=""
          loading="lazy"
-         class="inline-flex shrink-0 rounded-full object-cover bg-stone-100 {{ classes }}">
+         class="inline-flex shrink-0 rounded-full object-cover bg-stone-100 {{ classes }} {{ extra_class }}">
   {% else %}
     {% set letter = (user.username[:1] | upper) if user and user.username else "?" %}
-    <span class="inline-flex shrink-0 items-center justify-center rounded-full bg-emerald-600 font-semibold text-white {{ classes }}"
+    <span class="inline-flex shrink-0 items-center justify-center rounded-full bg-emerald-600 font-semibold text-white {{ classes }} {{ extra_class }}"
           aria-hidden="true">{{ letter }}</span>
   {% endif %}
 {%- endmacro %}
