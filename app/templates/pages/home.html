@@ -137,30 +137,83 @@
 {% else %}
   {# === 비로그인 방문자용 marketing landing === #}
 
-  {# 1. Hero #}
-  <section class="text-center py-12 sm:py-16">
-    <h1 class="text-3xl sm:text-5xl font-bold text-stone-900 leading-tight tracking-tight break-keep">
-      <span class="block sm:inline">전원생활 정착의 여정,</span>
-      <span class="block sm:inline">우리가 함께합니다</span>
+  {# 1. Hero — T축(시계열) 직접 노출 + featured testimonial + 페르소나 통합 #}
+  <section class="rounded-2xl bg-gradient-to-br from-emerald-50 via-white to-emerald-50 px-4 sm:px-8 py-12 sm:py-16">
+    <h1 class="text-3xl sm:text-5xl font-bold text-stone-900 leading-tight tracking-tight break-keep text-center">
+      <span class="block">1년차에 좋다는 후기는 많아도,</span>
+      <span class="block sm:inline">3년차의 진실은 어디서 듣나요?</span>
     </h1>
-    <p class="mt-6 text-base sm:text-lg text-stone-600 max-w-xl mx-auto">
-      예비 입주자부터 1년차·3년차 거주자까지.<br>
-      후기·Journey·Q&amp;A로 이어지는 신뢰 커뮤니티.
+    <p class="mt-6 text-base sm:text-lg text-stone-600 max-w-xl mx-auto text-center">
+      같은 사람의 1년차 → 3년차 회고로<br>
+      가짜 후기 없이 정착의 진실을 봅니다.
     </p>
-    <div class="mt-8 flex flex-col sm:flex-row justify-center gap-3">
+
+    {# Featured testimonial — popular_reviews[0] 가 있을 때만 #}
+    {% if data.featured_testimonial %}
+      {% set t = data.featured_testimonial %}
+      {# TODO(P1.5 PostHog): emit landing_testimonial_click {post_id: t.id} on click #}
+      <a href="/post/{{ t.id }}"
+         class="block mt-8 mx-auto max-w-2xl rounded-xl border border-emerald-200 bg-white/80 backdrop-blur p-5 sm:p-6 hover:border-emerald-300 hover:shadow-sm transition">
+        <p class="text-stone-800 leading-relaxed">
+          "{{ t.body | excerpt(140) }}"
+        </p>
+        <p class="mt-3 text-sm text-stone-500">
+          — {{ t.region.sigungu }}
+          {% set _yl = t.author.resident_verified_at | resident_year %}
+          {% if _yl %} {{ _yl }}{% endif %}
+          @{{ t.author.username }} · 후기 보기 →
+        </p>
+      </a>
+    {% endif %}
+
+    {# 페르소나 자가선택 — 기존 하단 섹션을 hero 로 흡수 #}
+    <div class="mt-10">
+      <h2 class="text-lg sm:text-xl font-semibold text-stone-900 text-center mb-4">
+        당신은 어떤 분이신가요?
+      </h2>
+      <div class="grid gap-3 sm:grid-cols-3 max-w-3xl mx-auto">
+        {# TODO(P1.5 PostHog): landing_persona_select {persona: "considering"} on click #}
+        <a href="/match/wizard"
+           class="rounded-lg border border-emerald-200 bg-white p-4 hover:border-emerald-400 hover:shadow-sm transition">
+          <span class="inline-flex h-9 w-9 items-center justify-center rounded-md bg-emerald-50 text-emerald-700">{{ icon("search", 18) }}</span>
+          <h3 class="mt-2 font-bold text-stone-900">예비 입주자</h3>
+          <p class="mt-1 text-sm text-stone-600">정착 검토 중이신가요?</p>
+          <p class="mt-2 text-sm font-medium text-emerald-700">→ 5문항 매칭</p>
+        </a>
+        {# TODO(P1.5 PostHog): landing_persona_select {persona: "early_resident"} on click #}
+        <a href="/auth/signup"
+           class="rounded-lg border border-emerald-200 bg-white p-4 hover:border-emerald-400 hover:shadow-sm transition">
+          <span class="inline-flex h-9 w-9 items-center justify-center rounded-md bg-emerald-50 text-emerald-700">{{ icon("home", 18) }}</span>
+          <h3 class="mt-2 font-bold text-stone-900">1-3년차 거주자</h3>
+          <p class="mt-1 text-sm text-stone-600">겪은 일을 데이터로</p>
+          <p class="mt-2 text-sm font-medium text-emerald-700">→ 가입하고 후기 남기기</p>
+        </a>
+        {# TODO(P1.5 PostHog): landing_persona_select {persona: "veteran"} on click #}
+        <a href="/auth/signup"
+           class="rounded-lg border border-emerald-200 bg-white p-4 hover:border-emerald-400 hover:shadow-sm transition">
+          <span class="inline-flex h-9 w-9 items-center justify-center rounded-md bg-emerald-50 text-emerald-700">{{ icon("trees", 18) }}</span>
+          <h3 class="mt-2 font-bold text-stone-900">5년+ 베테랑</h3>
+          <p class="mt-1 text-sm text-stone-600">정착 전 과정 아카이빙</p>
+          <p class="mt-2 text-sm font-medium text-emerald-700">→ Journey 연재</p>
+        </a>
+      </div>
+    </div>
+
+    {# 1차 CTA = 카카오. 이메일은 보조 텍스트 링크로 강등. #}
+    <div class="mt-10 flex flex-col items-center gap-3">
+      {# TODO(P1.5 PostHog): landing_cta_kakao_click on click #}
       <a href="/auth/kakao/start"
-         class="inline-flex items-center justify-center gap-2 rounded-md bg-yellow-300 px-6 py-3 font-semibold text-stone-900 hover:bg-yellow-400">
+         class="inline-flex items-center justify-center gap-2 rounded-md bg-yellow-300 px-8 py-3 text-base font-semibold text-stone-900 hover:bg-yellow-400">
         {{ icon("message-circle", 20) }}카카오로 1초 시작
       </a>
-      <a href="/auth/signup"
-         class="rounded-md bg-emerald-600 px-6 py-3 font-semibold text-white hover:bg-emerald-700">
-        이메일로 가입
-      </a>
+      <p class="text-sm text-stone-500">
+        {# TODO(P1.5 PostHog): landing_cta_signup_click on click #}
+        <a href="/auth/signup" class="text-emerald-700 hover:underline">이메일로 가입</a>
+        ·
+        이미 계정이 있으신가요?
+        <a href="/auth/login" class="text-emerald-700 hover:underline">로그인</a>
+      </p>
     </div>
-    <p class="mt-4 text-sm text-stone-500">
-      이미 계정이 있으신가요?
-      <a href="/auth/login" class="text-emerald-700 hover:underline">로그인</a>
-    </p>
   </section>
 
   {# 2. 4 Pillar #}
@@ -207,38 +260,6 @@
     </div>
   </section>
 
-  {# 3. 페르소나 #}
-  <section class="py-12 border-t border-stone-200">
-    <h2 class="text-2xl font-bold text-center text-stone-900 mb-10">
-      당신은 어떤 분이신가요?
-    </h2>
-    <div class="grid gap-4 sm:grid-cols-3">
-      <div class="rounded-lg border border-emerald-100 bg-emerald-50 p-6">
-        <span class="inline-flex h-10 w-10 items-center justify-center rounded-md bg-white text-emerald-700">{{ icon("search", 22) }}</span>
-        <h3 class="mt-3 font-bold text-stone-900">예비 입주자</h3>
-        <p class="mt-2 text-sm text-stone-700">
-          정착을 검토 중이신가요? 먼저 도착한 분들의 후기로
-          시군을 비교하고, "정착 계획"을 작성해 미리 조언을 받으세요.
-        </p>
-      </div>
-      <div class="rounded-lg border border-emerald-100 bg-emerald-50 p-6">
-        <span class="inline-flex h-10 w-10 items-center justify-center rounded-md bg-white text-emerald-700">{{ icon("home", 22) }}</span>
-        <h3 class="mt-3 font-bold text-stone-900">1-3년차 거주자</h3>
-        <p class="mt-2 text-sm text-stone-700">
-          겪은 일을 데이터로 남기고, 후배 정착자의
-          질문에 답하세요. 같은 지역 거주자가 당신을 검증합니다.
-        </p>
-      </div>
-      <div class="rounded-lg border border-emerald-100 bg-emerald-50 p-6">
-        <span class="inline-flex h-10 w-10 items-center justify-center rounded-md bg-white text-emerald-700">{{ icon("trees", 22) }}</span>
-        <h3 class="mt-3 font-bold text-stone-900">5년+ 베테랑</h3>
-        <p class="mt-2 text-sm text-stone-700">
-          Journey 연재로 정착의 전 과정을 아카이빙하세요.
-          지역의 멘토가 되어 후배에게 길을 알려주세요.
-        </p>
-      </div>
-    </div>
-  </section>
 
   {# 3.5. Region Match Wizard CTA #}
   <section class="py-12 border-t border-stone-200">
@@ -286,7 +307,7 @@
       <span class="text-emerald-600">{{ icon("file-pen", 24) }}</span>인기 후기
     </h2>
     <div class="grid gap-4 sm:grid-cols-2">
-      {% for post in data.popular_reviews %}
+      {% for post in data.popular_reviews if not (data.featured_testimonial and post.id == data.featured_testimonial.id) %}
         {% include "partials/post_card.html" %}
       {% endfor %}
     </div>
