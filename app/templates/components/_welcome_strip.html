@@ -1,0 +1,32 @@
+{% from "components/_icon.html" import icon %}
+{% from "components/_avatar.html" import avatar %}
+{# components/_welcome_strip.html — 로그인 사용자 컴팩트 웰컴.
+   Expects: current_user. #}
+<header class="flex items-center gap-3 py-3 border-b border-stone-100">
+  {{ avatar(current_user, 40, "shadow-sm") }}
+  <div class="min-w-0 flex-1">
+    <p class="text-sm text-stone-600 truncate">
+      안녕하세요, <span class="font-semibold text-stone-900">@{{ current_user.username }}</span> 님
+    </p>
+    <div class="mt-0.5">
+      {% set _bv = current_user.badge_level.value %}
+      {% if _bv == "resident" %}
+        <span class="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
+          <span class="text-emerald-600">{{ icon("home", 12) }}</span>거주자 인증
+        </span>
+      {% elif _bv == "ex_resident" %}
+        <span class="inline-flex items-center gap-1 rounded-full border border-stone-200 bg-white px-2 py-0.5 text-xs font-medium text-stone-700">
+          <span class="text-stone-600">{{ icon("home", 12) }}</span>전 거주자
+        </span>
+      {% elif _bv == "region_verified" %}
+        <span class="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-700">
+          <span class="text-sky-600">{{ icon("check-circle", 12) }}</span>지역 인증
+        </span>
+      {% else %}
+        <span class="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-white px-2 py-0.5 text-xs font-medium text-emerald-700">
+          <span class="text-emerald-600">{{ icon("heart", 12) }}</span>관심자
+        </span>
+      {% endif %}
+    </div>
+  </div>
+</header>
