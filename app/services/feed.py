@@ -27,17 +27,50 @@ class HomeData:
     recent_journeys: list[Post]
     followed_episodes: list[Post]
     featured_testimonial: Post | None
+    mixed_feed: list[Post]
+    region_activity: list["RegionActivity"]
 
 
 def home_data(db: Session, user: User | None) -> HomeData:
     """Return home page data: recommended regions, popular/recent posts, followed episodes."""
-    regions = list(
-        db.scalars(
-            select(Region)
-            .order_by(Region.is_pilot.desc(), Region.id.asc())
-            .limit(4)
-        ).all()
+    # recommended_regions: 로그인 + UserInterestRegion 있으면 그 시군 우선,
+    # 부족분은 기본 정렬로 보충
+    interest_ids: list[int] = []
+    if user is not None:
+        interest_ids = list(
+            db.scalars(
+                select(UserInterestRegion.region_id)
+                .where(UserInterestRegion.user_id == user.id)
+                .order_by(UserInterestRegion.priority.asc(), UserInterestRegion.created_at.asc())
+            ).all()
+        )
+
+    base_query = (
+        select(Region)
+        .order_by(Region.is_pilot.desc(), Region.id.asc())
     )
+    if interest_ids:
+        interest_regions = list(
+            db.scalars(
+                select(Region)
+                .where(Region.id.in_(interest_ids))
+            ).all()
+        )
+        # interest_ids 순서대로 재정렬
+        order = {rid: i for i, rid in enumerate(interest_ids)}
+        interest_regions.sort(key=lambda r: order[r.id])
+
+        fill_count = max(0, 4 - len(interest_regions))
+        fill_regions = list(
+            db.scalars(
+                base_query
+                .where(Region.id.not_in(interest_ids))
+                .limit(fill_count)
+            ).all()
+        ) if fill_count > 0 else []
+        regions = interest_regions[:4] + fill_regions
+    else:
+        regions = list(db.scalars(base_query.limit(4)).all())
 
     popular_reviews = list(
         db.scalars(
@@ -88,12 +121,17 @@ def home_data(db: Session, user: User | None) -> HomeData:
             ).all()
         )
 
+    mixed_feed = home_mixed_feed(db, user) if user is not None else []
+    region_activity = region_activity_summary(db, regions)
+
     return HomeData(
         recommended_regions=regions,
         popular_reviews=popular_reviews,
         recent_journeys=recent_journeys,
         followed_episodes=followed_episodes,
         featured_testimonial=popular_reviews[0] if popular_reviews else None,
+        mixed_feed=mixed_feed,
+        region_activity=region_activity,
     )
 
 

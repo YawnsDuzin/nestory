@@ -501,3 +501,64 @@ def test_home_mixed_feed_excludes_old_posts(db: Session) -> None:
     ids = {p.id for p in feed}
     assert recent.id in ids
     assert old.id not in ids
+
+
+# ---------------------------------------------------------------------------
+# 20. home_data — mixed_feed (로그인 사용자)
+# ---------------------------------------------------------------------------
+
+
+def test_home_data_includes_mixed_feed_for_logged_in(db: Session) -> None:
+    user = UserFactory()
+    region = RegionFactory(slug="hd-region")
+    _published_review(region, title="피드후기")
+    db.flush()
+    data = feed_service.home_data(db, user)
+    assert len(data.mixed_feed) >= 1
+    assert any(p.title == "피드후기" for p in data.mixed_feed)
+
+
+# ---------------------------------------------------------------------------
+# 21. home_data — mixed_feed 비로그인 시 빈 리스트
+# ---------------------------------------------------------------------------
+
+
+def test_home_data_empty_mixed_feed_for_anon(db: Session) -> None:
+    region = RegionFactory(slug="hd-anon")
+    _published_review(region)
+    db.flush()
+    data = feed_service.home_data(db, None)
+    assert data.mixed_feed == []
+
+
+# ---------------------------------------------------------------------------
+# 22. home_data — region_activity 와 recommended_regions 1:1 정렬 일치
+# ---------------------------------------------------------------------------
+
+
+def test_home_data_region_activity_aligned_with_recommended(db: Session) -> None:
+    """region_activity와 recommended_regions의 길이·순서가 일치."""
+    PilotRegionFactory(slug="hd-r1")
+    PilotRegionFactory(slug="hd-r2")
+    db.flush()
+    data = feed_service.home_data(db, None)
+    assert len(data.region_activity) == len(data.recommended_regions)
+    for ra, region in zip(data.region_activity, data.recommended_regions, strict=True):
+        assert ra.region.id == region.id
+
+
+# ---------------------------------------------------------------------------
+# 23. home_data — UserInterestRegion 있으면 recommended_regions 상위 우선
+# ---------------------------------------------------------------------------
+
+
+def test_home_data_prefers_user_interest_regions(db: Session) -> None:
+    """로그인 시 UserInterestRegion이 있으면 recommended_regions 상위에 포함."""
+    user = UserFactory()
+    interest = RegionFactory(slug="hd-interest", is_pilot=False, sigungu="관심시군")
+    # pilot region은 default 정렬상 우선이지만, interest region이 더 상위여야 함
+    PilotRegionFactory(slug="hd-pilot-1")
+    UserInterestRegionFactory(user=user, region=interest)
+    db.flush()
+    data = feed_service.home_data(db, user)
+    assert data.recommended_regions[0].id == interest.id
