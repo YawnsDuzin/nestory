@@ -1,5 +1,6 @@
 """Feed service — home page data and global post feed."""
 from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
@@ -9,6 +10,13 @@ from app.models._enums import PostStatus, PostType
 from app.models.interaction import journey_follows
 
 PAGE_SIZE = 20
+
+
+@dataclass
+class RegionActivity:
+    region: Region
+    new_reviews_7d: int
+    new_questions_7d: int
 
 
 @dataclass
@@ -88,6 +96,42 @@ def home_data(db: Session, user: User | None) -> HomeData:
     )
 
 
+def region_activity_summary(db: Session, regions: list[Region]) -> list[RegionActivity]:
+    """주어진 시군들의 최근 7일 published review·question 카운터를 반환.
+
+    입력 순서를 보존한다. 단일 GROUP BY 쿼리 — N+1 없음.
+    """
+    if not regions:
+        return []
+    region_ids = [r.id for r in regions]
+    cutoff = datetime.now(UTC) - timedelta(days=7)
+
+    rows = db.execute(
+        select(Post.region_id, Post.type, func.count().label("cnt"))
+        .where(
+            Post.region_id.in_(region_ids),
+            Post.status == PostStatus.PUBLISHED,
+            Post.deleted_at.is_(None),
+            Post.published_at >= cutoff,
+            Post.type.in_([PostType.REVIEW, PostType.QUESTION]),
+        )
+        .group_by(Post.region_id, Post.type)
+    ).all()
+
+    # (region_id, type) → count
+    counts: dict[tuple[int, PostType], int] = {
+        (r.region_id, r.type): r.cnt for r in rows
+    }
+    return [
+        RegionActivity(
+            region=region,
+            new_reviews_7d=counts.get((region.id, PostType.REVIEW), 0),
+            new_questions_7d=counts.get((region.id, PostType.QUESTION), 0),
+        )
+        for region in regions
+    ]
+
+
 def global_feed(db: Session, *, page: int = 1) -> tuple[list[Post], int]:
     """Return all published posts ordered by published_at DESC, paginated."""
     base = (
@@ -106,6 +150,8 @@ def global_feed(db: Session, *, page: int = 1) -> tuple[list[Post], int]:
 __all__ = [
     "PAGE_SIZE",
     "HomeData",
+    "RegionActivity",
     "home_data",
+    "region_activity_summary",
     "global_feed",
 ]

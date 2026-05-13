@@ -14,16 +14,18 @@ Covers:
 NOTE: These tests require a running Postgres instance.
       They CANNOT be executed on a no-Docker PC — run on docker-up PC.
 """
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy.orm import Session
 
 from app.models._enums import PostStatus
 from app.services import feed as feed_service
+from app.services.feed import RegionActivity, region_activity_summary
 from app.tests.factories import (
     JourneyEpisodePostFactory,
     JourneyFactory,
     PilotRegionFactory,
+    QuestionPostFactory,
     RegionFactory,
     ReviewPostFactory,
     UserFactory,
@@ -302,3 +304,51 @@ def test_home_data_featured_testimonial_none_when_no_reviews(db: Session) -> Non
     data = feed_service.home_data(db, None)
     assert data.popular_reviews == []
     assert data.featured_testimonial is None
+
+
+# ---------------------------------------------------------------------------
+# 12. RegionActivity — region_activity_summary
+# ---------------------------------------------------------------------------
+
+
+def test_region_activity_counts_within_7d_window(db: Session) -> None:
+    """RegionActivity는 7일 내 published review·question을 카운트한다."""
+    region = RegionFactory(slug="ra-region")
+    now = datetime.now(UTC)
+    # 7일 내 — 카운트
+    _published_review(region, published_at=now - timedelta(days=1))
+    _published_review(region, published_at=now - timedelta(days=6))
+    QuestionPostFactory(
+        region=region, status=PostStatus.PUBLISHED, published_at=now - timedelta(days=2)
+    )
+    # 7일 밖 — 제외
+    _published_review(region, published_at=now - timedelta(days=8))
+    # DRAFT — 제외
+    ReviewPostFactory(region=region, status=PostStatus.DRAFT)
+    db.commit()
+
+    result = region_activity_summary(db, [region])
+    assert len(result) == 1
+    assert isinstance(result[0], RegionActivity)
+    assert result[0].region.id == region.id
+    assert result[0].new_reviews_7d == 2
+    assert result[0].new_questions_7d == 1
+
+
+def test_region_activity_returns_zero_for_inactive_region(db: Session) -> None:
+    """활동 없는 시군은 카운터 0/0으로 반환."""
+    region = RegionFactory(slug="ra-quiet")
+    db.commit()
+    result = region_activity_summary(db, [region])
+    assert result[0].new_reviews_7d == 0
+    assert result[0].new_questions_7d == 0
+
+
+def test_region_activity_preserves_input_order(db: Session) -> None:
+    """입력 region 순서 그대로 RegionActivity를 반환."""
+    r1 = RegionFactory(slug="ra-a")
+    r2 = RegionFactory(slug="ra-b")
+    r3 = RegionFactory(slug="ra-c")
+    db.commit()
+    result = region_activity_summary(db, [r2, r3, r1])
+    assert [ra.region.id for ra in result] == [r2.id, r3.id, r1.id]
