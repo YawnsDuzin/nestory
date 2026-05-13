@@ -24,15 +24,13 @@ class RegionActivity:
 class HomeData:
     recommended_regions: list[Region]
     popular_reviews: list[Post]
-    recent_journeys: list[Post]
-    followed_episodes: list[Post]
     featured_testimonial: Post | None
     mixed_feed: list[Post]
     region_activity: list["RegionActivity"]
 
 
 def home_data(db: Session, user: User | None) -> HomeData:
-    """Return home page data: recommended regions, popular/recent posts, followed episodes."""
+    """Return home page data: recommended regions, popular reviews, mixed feed."""
     # recommended_regions: 로그인 + UserInterestRegion 있으면 그 시군 우선,
     # 부족분은 기본 정렬로 보충
     interest_ids: list[int] = []
@@ -86,57 +84,12 @@ def home_data(db: Session, user: User | None) -> HomeData:
         ).all()
     )
 
-    recent_journeys = list(
-        db.scalars(
-            select(Post)
-            .where(
-                Post.type == PostType.JOURNEY_EPISODE,
-                Post.status == PostStatus.PUBLISHED,
-                Post.deleted_at.is_(None),
-            )
-            .options(
-                selectinload(Post.author),
-                selectinload(Post.region),
-                selectinload(Post.journey),
-            )
-            .order_by(Post.published_at.desc())
-            .limit(4)
-        ).all()
-    )
-
-    followed_episodes: list[Post] = []
-    if user is not None:
-        followed_episodes = list(
-            db.scalars(
-                select(Post)
-                .join(
-                    journey_follows,
-                    journey_follows.c.journey_id == Post.journey_id,
-                )
-                .where(
-                    journey_follows.c.user_id == user.id,
-                    Post.type == PostType.JOURNEY_EPISODE,
-                    Post.status == PostStatus.PUBLISHED,
-                    Post.deleted_at.is_(None),
-                )
-                .options(
-                    selectinload(Post.author),
-                    selectinload(Post.region),
-                    selectinload(Post.journey),
-                )
-                .order_by(Post.published_at.desc())
-                .limit(8)
-            ).all()
-        )
-
     mixed_feed = home_mixed_feed(db, user) if user is not None else []
-    region_activity = region_activity_summary(db, regions)
+    region_activity = region_activity_summary(db, regions) if user is not None else []
 
     return HomeData(
         recommended_regions=regions,
         popular_reviews=popular_reviews,
-        recent_journeys=recent_journeys,
-        followed_episodes=followed_episodes,
         featured_testimonial=popular_reviews[0] if popular_reviews else None,
         mixed_feed=mixed_feed,
         region_activity=region_activity,

@@ -1,15 +1,16 @@
 """Integration tests for home_data and global_feed services.
 
 Covers:
-- Anonymous user has empty followed_episodes
 - recommended_regions ordered by is_pilot DESC, id ASC
 - popular_reviews ordered by view_count DESC
-- recent_journeys ordered by published_at DESC
-- Logged-in user: followed_episodes only from journeys the user follows
-- followed_episodes excludes DRAFT episodes
 - global_feed pagination (page 1 = 20, page 2 = remainder)
 - global_feed ordered by published_at DESC
 - global_feed excludes DRAFT and soft-deleted posts
+- home_mixed_feed scoring / diversity / filtering
+- region_activity_summary counts and ordering
+
+NOTE: Tests 1/4/5/6 (recent_journeys, followed_episodes) were removed in
+      perf(feed) commit — those HomeData fields no longer exist.
 
 NOTE: These tests require a running Postgres instance.
       They CANNOT be executed on a no-Docker PC — run on docker-up PC.
@@ -61,17 +62,6 @@ def _published_episode(region, journey, *, published_at=None, **kwargs):
 
 
 # ---------------------------------------------------------------------------
-# 1. Anonymous user — empty followed_episodes
-# ---------------------------------------------------------------------------
-
-
-def test_home_data_anonymous_user_has_empty_followed_episodes(db: Session) -> None:
-    """home_data(db, None) must return followed_episodes == []."""
-    data = feed_service.home_data(db, None)
-    assert data.followed_episodes == []
-
-
-# ---------------------------------------------------------------------------
 # 2. recommended_regions — pilot first, then id ASC
 # ---------------------------------------------------------------------------
 
@@ -107,92 +97,6 @@ def test_home_data_popular_reviews_view_count_desc(db: Session) -> None:
     assert len(data.popular_reviews) >= 3
     # Highest-viewed post must be first
     assert data.popular_reviews[0].id == top.id
-
-
-# ---------------------------------------------------------------------------
-# 4. recent_journeys — ordered by published_at DESC
-# ---------------------------------------------------------------------------
-
-
-def test_home_data_recent_journeys_published_at_desc(db: Session) -> None:
-    """recent_journeys must be ordered by published_at descending."""
-    region = RegionFactory(slug="feed-recent-journeys")
-    journey = JourneyFactory(region=region)
-
-    older = _published_episode(
-        region, journey,
-        published_at=datetime(2025, 1, 1, tzinfo=UTC),
-    )
-    newer = _published_episode(
-        region, journey,
-        published_at=datetime(2026, 3, 1, tzinfo=UTC),
-    )
-    db.flush()
-
-    data = feed_service.home_data(db, None)
-    ep_ids = [p.id for p in data.recent_journeys]
-    assert newer.id in ep_ids
-    assert older.id in ep_ids
-    # Newer must appear before older
-    assert ep_ids.index(newer.id) < ep_ids.index(older.id)
-
-
-# ---------------------------------------------------------------------------
-# 5. Logged-in user — followed_episodes only from followed journeys
-# ---------------------------------------------------------------------------
-
-
-def test_home_data_logged_in_user_followed_episodes_only_followed_journeys(
-    db: Session,
-) -> None:
-    """Only episodes belonging to journeys the user follows must appear."""
-    region = RegionFactory(slug="feed-followed-eps")
-    user = UserFactory()
-
-    journey_followed = JourneyFactory(region=region)
-    journey_other = JourneyFactory(region=region)
-
-    followed_ep = _published_episode(region, journey_followed)
-    other_ep = _published_episode(region, journey_other)
-    db.flush()
-
-    add_journey_follow(db, user, journey_followed)
-    db.flush()
-
-    data = feed_service.home_data(db, user)
-    ep_ids = {p.id for p in data.followed_episodes}
-    assert followed_ep.id in ep_ids
-    assert other_ep.id not in ep_ids
-
-
-# ---------------------------------------------------------------------------
-# 6. followed_episodes — DRAFT excluded
-# ---------------------------------------------------------------------------
-
-
-def test_home_data_followed_episodes_excludes_draft(db: Session) -> None:
-    """DRAFT episodes must not appear in followed_episodes."""
-    region = RegionFactory(slug="feed-followed-draft")
-    user = UserFactory()
-    journey = JourneyFactory(region=region)
-
-    published_ep = _published_episode(region, journey)
-    # DRAFT episode in the same followed journey
-    JourneyEpisodePostFactory(
-        status=PostStatus.DRAFT,
-        region=region,
-        journey=journey,
-    )
-    db.flush()
-
-    add_journey_follow(db, user, journey)
-    db.flush()
-
-    data = feed_service.home_data(db, user)
-    ep_ids = {p.id for p in data.followed_episodes}
-    assert published_ep.id in ep_ids
-    for ep in data.followed_episodes:
-        assert ep.status == PostStatus.PUBLISHED
 
 
 # ---------------------------------------------------------------------------
@@ -537,11 +441,15 @@ def test_home_data_empty_mixed_feed_for_anon(db: Session) -> None:
 
 
 def test_home_data_region_activity_aligned_with_recommended(db: Session) -> None:
-    """region_activity와 recommended_regions의 길이·순서가 일치."""
+    """region_activity와 recommended_regions의 길이·순서가 일치.
+
+    region_activity는 로그인 사용자에게만 계산된다 (anon → []).
+    """
+    user = UserFactory()
     PilotRegionFactory(slug="hd-r1")
     PilotRegionFactory(slug="hd-r2")
     db.flush()
-    data = feed_service.home_data(db, None)
+    data = feed_service.home_data(db, user)
     assert len(data.region_activity) == len(data.recommended_regions)
     for ra, region in zip(data.region_activity, data.recommended_regions, strict=True):
         assert ra.region.id == region.id
