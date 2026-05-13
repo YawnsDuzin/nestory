@@ -8,8 +8,16 @@ from sqlalchemy.orm import Session
 from app.deps import get_db, require_user
 from app.models import Region, User
 from app.models._enums import BadgeRequestedLevel, EvidenceType
-from app.services import badges, evidence_storage
+from app.services import badges, evidence_storage, profile
+from app.services import images as images_service
 from app.services import regions as regions_service
+from app.services.profile import (
+    AvatarOwnershipError,
+    PasswordChangeNotAllowed,
+    ProfileError,
+    UsernameTakenError,
+    UsernameThrottledError,
+)
 from app.templating import templates
 
 router = APIRouter(prefix="/me", tags=["me"])
@@ -171,3 +179,121 @@ def profile_password_page(
         "pages/me/profile/password.html",
         {"current_user": user},
     )
+
+
+@router.post("/profile")
+def profile_save(
+    request: Request,
+    display_name: Annotated[str, Form()],
+    bio: Annotated[str, Form()] = "",
+    primary_region_id: Annotated[str, Form()] = "",
+    notify_email_enabled: Annotated[str, Form()] = "",
+    notify_kakao_enabled: Annotated[str, Form()] = "",
+    user: User = Depends(require_user),
+    db: Session = Depends(get_db),
+) -> RedirectResponse:
+    region_id_int: int | None = None
+    if primary_region_id.strip():
+        try:
+            region_id_int = int(primary_region_id)
+        except ValueError:
+            request.session["flash"] = "유효하지 않은 지역"
+            return RedirectResponse("/me/profile", status_code=status.HTTP_303_SEE_OTHER)
+    try:
+        profile.update_profile_basic(
+            db, user,
+            display_name=display_name,
+            bio=bio if bio.strip() else None,
+            primary_region_id=region_id_int,
+            notify_email_enabled=bool(notify_email_enabled),
+            notify_kakao_enabled=bool(notify_kakao_enabled),
+        )
+        db.commit()
+    except ProfileError as e:
+        request.session["flash"] = str(e)
+        return RedirectResponse("/me/profile", status_code=status.HTTP_303_SEE_OTHER)
+    request.session["flash"] = "저장되었습니다"
+    return RedirectResponse("/me/profile", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@router.post("/profile/avatar")
+async def profile_avatar_upload(
+    request: Request,
+    image: Annotated[UploadFile, File()],
+    user: User = Depends(require_user),
+    db: Session = Depends(get_db),
+) -> RedirectResponse:
+    try:
+        img = images_service.upload_image(db, user, image)
+        profile.set_avatar(db, user, img)
+        db.commit()
+    except HTTPException:
+        # images_service가 던지는 HTTPException은 그대로 raise — 글로벌 핸들러
+        db.rollback()
+        raise
+    except (AvatarOwnershipError, ProfileError) as e:
+        db.rollback()
+        request.session["flash"] = str(e)
+        return RedirectResponse("/me/profile", status_code=status.HTTP_303_SEE_OTHER)
+    request.session["flash"] = "사진이 변경되었습니다"
+    return RedirectResponse("/me/profile", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@router.post("/profile/avatar/delete")
+def profile_avatar_delete(
+    request: Request,
+    user: User = Depends(require_user),
+    db: Session = Depends(get_db),
+) -> RedirectResponse:
+    profile.clear_avatar(db, user)
+    db.commit()
+    request.session["flash"] = "사진이 제거되었습니다"
+    return RedirectResponse("/me/profile", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@router.post("/profile/username")
+def profile_username_change(
+    request: Request,
+    new_username: Annotated[str, Form()],
+    user: User = Depends(require_user),
+    db: Session = Depends(get_db),
+) -> RedirectResponse:
+    try:
+        profile.change_username(db, user, new_username=new_username)
+        db.commit()
+    except UsernameThrottledError as e:
+        request.session["flash"] = f"사용자명 변경은 {e.days_remaining}일 후 가능합니다"
+        return RedirectResponse("/me/profile/username", status_code=status.HTTP_303_SEE_OTHER)
+    except UsernameTakenError:
+        request.session["flash"] = "이미 사용 중인 사용자명입니다"
+        return RedirectResponse("/me/profile/username", status_code=status.HTTP_303_SEE_OTHER)
+    except ProfileError as e:
+        request.session["flash"] = str(e)
+        return RedirectResponse("/me/profile/username", status_code=status.HTTP_303_SEE_OTHER)
+    request.session["flash"] = "사용자명이 변경되었습니다"
+    return RedirectResponse("/me/profile", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@router.post("/profile/password")
+def profile_password_change(
+    request: Request,
+    current_password: Annotated[str, Form()],
+    new_password: Annotated[str, Form()],
+    user: User = Depends(require_user),
+    db: Session = Depends(get_db),
+) -> RedirectResponse:
+    try:
+        profile.change_password(
+            db, user,
+            current_password=current_password,
+            new_password=new_password,
+        )
+        db.commit()
+    except PasswordChangeNotAllowed:
+        # 카카오 가입자 — UI에서 폼 미노출이지만 직접 POST 시도 방어
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "카카오 계정은 비밀번호 변경 불가") from None
+    except ProfileError as e:
+        request.session["flash"] = str(e)
+        return RedirectResponse("/me/profile/password", status_code=status.HTTP_303_SEE_OTHER)
+    request.session["flash"] = "비밀번호가 변경되었습니다"
+    return RedirectResponse("/me/profile", status_code=status.HTTP_303_SEE_OTHER)
