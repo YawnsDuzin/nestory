@@ -27,6 +27,11 @@
       {% if post.author.badge_level.value in ("resident", "ex_resident") %}
         <span title="거주자 인증" class="inline-flex">{{ icon("verified", 14) }}</span>
       {% endif %}
+      {% if post.type.value == "journey_episode" and post.journey %}
+        <span class="ml-1.5 text-sm text-stone-500 truncate">
+          · 「{{ post.journey.title }}」 ep {{ post.episode_no }}
+        </span>
+      {% endif %}
       <span class="ml-1.5 text-sm text-stone-500">{{ relative_time(post.published_at, now()) }}</span>
       <button type="button" class="ml-auto rounded-full p-1 text-stone-400 hover:bg-stone-100 hover:text-stone-600" aria-label="더보기">{{ icon("more-horizontal", 18) }}</button>
     </header>
