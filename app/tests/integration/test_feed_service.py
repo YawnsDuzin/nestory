@@ -325,7 +325,7 @@ def test_region_activity_counts_within_7d_window(db: Session) -> None:
     _published_review(region, published_at=now - timedelta(days=8))
     # DRAFT — 제외
     ReviewPostFactory(region=region, status=PostStatus.DRAFT)
-    db.commit()
+    db.flush()
 
     result = region_activity_summary(db, [region])
     assert len(result) == 1
@@ -338,7 +338,7 @@ def test_region_activity_counts_within_7d_window(db: Session) -> None:
 def test_region_activity_returns_zero_for_inactive_region(db: Session) -> None:
     """활동 없는 시군은 카운터 0/0으로 반환."""
     region = RegionFactory(slug="ra-quiet")
-    db.commit()
+    db.flush()
     result = region_activity_summary(db, [region])
     assert result[0].new_reviews_7d == 0
     assert result[0].new_questions_7d == 0
@@ -349,6 +349,6 @@ def test_region_activity_preserves_input_order(db: Session) -> None:
     r1 = RegionFactory(slug="ra-a")
     r2 = RegionFactory(slug="ra-b")
     r3 = RegionFactory(slug="ra-c")
-    db.commit()
+    db.flush()
     result = region_activity_summary(db, [r2, r3, r1])
     assert [ra.region.id for ra in result] == [r2.id, r3.id, r1.id]

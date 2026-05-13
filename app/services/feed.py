@@ -109,11 +109,11 @@ def region_activity_summary(db: Session, regions: list[Region]) -> list[RegionAc
     rows = db.execute(
         select(Post.region_id, Post.type, func.count().label("cnt"))
         .where(
+            Post.type.in_([PostType.REVIEW, PostType.QUESTION]),
             Post.region_id.in_(region_ids),
             Post.status == PostStatus.PUBLISHED,
             Post.deleted_at.is_(None),
             Post.published_at >= cutoff,
-            Post.type.in_([PostType.REVIEW, PostType.QUESTION]),
         )
         .group_by(Post.region_id, Post.type)
     ).all()
