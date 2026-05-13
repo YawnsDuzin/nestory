@@ -195,7 +195,11 @@ def home_mixed_feed(db: Session, user: User, *, limit: int = 8) -> list[Post]:
                 Post.deleted_at.is_(None),
                 Post.published_at >= cutoff,
             )
-            .options(selectinload(Post.author), selectinload(Post.region))
+            .options(
+                selectinload(Post.author),
+                selectinload(Post.region),
+                selectinload(Post.journey),
+            )
             .order_by(Post.published_at.desc())
             .limit(_FEED_CANDIDATE_LIMIT)
         ).all()

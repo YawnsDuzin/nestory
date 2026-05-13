@@ -490,7 +490,7 @@ def test_home_mixed_feed_excludes_old_posts(db: Session) -> None:
     """14일 윈도 밖 post는 후보 제외."""
     user = UserFactory()
     region = RegionFactory(slug="mf-old")
-    _published_review(
+    old = _published_review(
         region, published_at=datetime.now(UTC) - timedelta(days=20), title="옛글"
     )
     recent = _published_review(
@@ -500,3 +500,4 @@ def test_home_mixed_feed_excludes_old_posts(db: Session) -> None:
     feed = home_mixed_feed(db, user, limit=8)
     ids = {p.id for p in feed}
     assert recent.id in ids
+    assert old.id not in ids
