@@ -165,12 +165,18 @@ def update_profile_basic(
 
 def set_avatar(db: Session, user: User, image: Image) -> User:
     """Set user.avatar_image_id. Raises AvatarOwnershipError if image.owner_id != user.id."""
-    raise NotImplementedError
+    if image.owner_id != user.id:
+        raise AvatarOwnershipError()
+    user.avatar_image_id = image.id
+    db.flush()
+    return user
 
 
 def clear_avatar(db: Session, user: User) -> User:
     """Set user.avatar_image_id to None. Old Image row is preserved (orphan GC = P2)."""
-    raise NotImplementedError
+    user.avatar_image_id = None
+    db.flush()
+    return user
 
 
 def change_username(db: Session, user: User, *, new_username: str) -> User:

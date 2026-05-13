@@ -98,3 +98,46 @@ def test_update_profile_basic_rejects_invalid_region(db: Session) -> None:
             notify_email_enabled=True,
             notify_kakao_enabled=False,
         )
+
+
+def test_set_avatar_happy(db: Session) -> None:
+    from app.tests.factories import ImageFactory
+
+    user = UserFactory()
+    image = ImageFactory(owner=user)
+    db.flush()
+
+    updated = profile.set_avatar(db, user, image)
+    assert updated.avatar_image_id == image.id
+
+
+def test_set_avatar_rejects_other_users_image(db: Session) -> None:
+    from app.tests.factories import ImageFactory
+
+    owner = UserFactory()
+    intruder = UserFactory()
+    image = ImageFactory(owner=owner)
+    db.flush()
+
+    with pytest.raises(profile.AvatarOwnershipError):
+        profile.set_avatar(db, intruder, image)
+
+
+def test_clear_avatar_when_set(db: Session) -> None:
+    from app.tests.factories import ImageFactory
+
+    user = UserFactory()
+    image = ImageFactory(owner=user)
+    db.flush()
+    user.avatar_image_id = image.id
+    db.flush()
+
+    updated = profile.clear_avatar(db, user)
+    assert updated.avatar_image_id is None
+
+
+def test_clear_avatar_when_already_none(db: Session) -> None:
+    user = UserFactory()
+    db.flush()
+    updated = profile.clear_avatar(db, user)
+    assert updated.avatar_image_id is None
