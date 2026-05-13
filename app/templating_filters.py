@@ -51,4 +51,32 @@ def markdown_to_html(text: str | None) -> str:
     return html
 
 
-__all__ = ["first_image_url", "markdown_to_html", "strip_markdown_images"]
+_BOLD_RE = re.compile(r"\*\*(.+?)\*\*")
+_HEADING_RE = re.compile(r"^#+\s+", flags=re.MULTILINE)
+
+
+def _is_image_only_paragraph(paragraph: str) -> bool:
+    lines = [ln.strip() for ln in paragraph.splitlines() if ln.strip()]
+    return bool(lines) and all(ln.startswith("![") for ln in lines)
+
+
+def excerpt(body: str | None, max_chars: int = 140) -> str:
+    """Strip image-only paragraphs + light markdown, join with space, truncate."""
+    if not body:
+        return ""
+    chunks: list[str] = []
+    for paragraph in body.split("\n\n"):
+        stripped = paragraph.strip()
+        if not stripped or _is_image_only_paragraph(stripped):
+            continue
+        cleaned = _HEADING_RE.sub("", stripped)
+        cleaned = _BOLD_RE.sub(r"\1", cleaned)
+        cleaned = " ".join(line.strip() for line in cleaned.splitlines() if line.strip())
+        chunks.append(cleaned)
+    text = " ".join(chunks)
+    if len(text) > max_chars:
+        return text[:max_chars].rstrip() + "…"
+    return text
+
+
+__all__ = ["excerpt", "first_image_url", "markdown_to_html", "strip_markdown_images"]
