@@ -268,3 +268,37 @@ def test_global_feed_excludes_drafts_and_soft_deleted(db: Session) -> None:
     for p in posts:
         assert p.status == PostStatus.PUBLISHED
         assert p.deleted_at is None
+
+
+# ---------------------------------------------------------------------------
+# 10. featured_testimonial — popular_reviews[0] 와 일치
+# ---------------------------------------------------------------------------
+
+
+def test_home_data_featured_testimonial_matches_popular_reviews_first(
+    db: Session,
+) -> None:
+    """featured_testimonial은 popular_reviews[0] (가장 인기 review) 과 동일 instance."""
+    region = RegionFactory(slug="feed-featured-match")
+    _published_review(region, view_count=10)
+    top = _published_review(region, view_count=999)
+    _published_review(region, view_count=50)
+    db.flush()
+
+    data = feed_service.home_data(db, None)
+    assert data.popular_reviews[0].id == top.id
+    assert data.featured_testimonial is not None
+    assert data.featured_testimonial.id == top.id
+
+
+# ---------------------------------------------------------------------------
+# 11. featured_testimonial — published review 0건이면 None
+# ---------------------------------------------------------------------------
+
+
+def test_home_data_featured_testimonial_none_when_no_reviews(db: Session) -> None:
+    """published REVIEW가 하나도 없으면 featured_testimonial == None."""
+    # 어떤 region·user도 추가하지 않음. _cleanup_db autouse fixture 가 비움.
+    data = feed_service.home_data(db, None)
+    assert data.popular_reviews == []
+    assert data.featured_testimonial is None
