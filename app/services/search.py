@@ -48,7 +48,7 @@ def search_posts(
     base = (
         select(Post)
         .where(Post.status == PostStatus.PUBLISHED, Post.deleted_at.is_(None))
-        .options(selectinload(Post.author), selectinload(Post.region))
+        .options(selectinload(Post.author), selectinload(Post.region), selectinload(Post.journey))
     )
 
     tsquery = func.plainto_tsquery("simple", q)

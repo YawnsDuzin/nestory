@@ -46,6 +46,12 @@ class EventName(str, Enum):
     # P1.5a — notifications
     NOTIFICATION_OPENED = "notification_opened"
 
+    # P1.5b — home community pulse
+    HOME_FEED_CARD_CLICK = "home_feed_card_click"
+    HOME_FAB_OPEN = "home_fab_open"
+    HOME_FAB_ACTION = "home_fab_action"
+    HOME_REGION_ACTIVITY_CLICK = "home_region_activity_click"
+
 
 @lru_cache(maxsize=1)
 def _get_client():  # type: ignore[no-untyped-def]

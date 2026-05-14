@@ -66,7 +66,11 @@ def hub_overview(db: Session, region: Region) -> HubOverview:
                 Post.status == PostStatus.PUBLISHED,
                 Post.deleted_at.is_(None),
             )
-            .options(selectinload(Post.author), selectinload(Post.region))
+            .options(
+                selectinload(Post.author),
+                selectinload(Post.region),
+                selectinload(Post.journey),
+            )
             .limit(4)
         )
         if by == "view":
@@ -104,7 +108,7 @@ def hub_tab_posts(
             Post.status == PostStatus.PUBLISHED,
             Post.deleted_at.is_(None),
         )
-        .options(selectinload(Post.author), selectinload(Post.region))
+        .options(selectinload(Post.author), selectinload(Post.region), selectinload(Post.journey))
     )
     total = db.scalar(select(func.count()).select_from(base.subquery())) or 0
     if sort == "popular":

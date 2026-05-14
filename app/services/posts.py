@@ -238,6 +238,18 @@ def list_journey_episodes(db: Session, journey_id: int) -> list[Post]:
     )
 
 
+def count_journey_episodes(db: Session, journey_id: int) -> int:
+    """journey의 published 에피소드 총 개수 — ep detail navigation progress용."""
+    return db.scalar(
+        select(func.count(Post.id)).where(
+            Post.journey_id == journey_id,
+            Post.type == PostType.JOURNEY_EPISODE,
+            Post.deleted_at.is_(None),
+            Post.status == PostStatus.PUBLISHED,
+        )
+    ) or 0
+
+
 def get_journey_episode(db: Session, journey_id: int, ep_no: int) -> Post | None:
     """journey + episode_no로 단일 published 에피소드 — author/region eager."""
     return db.scalars(
@@ -294,6 +306,7 @@ __all__ = [
     "get_question_for_detail",
     "increment_view_count",
     "list_journey_episodes",
+    "count_journey_episodes",
     "list_published_answers",
     "next_journey_episode",
     "prev_journey_episode",

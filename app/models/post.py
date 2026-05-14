@@ -19,6 +19,7 @@ from app.db.base import Base
 from app.models._enums import PostStatus, PostType
 
 if TYPE_CHECKING:
+    from app.models.journey import Journey
     from app.models.region import Region
     from app.models.user import User
 
@@ -74,4 +75,7 @@ class Post(Base):
     )
     region: Mapped["Region"] = relationship(
         "Region", foreign_keys=[region_id], lazy="raise"
+    )
+    journey: Mapped["Journey | None"] = relationship(
+        "Journey", foreign_keys=[journey_id], lazy="raise"
     )

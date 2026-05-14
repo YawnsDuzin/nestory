@@ -1,32 +1,42 @@
 """Integration tests for home_data and global_feed services.
 
 Covers:
-- Anonymous user has empty followed_episodes
 - recommended_regions ordered by is_pilot DESC, id ASC
 - popular_reviews ordered by view_count DESC
-- recent_journeys ordered by published_at DESC
-- Logged-in user: followed_episodes only from journeys the user follows
-- followed_episodes excludes DRAFT episodes
 - global_feed pagination (page 1 = 20, page 2 = remainder)
 - global_feed ordered by published_at DESC
 - global_feed excludes DRAFT and soft-deleted posts
+- home_mixed_feed scoring / diversity / filtering
+- region_activity_summary counts and ordering
+
+NOTE: Tests 1/4/5/6 (recent_journeys, followed_episodes) were removed in
+      perf(feed) commit — those HomeData fields no longer exist.
 
 NOTE: These tests require a running Postgres instance.
       They CANNOT be executed on a no-Docker PC — run on docker-up PC.
 """
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy.orm import Session
 
-from app.models._enums import PostStatus
+from app.models._enums import PostStatus, PostType
 from app.services import feed as feed_service
+from app.services.feed import (
+    RegionActivity,
+    UserHomeStats,
+    home_mixed_feed,
+    region_activity_summary,
+    user_home_stats,
+)
 from app.tests.factories import (
     JourneyEpisodePostFactory,
     JourneyFactory,
     PilotRegionFactory,
+    QuestionPostFactory,
     RegionFactory,
     ReviewPostFactory,
     UserFactory,
+    UserInterestRegionFactory,
     add_journey_follow,
 )
 
@@ -55,17 +65,6 @@ def _published_episode(region, journey, *, published_at=None, **kwargs):
         journey=journey,
         **kwargs,
     )
-
-
-# ---------------------------------------------------------------------------
-# 1. Anonymous user — empty followed_episodes
-# ---------------------------------------------------------------------------
-
-
-def test_home_data_anonymous_user_has_empty_followed_episodes(db: Session) -> None:
-    """home_data(db, None) must return followed_episodes == []."""
-    data = feed_service.home_data(db, None)
-    assert data.followed_episodes == []
 
 
 # ---------------------------------------------------------------------------
@@ -104,92 +103,6 @@ def test_home_data_popular_reviews_view_count_desc(db: Session) -> None:
     assert len(data.popular_reviews) >= 3
     # Highest-viewed post must be first
     assert data.popular_reviews[0].id == top.id
-
-
-# ---------------------------------------------------------------------------
-# 4. recent_journeys — ordered by published_at DESC
-# ---------------------------------------------------------------------------
-
-
-def test_home_data_recent_journeys_published_at_desc(db: Session) -> None:
-    """recent_journeys must be ordered by published_at descending."""
-    region = RegionFactory(slug="feed-recent-journeys")
-    journey = JourneyFactory(region=region)
-
-    older = _published_episode(
-        region, journey,
-        published_at=datetime(2025, 1, 1, tzinfo=UTC),
-    )
-    newer = _published_episode(
-        region, journey,
-        published_at=datetime(2026, 3, 1, tzinfo=UTC),
-    )
-    db.flush()
-
-    data = feed_service.home_data(db, None)
-    ep_ids = [p.id for p in data.recent_journeys]
-    assert newer.id in ep_ids
-    assert older.id in ep_ids
-    # Newer must appear before older
-    assert ep_ids.index(newer.id) < ep_ids.index(older.id)
-
-
-# ---------------------------------------------------------------------------
-# 5. Logged-in user — followed_episodes only from followed journeys
-# ---------------------------------------------------------------------------
-
-
-def test_home_data_logged_in_user_followed_episodes_only_followed_journeys(
-    db: Session,
-) -> None:
-    """Only episodes belonging to journeys the user follows must appear."""
-    region = RegionFactory(slug="feed-followed-eps")
-    user = UserFactory()
-
-    journey_followed = JourneyFactory(region=region)
-    journey_other = JourneyFactory(region=region)
-
-    followed_ep = _published_episode(region, journey_followed)
-    other_ep = _published_episode(region, journey_other)
-    db.flush()
-
-    add_journey_follow(db, user, journey_followed)
-    db.flush()
-
-    data = feed_service.home_data(db, user)
-    ep_ids = {p.id for p in data.followed_episodes}
-    assert followed_ep.id in ep_ids
-    assert other_ep.id not in ep_ids
-
-
-# ---------------------------------------------------------------------------
-# 6. followed_episodes — DRAFT excluded
-# ---------------------------------------------------------------------------
-
-
-def test_home_data_followed_episodes_excludes_draft(db: Session) -> None:
-    """DRAFT episodes must not appear in followed_episodes."""
-    region = RegionFactory(slug="feed-followed-draft")
-    user = UserFactory()
-    journey = JourneyFactory(region=region)
-
-    published_ep = _published_episode(region, journey)
-    # DRAFT episode in the same followed journey
-    JourneyEpisodePostFactory(
-        status=PostStatus.DRAFT,
-        region=region,
-        journey=journey,
-    )
-    db.flush()
-
-    add_journey_follow(db, user, journey)
-    db.flush()
-
-    data = feed_service.home_data(db, user)
-    ep_ids = {p.id for p in data.followed_episodes}
-    assert published_ep.id in ep_ids
-    for ep in data.followed_episodes:
-        assert ep.status == PostStatus.PUBLISHED
 
 
 # ---------------------------------------------------------------------------
@@ -302,3 +215,339 @@ def test_home_data_featured_testimonial_none_when_no_reviews(db: Session) -> Non
     data = feed_service.home_data(db, None)
     assert data.popular_reviews == []
     assert data.featured_testimonial is None
+
+
+# ---------------------------------------------------------------------------
+# 12. RegionActivity — region_activity_summary
+# ---------------------------------------------------------------------------
+
+
+def test_region_activity_counts_within_7d_window(db: Session) -> None:
+    """RegionActivity는 7일 내 published review·question을 카운트한다."""
+    region = RegionFactory(slug="ra-region")
+    now = datetime.now(UTC)
+    # 7일 내 — 카운트
+    _published_review(region, published_at=now - timedelta(days=1))
+    _published_review(region, published_at=now - timedelta(days=6))
+    QuestionPostFactory(
+        region=region, status=PostStatus.PUBLISHED, published_at=now - timedelta(days=2)
+    )
+    # 7일 밖 — 제외
+    _published_review(region, published_at=now - timedelta(days=8))
+    # DRAFT — 제외
+    ReviewPostFactory(region=region, status=PostStatus.DRAFT)
+    db.flush()
+
+    result = region_activity_summary(db, [region])
+    assert len(result) == 1
+    assert isinstance(result[0], RegionActivity)
+    assert result[0].region.id == region.id
+    assert result[0].new_reviews_7d == 2
+    assert result[0].new_questions_7d == 1
+
+
+def test_region_activity_returns_zero_for_inactive_region(db: Session) -> None:
+    """활동 없는 시군은 카운터 0/0으로 반환."""
+    region = RegionFactory(slug="ra-quiet")
+    db.flush()
+    result = region_activity_summary(db, [region])
+    assert result[0].new_reviews_7d == 0
+    assert result[0].new_questions_7d == 0
+
+
+def test_region_activity_preserves_input_order(db: Session) -> None:
+    """입력 region 순서 그대로 RegionActivity를 반환."""
+    r1 = RegionFactory(slug="ra-a")
+    r2 = RegionFactory(slug="ra-b")
+    r3 = RegionFactory(slug="ra-c")
+    db.flush()
+    result = region_activity_summary(db, [r2, r3, r1])
+    assert [ra.region.id for ra in result] == [r2.id, r3.id, r1.id]
+
+
+# ---------------------------------------------------------------------------
+# 13. home_mixed_feed — limit 준수
+# ---------------------------------------------------------------------------
+
+
+def test_home_mixed_feed_returns_max_limit(db: Session) -> None:
+    """후보가 충분할 때 limit 개수까지만 반환."""
+    user = UserFactory()
+    region = RegionFactory(slug="mf-region")
+    for i in range(15):
+        _published_review(region, view_count=i)
+    db.flush()
+    feed = home_mixed_feed(db, user, limit=8)
+    assert len(feed) == 8
+
+
+# ---------------------------------------------------------------------------
+# 14. home_mixed_feed — 3가지 타입 혼합
+# ---------------------------------------------------------------------------
+
+
+def test_home_mixed_feed_includes_all_three_types(db: Session) -> None:
+    """review + journey_episode + question을 혼합한다."""
+    user = UserFactory()
+    region = RegionFactory(slug="mf-types")
+    journey = JourneyFactory(author=user, region=region)
+    for _ in range(3):
+        _published_review(region)
+    for _ in range(3):
+        _published_episode(region, journey)
+    for _ in range(3):
+        QuestionPostFactory(
+            region=region, status=PostStatus.PUBLISHED,
+            published_at=datetime.now(UTC),
+        )
+    db.flush()
+    feed = home_mixed_feed(db, user, limit=9)
+    types = {p.type for p in feed}
+    assert PostType.REVIEW in types
+    assert PostType.JOURNEY_EPISODE in types
+    assert PostType.QUESTION in types
+
+
+# ---------------------------------------------------------------------------
+# 15. home_mixed_feed — 팔로우 journey 부스트
+# ---------------------------------------------------------------------------
+
+
+def test_home_mixed_feed_boosts_followed_journey(db: Session) -> None:
+    """팔로우 중인 journey의 ep가 비-팔로우 동시점 ep보다 상위."""
+    user = UserFactory()
+    region = RegionFactory(slug="mf-follow")
+    same_published = datetime.now(UTC) - timedelta(days=3)
+    followed_j = JourneyFactory(author=UserFactory(), region=region, title="팔로우저니")
+    other_j = JourneyFactory(author=UserFactory(), region=region, title="다른저니")
+    followed_ep = _published_episode(
+        region, followed_j, published_at=same_published, title="팔로우에피"
+    )
+    other_ep = _published_episode(
+        region, other_j, published_at=same_published, title="비팔로우에피"
+    )
+    add_journey_follow(db, user, followed_j)
+    db.flush()
+
+    feed = home_mixed_feed(db, user, limit=8)
+    followed_idx = next(i for i, p in enumerate(feed) if p.id == followed_ep.id)
+    other_idx = next(i for i, p in enumerate(feed) if p.id == other_ep.id)
+    assert followed_idx < other_idx
+
+
+# ---------------------------------------------------------------------------
+# 16. home_mixed_feed — 관심 시군 부스트
+# ---------------------------------------------------------------------------
+
+
+def test_home_mixed_feed_boosts_interest_region(db: Session) -> None:
+    """관심 시군 post가 비-관심 시군 동시점 post보다 상위."""
+    user = UserFactory()
+    interest_region = RegionFactory(slug="mf-interest")
+    other_region = RegionFactory(slug="mf-other")
+    same_published = datetime.now(UTC) - timedelta(days=3)
+    interest_post = _published_review(
+        interest_region, published_at=same_published, title="관심후기"
+    )
+    other_post = _published_review(
+        other_region, published_at=same_published, title="비관심후기"
+    )
+    UserInterestRegionFactory(user=user, region=interest_region)
+    db.flush()
+
+    feed = home_mixed_feed(db, user, limit=8)
+    interest_idx = next(i for i, p in enumerate(feed) if p.id == interest_post.id)
+    other_idx = next(i for i, p in enumerate(feed) if p.id == other_post.id)
+    assert interest_idx < other_idx
+
+
+# ---------------------------------------------------------------------------
+# 17. home_mixed_feed — DRAFT·삭제 제외
+# ---------------------------------------------------------------------------
+
+
+def test_home_mixed_feed_excludes_draft_and_deleted(db: Session) -> None:
+    user = UserFactory()
+    region = RegionFactory(slug="mf-excl")
+    ReviewPostFactory(region=region, status=PostStatus.DRAFT, title="드래프트")
+    _published_review(region, title="삭제됨").deleted_at = datetime.now(UTC)
+    _published_review(region, title="공개")
+    db.flush()
+    feed = home_mixed_feed(db, user, limit=8)
+    titles = {p.title for p in feed}
+    assert "공개" in titles
+    assert "드래프트" not in titles
+    assert "삭제됨" not in titles
+
+
+# ---------------------------------------------------------------------------
+# 18. home_mixed_feed — 콘텐츠 없을 때 빈 리스트
+# ---------------------------------------------------------------------------
+
+
+def test_home_mixed_feed_empty_when_no_content(db: Session) -> None:
+    user = UserFactory()
+    db.flush()
+    assert home_mixed_feed(db, user, limit=8) == []
+
+
+# ---------------------------------------------------------------------------
+# 19. home_mixed_feed — 14일 윈도 밖 post 제외
+# ---------------------------------------------------------------------------
+
+
+def test_home_mixed_feed_excludes_old_posts(db: Session) -> None:
+    """14일 윈도 밖 post는 후보 제외."""
+    user = UserFactory()
+    region = RegionFactory(slug="mf-old")
+    old = _published_review(
+        region, published_at=datetime.now(UTC) - timedelta(days=20), title="옛글"
+    )
+    recent = _published_review(
+        region, published_at=datetime.now(UTC) - timedelta(days=1), title="새글"
+    )
+    db.flush()
+    feed = home_mixed_feed(db, user, limit=8)
+    ids = {p.id for p in feed}
+    assert recent.id in ids
+    assert old.id not in ids
+
+
+# ---------------------------------------------------------------------------
+# 20. home_data — mixed_feed (로그인 사용자)
+# ---------------------------------------------------------------------------
+
+
+def test_home_data_includes_mixed_feed_for_logged_in(db: Session) -> None:
+    user = UserFactory()
+    region = RegionFactory(slug="hd-region")
+    _published_review(region, title="피드후기")
+    db.flush()
+    data = feed_service.home_data(db, user)
+    assert len(data.mixed_feed) >= 1
+    assert any(p.title == "피드후기" for p in data.mixed_feed)
+
+
+# ---------------------------------------------------------------------------
+# 21. home_data — mixed_feed 비로그인 시 빈 리스트
+# ---------------------------------------------------------------------------
+
+
+def test_home_data_empty_mixed_feed_for_anon(db: Session) -> None:
+    region = RegionFactory(slug="hd-anon")
+    _published_review(region)
+    db.flush()
+    data = feed_service.home_data(db, None)
+    assert data.mixed_feed == []
+
+
+# ---------------------------------------------------------------------------
+# 22. home_data — region_activity 와 recommended_regions 1:1 정렬 일치
+# ---------------------------------------------------------------------------
+
+
+def test_home_data_region_activity_aligned_with_recommended(db: Session) -> None:
+    """region_activity와 recommended_regions의 길이·순서가 일치.
+
+    region_activity는 로그인 사용자에게만 계산된다 (anon → []).
+    """
+    user = UserFactory()
+    PilotRegionFactory(slug="hd-r1")
+    PilotRegionFactory(slug="hd-r2")
+    db.flush()
+    data = feed_service.home_data(db, user)
+    assert len(data.region_activity) == len(data.recommended_regions)
+    for ra, region in zip(data.region_activity, data.recommended_regions, strict=True):
+        assert ra.region.id == region.id
+
+
+# ---------------------------------------------------------------------------
+# 23. home_data — UserInterestRegion 있으면 recommended_regions 상위 우선
+# ---------------------------------------------------------------------------
+
+
+def test_home_data_prefers_user_interest_regions(db: Session) -> None:
+    """로그인 시 UserInterestRegion이 있으면 recommended_regions 상위에 포함."""
+    user = UserFactory()
+    interest = RegionFactory(slug="hd-interest", is_pilot=False, sigungu="관심시군")
+    # pilot region은 default 정렬상 우선이지만, interest region이 더 상위여야 함
+    PilotRegionFactory(slug="hd-pilot-1")
+    UserInterestRegionFactory(user=user, region=interest)
+    db.flush()
+    data = feed_service.home_data(db, user)
+    assert data.recommended_regions[0].id == interest.id
+
+
+# ---------------------------------------------------------------------------
+# user_home_stats — hero card 누적 stat
+# ---------------------------------------------------------------------------
+
+
+def test_user_home_stats_counts_published_posts_per_type(db: Session) -> None:
+    """published + 비삭제 post를 type별로 카운트."""
+    region = RegionFactory(slug="us-stats-region")
+    user = UserFactory()
+    # review × 3 (1개 draft + 1개 deleted는 제외)
+    for _ in range(3):
+        ReviewPostFactory(
+            author=user, region=region,
+            status=PostStatus.PUBLISHED, published_at=datetime.now(UTC),
+        )
+    ReviewPostFactory(author=user, region=region, status=PostStatus.DRAFT)
+    deleted = ReviewPostFactory(
+        author=user, region=region,
+        status=PostStatus.PUBLISHED, published_at=datetime.now(UTC),
+    )
+    deleted.deleted_at = datetime.now(UTC)
+    # question × 2
+    for _ in range(2):
+        QuestionPostFactory(
+            author=user, region=region,
+            status=PostStatus.PUBLISHED, published_at=datetime.now(UTC),
+        )
+    # 다른 사용자 post는 카운트 X
+    other = UserFactory()
+    ReviewPostFactory(
+        author=other, region=region,
+        status=PostStatus.PUBLISHED, published_at=datetime.now(UTC),
+    )
+    db.flush()
+
+    stats = user_home_stats(db, user)
+    assert isinstance(stats, UserHomeStats)
+    assert stats.review_count == 3
+    assert stats.answer_count == 0
+    assert stats.plan_count == 0
+
+
+def test_user_home_stats_resident_years_label(db: Session) -> None:
+    """resident_verified_at가 있으면 'N년차' 라벨, 없으면 빈 문자열."""
+    user = UserFactory(
+        resident_verified_at=datetime.now(UTC) - timedelta(days=400)
+    )
+    db.flush()
+    stats = user_home_stats(db, user)
+    assert stats.resident_years_label == "1년차"
+
+    user2 = UserFactory(resident_verified_at=None)
+    db.flush()
+    stats2 = user_home_stats(db, user2)
+    assert stats2.resident_years_label == ""
+
+
+def test_home_data_includes_user_stats_for_logged_in(db: Session) -> None:
+    """HomeData.user_stats는 로그인 사용자에만 채워진다."""
+    region = RegionFactory(slug="us-hd-region")
+    user = UserFactory()
+    ReviewPostFactory(
+        author=user, region=region,
+        status=PostStatus.PUBLISHED, published_at=datetime.now(UTC),
+    )
+    db.flush()
+
+    data = feed_service.home_data(db, user)
+    assert data.user_stats is not None
+    assert data.user_stats.review_count == 1
+
+    anon_data = feed_service.home_data(db, None)
+    assert anon_data.user_stats is None

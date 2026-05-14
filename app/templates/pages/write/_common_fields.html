@@ -1,6 +1,7 @@
 {% from "components/_icon.html" import icon %}
 {# Threads-style composer: 보더리스 인풋, 자동 확장 textarea.
-   제목은 큰 굵은 텍스트로(threads 본문의 첫 줄 같은 느낌), 본문은 그 아래. #}
+   parent form의 composer() x-data (title/body/bodyBytes/bodyMax)를 상속해 사용.
+   Cmd/Ctrl+Enter 단축키는 parent에서 처리하지 않고 여기 textarea/input에 직접 바인딩. #}
 <div class="space-y-1">
   {% if regions %}
     <div class="flex items-center gap-1.5 text-sm text-stone-500">
@@ -19,12 +20,50 @@
 
   <input type="text" name="title" required maxlength="300"
          placeholder="제목"
-         class="w-full border-0 p-0 text-[17px] font-semibold text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-0 bg-transparent"
-         value="{{ form.title if form else '' }}">
+         x-model="title"
+         @keydown.meta.enter.prevent="$el.closest('form').requestSubmit()"
+         @keydown.ctrl.enter.prevent="$el.closest('form').requestSubmit()"
+         class="w-full border-0 p-0 text-[17px] font-semibold text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-0 bg-transparent">
 
-  <textarea name="body" id="body-textarea" required rows="5"
-            placeholder="무슨 일이 일어나고 있나요?"
-            x-data="{ resize() { this.$el.style.height = 'auto'; this.$el.style.height = this.$el.scrollHeight + 'px'; } }"
-            x-init="resize()" @input="resize()"
-            class="w-full border-0 p-0 text-[15px] leading-relaxed text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-0 bg-transparent resize-none overflow-hidden">{{ form.body if form else '' }}</textarea>
+  {# title char counter — 240자 부터 amber, 280자 부터 rose #}
+  <div class="flex justify-end text-[11px] tabular-nums"
+       :class="title.length >= 280 ? 'text-rose-600' : (title.length >= 240 ? 'text-amber-600' : 'text-stone-400')">
+    <span x-text="title.length"></span>/300
+  </div>
+
+  <textarea name="body" id="body-textarea" {% if body_required | default(true) %}required{% endif %} rows="5"
+            placeholder="{{ body_placeholder | default('무슨 일이 일어나고 있나요?') }}"
+            x-model="body"
+            x-init="$el.style.height = 'auto'; $el.style.height = $el.scrollHeight + 'px';"
+            @input="$el.style.height = 'auto'; $el.style.height = $el.scrollHeight + 'px';"
+            @keydown.meta.enter.prevent="$el.closest('form').requestSubmit()"
+            @keydown.ctrl.enter.prevent="$el.closest('form').requestSubmit()"
+            class="w-full border-0 p-0 text-[15px] leading-relaxed text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-0 bg-transparent resize-none overflow-hidden"></textarea>
+
+  {# 첨부 이미지 inline thumbnails — 본문 내 ![](url) markdown 자동 추출 #}
+  <div x-show="bodyImages.length > 0" x-cloak class="flex flex-wrap gap-2 pt-1">
+    <template x-for="url in bodyImages" :key="url">
+      <div class="relative">
+        <img :src="url" alt="" loading="lazy"
+             class="h-20 w-20 rounded-lg object-cover border border-stone-200">
+        <button type="button" @click="removeImage(url)"
+                class="absolute -top-1.5 -right-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-stone-900 text-white text-[11px] shadow hover:bg-stone-700"
+                aria-label="이미지 제거">
+          ✕
+        </button>
+      </div>
+    </template>
+  </div>
+
+  {# body counter — bytes 기준 (UTF-8 한글 3 bytes/자, 50KB hard limit) #}
+  <div class="flex justify-end text-[11px] tabular-nums"
+       x-show="body.length > 0"
+       x-cloak
+       :class="bodyBytes >= bodyMax ? 'text-rose-600' : (bodyBytes >= bodyMax * 0.9 ? 'text-amber-600' : 'text-stone-400')">
+    <span x-text="body.length"></span>자
+    <span class="mx-1 text-stone-300" x-show="bodyBytes >= bodyMax * 0.8">·</span>
+    <span x-show="bodyBytes >= bodyMax * 0.8">
+      <span x-text="bodyBytes.toLocaleString()"></span>/<span x-text="bodyMax.toLocaleString()"></span> bytes
+    </span>
+  </div>
 </div>

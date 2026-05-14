@@ -1,0 +1,30 @@
+{% from "components/_icon.html" import icon %}
+{# partials/region_activity_card.html — Expects: activity (RegionActivity).
+   주간 활동 카운터가 0/0이면 description fallback 또는 카드 자체에서 sigungu만 노출. #}
+{% set region = activity.region %}
+{% set has_activity = activity.new_reviews_7d > 0 or activity.new_questions_7d > 0 %}
+{# TODO(P1.5 PostHog): home_region_activity_click {region_id: region.id} on click #}
+<a href="/hub/{{ region.slug }}"
+   class="block rounded-lg border border-stone-200 bg-white p-5 hover:border-emerald-300 hover:shadow-sm transition">
+  <p class="font-semibold text-stone-900">{{ region.sigungu }}</p>
+  <p class="text-xs text-stone-500 mt-1">{{ region.sido }}</p>
+  {% if has_activity %}
+    <div class="mt-3 flex items-center gap-3 text-xs text-stone-600">
+      <span class="text-stone-400">이번 주</span>
+      {% if activity.new_reviews_7d > 0 %}
+        <span class="inline-flex items-center gap-1">
+          <span class="text-emerald-600">{{ icon("file-pen", 12) }}</span>
+          새 후기 {{ activity.new_reviews_7d }}
+        </span>
+      {% endif %}
+      {% if activity.new_questions_7d > 0 %}
+        <span class="inline-flex items-center gap-1">
+          <span class="text-sky-600">{{ icon("help-circle", 12) }}</span>
+          새 질문 {{ activity.new_questions_7d }}
+        </span>
+      {% endif %}
+    </div>
+  {% elif region.description %}
+    <p class="text-sm text-stone-600 mt-2 line-clamp-2">{{ region.description }}</p>
+  {% endif %}
+</a>

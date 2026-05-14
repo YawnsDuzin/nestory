@@ -92,7 +92,7 @@ def author_posts(
             Post.status == PostStatus.PUBLISHED,
             Post.deleted_at.is_(None),
         )
-        .options(selectinload(Post.region), selectinload(Post.author))
+        .options(selectinload(Post.region), selectinload(Post.author), selectinload(Post.journey))
     )
     total = db.scalar(select(func.count()).select_from(base.subquery())) or 0
     posts_stmt = (
@@ -113,7 +113,7 @@ def user_scraps(db: Session, user: User, *, page: int = 1) -> tuple[list[Post], 
             Post.status == PostStatus.PUBLISHED,
             Post.deleted_at.is_(None),
         )
-        .options(selectinload(Post.author), selectinload(Post.region))
+        .options(selectinload(Post.author), selectinload(Post.region), selectinload(Post.journey))
     )
     total = db.scalar(select(func.count()).select_from(base.subquery())) or 0
     posts_stmt = (
