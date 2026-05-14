@@ -115,7 +115,7 @@
         role="region"
         aria-roledescription="carousel"
         aria-label="인기 후기 인용">
-        <div class="relative">
+        <div class="relative min-h-[10rem] sm:min-h-[11rem]">
           {% for t in data.featured_testimonials %}
             {# TODO(P1.5 PostHog): landing_testimonial_click {post_id: t.id, slide: {{ loop.index0 }}} on click #}
             <a href="/post/{{ t.id }}"
@@ -128,7 +128,7 @@
                x-transition:leave-end="opacity-0"
                x-cloak
                {% if loop.index0 != 0 %}style="display: none"{% endif %}
-               class="{% if not loop.first %}absolute inset-0 {% endif %}block rounded-xl border border-emerald-200 bg-white/80 backdrop-blur p-5 sm:p-6 hover:border-emerald-300 hover:shadow-sm transition"
+               class="absolute inset-0 block rounded-xl border border-emerald-200 bg-white/80 backdrop-blur p-5 sm:p-6 hover:border-emerald-300 hover:shadow-sm transition"
                role="group"
                aria-roledescription="slide"
                aria-label="{{ loop.index }} / {{ _count }}">
