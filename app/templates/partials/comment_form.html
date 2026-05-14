@@ -1,19 +1,43 @@
-{# partials/comment_form.html — top-level comment form. Expects: post, current_user. #}
+{% from "components/_avatar.html" import avatar %}
+{% from "components/_icon.html" import icon %}
+{# partials/comment_form.html — Threads-style mini composer.
+   본인 avatar + auto-resize textarea + ⌘+Enter + char counter (2000 max).
+   Expects: post, current_user. #}
 {% if current_user %}
-  <form method="post" action="/post/{{ post.id }}/comment#comments" class="mt-4 space-y-2">
-    <textarea
-      name="body"
-      required
-      maxlength="2000"
-      rows="3"
-      placeholder="댓글을 작성하세요"
-      class="w-full rounded border border-stone-300 p-2 text-sm focus:border-emerald-500 focus:outline-none"
-    ></textarea>
-    <div class="flex justify-end">
-      <button type="submit"
-              class="rounded-md bg-emerald-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-emerald-700">
-        댓글 작성
-      </button>
+  <form method="post" action="/post/{{ post.id }}/comment#comments"
+        class="mt-4 flex gap-3 border-t border-stone-200 pt-4"
+        x-data="{ body: '', max: 2000 }"
+        @submit="if (!body.trim()) $event.preventDefault();">
+    <a href="/u/{{ current_user.username }}" class="shrink-0 pt-0.5">
+      {{ avatar(current_user, 32) }}
+    </a>
+    <div class="flex-1 min-w-0 space-y-1">
+      <textarea name="body" required maxlength="2000" rows="2"
+                x-model="body"
+                x-init="$el.style.height = 'auto'; $el.style.height = $el.scrollHeight + 'px';"
+                @input="$el.style.height = 'auto'; $el.style.height = $el.scrollHeight + 'px';"
+                @keydown.meta.enter.prevent="$el.closest('form').requestSubmit()"
+                @keydown.ctrl.enter.prevent="$el.closest('form').requestSubmit()"
+                placeholder="댓글을 작성하세요"
+                class="w-full border-0 p-0 text-[15px] leading-snug text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-0 bg-transparent resize-none overflow-hidden"></textarea>
+      <div class="flex items-center justify-between text-[11px] tabular-nums">
+        <span x-show="body.length > 0" x-cloak
+              :class="body.length >= max ? 'text-rose-600' : (body.length >= max * 0.9 ? 'text-amber-600' : 'text-stone-400')">
+          <span x-text="body.length"></span>/<span x-text="max"></span>
+        </span>
+        <div class="ml-auto flex items-center gap-2">
+          <kbd class="hidden sm:inline-flex items-center gap-1 text-stone-400" aria-hidden="true">
+            <span class="rounded border border-stone-200 bg-stone-50 px-1.5 py-0.5">⌘/Ctrl</span>
+            +
+            <span class="rounded border border-stone-200 bg-stone-50 px-1.5 py-0.5">Enter</span>
+          </kbd>
+          <button type="submit"
+                  :disabled="!body.trim()"
+                  class="rounded-full bg-stone-900 px-4 py-1.5 text-sm font-semibold text-white hover:bg-stone-700 disabled:opacity-40 disabled:cursor-not-allowed">
+            댓글
+          </button>
+        </div>
+      </div>
     </div>
   </form>
 {% else %}

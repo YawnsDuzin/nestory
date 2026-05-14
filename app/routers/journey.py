@@ -178,6 +178,7 @@ def journey_episode_detail(
     db.refresh(post)
     prev_ep = posts_service.prev_journey_episode(db, journey_id, ep_no)
     next_ep = posts_service.next_journey_episode(db, journey_id, ep_no)
+    total_episodes = posts_service.count_journey_episodes(db, journey_id)
     liked = (
         interactions_service.is_liked_by(db, post.id, current_user.id)
         if current_user
@@ -203,6 +204,7 @@ def journey_episode_detail(
             "post": post,
             "prev_ep": prev_ep,
             "next_ep": next_ep,
+            "total_episodes": total_episodes,
             "current_user": current_user,
             "liked": liked,
             "like_count": interactions_service.like_count(db, post.id),

@@ -3,6 +3,7 @@
 PRD §9.3 P1 종료 기준 알림. 카카오 알림톡 / 이메일 / Web Push는 P2.
 """
 from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
@@ -20,6 +21,35 @@ class NotificationView:
     label: str
     link: str
     source_username: str | None
+
+
+@dataclass(frozen=True)
+class NotificationBuckets:
+    """알림을 시간 윈도우로 분류 — 페이지 상단에 시각 그룹핑 헤더 표시용."""
+    today: list[NotificationView]
+    week: list[NotificationView]
+    older: list[NotificationView]
+
+
+def bucket_by_time(
+    views: list[NotificationView], *, now: datetime | None = None
+) -> NotificationBuckets:
+    """오늘 / 이번 주 (오늘 제외) / 이전 으로 분류. now는 테스트 주입용."""
+    _now = now or datetime.now(UTC)
+    today_start = _now.replace(hour=0, minute=0, second=0, microsecond=0)
+    week_start = today_start - timedelta(days=7)
+    today: list[NotificationView] = []
+    week: list[NotificationView] = []
+    older: list[NotificationView] = []
+    for v in views:
+        c = v.notification.created_at
+        if c >= today_start:
+            today.append(v)
+        elif c >= week_start:
+            week.append(v)
+        else:
+            older.append(v)
+    return NotificationBuckets(today=today, week=week, older=older)
 
 
 def create_notification(
@@ -144,8 +174,10 @@ def resolve_link(notif: Notification) -> str:
 
 __all__ = [
     "DROPDOWN_LIMIT",
+    "NotificationBuckets",
     "NotificationView",
     "PAGE_SIZE",
+    "bucket_by_time",
     "create_notification",
     "list_paginated",
     "mark_all_read",

@@ -23,11 +23,13 @@ def notifications_page(
     current_user: User = Depends(require_user),
 ) -> HTMLResponse:
     views, total = nsvc.list_paginated(db, current_user, page=page)
+    buckets = nsvc.bucket_by_time(views)
     return templates.TemplateResponse(
         request,
         "pages/notifications.html",
         {
             "views": views,
+            "buckets": buckets,
             "total": total,
             "page": page,
             "page_size": nsvc.PAGE_SIZE,

@@ -1,44 +1,100 @@
 {% extends "base.html" %}
+{% from "components/_icon.html" import icon %}
+{% from "components/_relative_time.html" import relative_time %}
 {% block title %}알림 · Nestory{% endblock %}
+
+{# Notification type → (icon, tw-color) 매핑.
+   Instagram/Twitter 알림 패턴: type별 시각 차별화로 인지 속도↑. #}
+{% set _type_meta = {
+  'badge_approved':       ('shield',          'emerald'),
+  'badge_rejected':       ('alert-triangle',  'rose'),
+  'post_comment':         ('message-circle',  'sky'),
+  'post_liked':           ('heart',           'rose'),
+  'journey_new_episode':  ('sprout',          'emerald'),
+  'question_answered':    ('help-circle',     'sky'),
+  'revalidation_prompt':  ('clock',           'amber'),
+  'timelapse_remind':     ('clock',           'amber'),
+  'system':               ('bell',            'stone'),
+} %}
+
+{% macro notif_card(view) %}
+  {% set notif = view.notification %}
+  {% set _tm = _type_meta.get(notif.type.value, ('bell', 'stone')) %}
+  {% set _icon_name = _tm[0] %}
+  {% set _color = _tm[1] %}
+  <li>
+    <form method="post" action="/notifications/{{ notif.id }}/read">
+      <button type="submit"
+              class="w-full text-left flex gap-3 rounded-xl border bg-white p-4 transition hover:shadow-sm
+                     {% if not notif.is_read %}border-{{ _color }}-200 bg-{{ _color }}-50/60{% else %}border-stone-200 hover:border-stone-300{% endif %}">
+        <span class="shrink-0 inline-flex h-9 w-9 items-center justify-center rounded-full
+                     bg-{{ _color }}-100 text-{{ _color }}-700">
+          {{ icon(_icon_name, 18) }}
+        </span>
+        <div class="min-w-0 flex-1">
+          <p class="text-[15px] leading-snug text-stone-900">{{ view.label }}</p>
+          <p class="mt-1 flex items-center gap-1.5 text-xs text-stone-500">
+            <span>{{ relative_time(notif.created_at, now()) }}</span>
+            {% if not notif.is_read %}
+              <span class="inline-flex h-1.5 w-1.5 rounded-full bg-{{ _color }}-500"></span>
+              <span class="font-medium text-{{ _color }}-700">새 알림</span>
+            {% endif %}
+          </p>
+        </div>
+      </button>
+    </form>
+  </li>
+{% endmacro %}
+
 {% block content %}
-<section class="space-y-4">
+<section class="space-y-5">
   <header class="flex items-center justify-between">
-    <h1 class="text-2xl font-bold text-stone-900">알림</h1>
+    <div>
+      <h1 class="text-2xl font-bold text-stone-900">알림</h1>
+      {% if total > 0 %}
+        <p class="text-xs text-stone-500 mt-0.5 tabular-nums">총 {{ total }}개</p>
+      {% endif %}
+    </div>
     {% if total > 0 %}
       <form method="post" action="/notifications/read-all">
         <button type="submit"
-                class="rounded border bg-white px-3 py-2 text-sm text-stone-700 hover:bg-stone-50">
-          모두 읽음
+                class="inline-flex items-center gap-1.5 rounded-full border border-stone-200 bg-white px-3 py-1.5 text-xs font-medium text-stone-700 hover:border-stone-300 hover:bg-stone-50">
+          {{ icon("check", 14) }}모두 읽음
         </button>
       </form>
     {% endif %}
   </header>
 
-  {% if views %}
-    <ul class="space-y-2">
-      {% for view in views %}
-        <li>
-          <form method="post" action="/notifications/{{ view.notification.id }}/read">
-            <button type="submit"
-                    class="w-full text-left rounded border bg-white p-4 hover:bg-stone-50
-                           {% if not view.notification.is_read %}border-emerald-300 bg-emerald-50{% endif %}">
-              <p class="text-base text-stone-900">{{ view.label }}</p>
-              <p class="text-xs text-stone-500 mt-2">
-                {{ view.notification.created_at.strftime('%Y-%m-%d %H:%M') }}
-                {% if view.notification.is_read %}<span class="ml-2">· 읽음</span>{% endif %}
-              </p>
-            </button>
-          </form>
-        </li>
-      {% endfor %}
-    </ul>
+  {% if buckets and (buckets.today or buckets.week or buckets.older) %}
+    {% if buckets.today %}
+      <section class="space-y-2">
+        <h2 class="text-xs font-semibold text-stone-500 uppercase tracking-wide">오늘</h2>
+        <ul class="space-y-2">{% for v in buckets.today %}{{ notif_card(v) }}{% endfor %}</ul>
+      </section>
+    {% endif %}
+    {% if buckets.week %}
+      <section class="space-y-2">
+        <h2 class="text-xs font-semibold text-stone-500 uppercase tracking-wide">이번 주</h2>
+        <ul class="space-y-2">{% for v in buckets.week %}{{ notif_card(v) }}{% endfor %}</ul>
+      </section>
+    {% endif %}
+    {% if buckets.older %}
+      <section class="space-y-2">
+        <h2 class="text-xs font-semibold text-stone-500 uppercase tracking-wide">이전</h2>
+        <ul class="space-y-2">{% for v in buckets.older %}{{ notif_card(v) }}{% endfor %}</ul>
+      </section>
+    {% endif %}
 
     {% with base_url='/notifications' %}
       {% include "partials/pagination.html" %}
     {% endwith %}
   {% else %}
-    <div class="rounded border bg-white p-8 text-center text-stone-500">
-      알림이 없습니다.
+    <div class="rounded-2xl border border-dashed border-stone-300 bg-white p-12 text-center">
+      <span class="inline-flex h-12 w-12 items-center justify-center rounded-full bg-stone-100 text-stone-400">
+        {{ icon("bell", 24) }}
+      </span>
+      <p class="mt-3 text-stone-700 font-medium">알림이 없습니다</p>
+      <p class="mt-1 text-xs text-stone-500">활동이 발생하면 여기에 표시됩니다.</p>
     </div>
   {% endif %}
 </section>

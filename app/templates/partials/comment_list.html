@@ -1,15 +1,67 @@
-{# partials/comment_list.html — flat comment list with reply indent.
-   Expects: comments (list, ordered top-level-first then replies), comment_authors (dict, keyed by user_id). #}
+{% from "components/_avatar.html" import avatar %}
+{% from "components/_relative_time.html" import relative_time %}
+{% from "components/_icon.html" import icon %}
+{# partials/comment_list.html — Threads-style 댓글 카드.
+   1단 답글 트리 (parent 아래 ml-10 + 왼쪽 border line).
+   Expects: comments (list), comment_authors (dict by user_id), post, current_user. #}
 {% if comments %}
-  <ul class="mt-4 space-y-3">
+  <ul class="mt-2 divide-y divide-stone-100">
     {% for c in comments %}
       {% set author = comment_authors.get(c.author_id) %}
-      <li class="{{ 'ml-8' if c.parent_id else '' }} rounded border bg-white p-3">
-        <p class="text-xs text-stone-500">
-          @{{ author.username if author else "탈퇴한 사용자" }}
-          · {{ c.created_at.strftime("%Y-%m-%d %H:%M") }}
-        </p>
-        <p class="mt-1 whitespace-pre-line text-sm text-stone-800">{{ c.body }}</p>
+      {% set is_reply = c.parent_id is not none %}
+      <li class="flex gap-3 py-4 {% if is_reply %}ml-10 pl-3 border-l-2 border-stone-100{% endif %}">
+        <a href="{% if author %}/u/{{ author.username }}{% else %}#{% endif %}" class="shrink-0 pt-0.5">
+          {{ avatar(author, 32) }}
+        </a>
+        <div class="min-w-0 flex-1">
+          <header class="flex items-center gap-1.5 text-sm">
+            {% if author %}
+              <a href="/u/{{ author.username }}" class="font-semibold text-stone-900 hover:underline truncate">
+                @{{ author.username }}
+              </a>
+              {% if author.badge_level.value in ('resident', 'ex_resident') %}
+                <span title="거주자 인증" class="inline-flex shrink-0">{{ icon("verified", 12) }}</span>
+              {% endif %}
+            {% else %}
+              <span class="font-semibold text-stone-400 truncate">탈퇴한 사용자</span>
+            {% endif %}
+            <span class="text-xs text-stone-400 shrink-0">·</span>
+            <span class="text-xs text-stone-400 shrink-0">{{ relative_time(c.created_at, now()) }}</span>
+          </header>
+          <p class="mt-0.5 whitespace-pre-line text-[15px] leading-snug text-stone-800">{{ c.body }}</p>
+
+          {# 답글 toggle — top-level 댓글에만 노출, 1단 트리 제한 #}
+          {% if current_user and not is_reply and author %}
+            <div class="mt-1.5" x-data="{ open: false }">
+              <button type="button" @click="open = !open"
+                      class="inline-flex items-center gap-1 text-xs text-stone-500 hover:text-stone-800">
+                <span x-show="!open">{{ icon("message-circle", 12) }}</span>
+                <span x-show="open" x-cloak>{{ icon("x", 12) }}</span>
+                <span x-text="open ? '취소' : '답글'"></span>
+              </button>
+              <form x-show="open" x-cloak x-transition method="post"
+                    action="/post/{{ post.id }}/comment#comments"
+                    class="mt-2 flex items-start gap-2"
+                    x-data="{ body: '' }"
+                    @submit="if (!body.trim()) $event.preventDefault();">
+                <input type="hidden" name="parent_id" value="{{ c.id }}">
+                <textarea name="body" required maxlength="2000" rows="2"
+                          x-model="body"
+                          x-init="$el.style.height = 'auto'; $el.style.height = $el.scrollHeight + 'px';"
+                          @input="$el.style.height = 'auto'; $el.style.height = $el.scrollHeight + 'px';"
+                          @keydown.meta.enter.prevent="$el.closest('form').requestSubmit()"
+                          @keydown.ctrl.enter.prevent="$el.closest('form').requestSubmit()"
+                          placeholder="@{{ author.username }}에게 답글"
+                          class="flex-1 rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-sm text-stone-800 placeholder-stone-400 focus:border-emerald-400 focus:bg-white focus:outline-none resize-none overflow-hidden"></textarea>
+                <button type="submit"
+                        :disabled="!body.trim()"
+                        class="shrink-0 rounded-full bg-stone-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-stone-700 disabled:opacity-40 disabled:cursor-not-allowed">
+                  답글
+                </button>
+              </form>
+            </div>
+          {% endif %}
+        </div>
       </li>
     {% endfor %}
   </ul>
