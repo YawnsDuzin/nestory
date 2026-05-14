@@ -82,6 +82,29 @@ def excerpt(body: str | None, max_chars: int = 140) -> str:
     return text
 
 
+def first_paragraph(body: str | None, max_chars: int = 140) -> str:
+    """Return only the first non-empty, non-image-only paragraph as a single line.
+
+    Hero quote 카드용 — bullet list가 포함된 본문이 excerpt 처럼 한 덩어리로
+    뭉쳐 보이는 문제를 회피한다. 첫 단락은 보통 한 줄 헤드라인이므로 짧고
+    인상적인 인용으로 노출된다.
+    """
+    if not body:
+        return ""
+    for paragraph in body.split("\n\n"):
+        stripped = paragraph.strip()
+        if not stripped or _is_image_only_paragraph(stripped):
+            continue
+        cleaned = _HEADING_RE.sub("", stripped)
+        cleaned = _BOLD_RE.sub(r"\1", cleaned)
+        cleaned = _MD_IMAGE_RE.sub("", cleaned)
+        cleaned = " ".join(line.strip() for line in cleaned.splitlines() if line.strip())
+        if len(cleaned) > max_chars:
+            return cleaned[:max_chars].rstrip() + "…"
+        return cleaned
+    return ""
+
+
 def resident_year(verified_at: datetime | None) -> str:
     """Return '{N}년차' label, or '' when verified_at is None.
 
@@ -97,6 +120,7 @@ def resident_year(verified_at: datetime | None) -> str:
 __all__ = [
     "excerpt",
     "first_image_url",
+    "first_paragraph",
     "markdown_to_html",
     "resident_year",
     "strip_markdown_images",

@@ -184,37 +184,50 @@ def test_global_feed_excludes_drafts_and_soft_deleted(db: Session) -> None:
 
 
 # ---------------------------------------------------------------------------
-# 10. featured_testimonial — popular_reviews[0] 와 일치
+# 10. featured_testimonials — popular_reviews 상위 3개 (hero 캐러셀)
 # ---------------------------------------------------------------------------
 
 
-def test_home_data_featured_testimonial_matches_popular_reviews_first(
+def test_home_data_featured_testimonials_matches_popular_reviews_top3(
     db: Session,
 ) -> None:
-    """featured_testimonial은 popular_reviews[0] (가장 인기 review) 과 동일 instance."""
+    """featured_testimonials는 popular_reviews 상위 최대 3개와 동일 instance·순서."""
     region = RegionFactory(slug="feed-featured-match")
     _published_review(region, view_count=10)
     top = _published_review(region, view_count=999)
+    second = _published_review(region, view_count=500)
+    third = _published_review(region, view_count=200)
     _published_review(region, view_count=50)
     db.flush()
 
     data = feed_service.home_data(db, None)
     assert data.popular_reviews[0].id == top.id
-    assert data.featured_testimonial is not None
-    assert data.featured_testimonial.id == top.id
+    assert len(data.featured_testimonials) == 3
+    assert [t.id for t in data.featured_testimonials] == [top.id, second.id, third.id]
+
+
+def test_home_data_featured_testimonials_capped_at_3(db: Session) -> None:
+    """published REVIEW가 3건 초과해도 hero 캐러셀은 상위 3개만."""
+    region = RegionFactory(slug="feed-featured-cap")
+    for i in range(5):
+        _published_review(region, view_count=100 - i)
+    db.flush()
+
+    data = feed_service.home_data(db, None)
+    assert len(data.featured_testimonials) == 3
 
 
 # ---------------------------------------------------------------------------
-# 11. featured_testimonial — published review 0건이면 None
+# 11. featured_testimonials — published review 0건이면 []
 # ---------------------------------------------------------------------------
 
 
-def test_home_data_featured_testimonial_none_when_no_reviews(db: Session) -> None:
-    """published REVIEW가 하나도 없으면 featured_testimonial == None."""
+def test_home_data_featured_testimonials_empty_when_no_reviews(db: Session) -> None:
+    """published REVIEW가 하나도 없으면 featured_testimonials == []."""
     # 어떤 region·user도 추가하지 않음. _cleanup_db autouse fixture 가 비움.
     data = feed_service.home_data(db, None)
     assert data.popular_reviews == []
-    assert data.featured_testimonial is None
+    assert data.featured_testimonials == []
 
 
 # ---------------------------------------------------------------------------

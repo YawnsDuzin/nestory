@@ -27,28 +27,35 @@ def test_home_anonymous_renders_recommended_regions(client: TestClient, db: Sess
 
 
 def test_home_anonymous_renders_popular_reviews(client: TestClient, db: Session) -> None:
-    """Top review surfaces as featured_testimonial; second review appears in 인기 후기 grid."""
+    """상위 3개는 hero 캐러셀 슬라이드, 4번째부터는 '인기 후기' 그리드에 노출."""
     region = PilotRegionFactory(slug="rec-pop-region")
     user = ResidentUserFactory()
-    # 1순위 — featured_testimonial 자리. body 발췌가 hero 인용 카드에 표시됨.
+    # 1순위 — hero 캐러셀 첫 슬라이드. 첫 단락이 인용에 노출.
     ReviewPostFactory(
         author=user, region=region, title="홈인기리뷰페이처드",
         body="featured 인용 카드에 들어갈 본문입니다.",
         status=PostStatus.PUBLISHED,
         published_at=datetime.now(UTC), view_count=999,
     )
-    # 2순위 — 인기 후기 그리드에서 카드로 노출. 카드는 제목/본문 머리를 표시.
+    # 2~4순위 채워서 그리드에 노출될 4번째 post 확보
+    for i in range(3):
+        ReviewPostFactory(
+            author=user, region=region, title=f"홈인기리뷰{i}",
+            status=PostStatus.PUBLISHED,
+            published_at=datetime.now(UTC), view_count=500 - i,
+        )
+    # 5순위 — 인기 후기 그리드 카드에 노출. 카드는 제목/본문 머리를 표시.
     ReviewPostFactory(
         author=user, region=region, title="홈인기리뷰그리드",
         status=PostStatus.PUBLISHED,
-        published_at=datetime.now(UTC), view_count=500,
+        published_at=datetime.now(UTC), view_count=100,
     )
     db.commit()
     r = client.get("/")
     assert r.status_code == 200
-    # 2순위 review의 title이 "인기 후기" 그리드 카드에 표시
+    # 5순위 review의 title이 "인기 후기" 그리드 카드에 표시
     assert "홈인기리뷰그리드" in r.text
-    # 1순위 review의 본문 일부가 hero featured 카드에 표시 (excerpt)
+    # 1순위 review의 첫 단락이 hero 캐러셀 슬라이드에 표시
     assert "featured 인용 카드에 들어갈 본문입니다" in r.text
 
 

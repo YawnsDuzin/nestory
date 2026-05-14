@@ -39,7 +39,7 @@ class UserHomeStats:
 class HomeData:
     recommended_regions: list[Region]
     popular_reviews: list[Post]
-    featured_testimonial: Post | None
+    featured_testimonials: list[Post]  # hero 캐러셀 — popular_reviews 상위 최대 3개
     mixed_feed: list[Post]
     region_activity: list["RegionActivity"]
     user_stats: UserHomeStats | None = None
@@ -96,7 +96,7 @@ def home_data(db: Session, user: User | None) -> HomeData:
             )
             .options(selectinload(Post.author), selectinload(Post.region))
             .order_by(Post.view_count.desc(), Post.published_at.desc())
-            .limit(4)
+            .limit(6)
         ).all()
     )
 
@@ -107,7 +107,7 @@ def home_data(db: Session, user: User | None) -> HomeData:
     return HomeData(
         recommended_regions=regions,
         popular_reviews=popular_reviews,
-        featured_testimonial=popular_reviews[0] if popular_reviews else None,
+        featured_testimonials=popular_reviews[:3],
         mixed_feed=mixed_feed,
         region_activity=region_activity,
         user_stats=user_stats,
