@@ -19,5 +19,6 @@ media-private/
 
 # Playwright MCP 작업 아티팩트 — 시각 검증용 일회성 파일, 추적 X
 qa-*.png
+hero-carousel-*.png
 .playwright-mcp/
 test_output.txt
