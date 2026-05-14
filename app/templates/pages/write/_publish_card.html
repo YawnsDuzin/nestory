@@ -8,10 +8,17 @@
            hx-post="/htmx/image/upload"
            hx-trigger="change"
            hx-encoding="multipart/form-data"
-           hx-on::after-request="if (event.detail.successful) { const d = JSON.parse(event.detail.xhr.responseText); document.getElementById('body-textarea').value += '\n\n![](' + d.url + ')'; document.getElementById('body-textarea').dispatchEvent(new Event('input')); }">
+           hx-on::after-request="if (event.detail.successful) { const d = JSON.parse(event.detail.xhr.responseText); Alpine.$data(this.closest('form')).addImage(d.url); this.value=''; }">
   </label>
-  <button type="submit"
-          class="rounded-full bg-stone-900 text-white px-5 py-2 text-sm font-semibold hover:bg-stone-700">
-    게시
-  </button>
+  <div class="flex items-center gap-3">
+    <kbd class="hidden sm:inline-flex items-center gap-1 text-[11px] text-stone-400 tabular-nums" aria-hidden="true">
+      <span class="rounded border border-stone-200 bg-stone-50 px-1.5 py-0.5">⌘/Ctrl</span>
+      +
+      <span class="rounded border border-stone-200 bg-stone-50 px-1.5 py-0.5">Enter</span>
+    </kbd>
+    <button type="submit"
+            class="rounded-full bg-stone-900 text-white px-5 py-2 text-sm font-semibold hover:bg-stone-700">
+      {{ submit_label | default('게시') }}
+    </button>
+  </div>
 </div>

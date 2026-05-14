@@ -4,10 +4,14 @@
 {% block title %}{% if current_user %}홈 · Nestory{% else %}Nestory · 전원생활 정착 커뮤니티{% endif %}{% endblock %}
 {% block content %}
 {% if current_user %}
-  <section class="space-y-8">
+  <section class="space-y-6 sm:space-y-8">
+    {# A) Hero Status Card — user_stats 표면화 #}
     {% include "components/_welcome_strip.html" %}
 
-    {# 오늘의 발견 — mixed feed #}
+    {# B) Quick Write 4-카드 — 본문 진입 직후 콘텐츠 작성 entry #}
+    {% include "components/_quick_write.html" %}
+
+    {# 오늘의 발견 — mixed feed (D 적용: post_card에 type별 chip) #}
     <section class="space-y-2">
       <h2 class="flex items-center gap-2 text-lg font-semibold text-stone-900">
         <span class="text-amber-600">{{ icon("sparkles", 20) }}</span>오늘의 발견
@@ -52,17 +56,25 @@
       </a>
     </section>
 
-    {# 내 관심 시군 / 추천 시군 — RegionActivity card #}
+    {# C) Region Spotlight + 나머지 시군 grid #}
     {% if data.region_activity %}
     <section class="space-y-4 border-t border-stone-200 pt-8">
       <h2 class="flex items-center gap-2 text-lg font-semibold text-stone-900">
-        <span class="text-emerald-600">{{ icon("trees", 20) }}</span>추천 시군
+        <span class="text-emerald-600">{{ icon("trees", 20) }}</span>관심 시군
       </h2>
-      <div class="grid gap-3 sm:grid-cols-2">
-        {% for activity in data.region_activity %}
-          {% include "partials/region_activity_card.html" %}
-        {% endfor %}
-      </div>
+      {# 1순위 시군은 spotlight, 나머지는 작은 카드 grid #}
+      {% set _spotlight = data.region_activity[0] %}
+      {% set _rest = data.region_activity[1:] %}
+      {% with activity = _spotlight %}
+        {% include "partials/_region_spotlight.html" %}
+      {% endwith %}
+      {% if _rest %}
+        <div class="grid gap-3 sm:grid-cols-3">
+          {% for activity in _rest %}
+            {% include "partials/region_activity_card.html" %}
+          {% endfor %}
+        </div>
+      {% endif %}
     </section>
     {% endif %}
   </section>

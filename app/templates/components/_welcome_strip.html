@@ -1,32 +1,73 @@
 {% from "components/_icon.html" import icon %}
 {% from "components/_avatar.html" import avatar %}
-{# components/_welcome_strip.html — 로그인 사용자 컴팩트 웰컴.
-   Expects: current_user. #}
-<header class="flex items-center gap-3 py-3 border-b border-stone-100">
-  {{ avatar(current_user, 40, "shadow-sm") }}
-  <div class="min-w-0 flex-1">
-    <p class="text-sm text-stone-600 truncate">
-      안녕하세요, <span class="font-semibold text-stone-900">@{{ current_user.username }}</span> 님
-    </p>
-    <div class="mt-0.5">
-      {% set _bv = current_user.badge_level.value %}
-      {% if _bv == "resident" %}
-        <span class="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
-          <span class="text-emerald-600">{{ icon("home", 12) }}</span>거주자 인증
-        </span>
-      {% elif _bv == "ex_resident" %}
-        <span class="inline-flex items-center gap-1 rounded-full border border-stone-200 bg-white px-2 py-0.5 text-xs font-medium text-stone-700">
-          <span class="text-stone-600">{{ icon("home", 12) }}</span>전 거주자
-        </span>
-      {% elif _bv == "region_verified" %}
-        <span class="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-700">
-          <span class="text-sky-600">{{ icon("check-circle", 12) }}</span>지역 인증
-        </span>
+{# components/_welcome_strip.html — Hero Status Card.
+   Expects: current_user, optional data.user_stats (UserHomeStats).
+   4 Pillar 데이터(T·C·V) 누적 stat 3개를 표면화하여 콘텐츠 작성 동기 강화. #}
+{% set _bv = current_user.badge_level.value %}
+<header class="relative overflow-hidden rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50 via-white to-emerald-50/40 px-5 py-5 sm:px-7 sm:py-6 shadow-sm">
+  <div class="flex items-start gap-4">
+    {{ avatar(current_user, 56, "ring-2 ring-white shadow") }}
+    <div class="min-w-0 flex-1">
+      <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+        <p class="text-base sm:text-lg font-bold text-stone-900 truncate">
+          @{{ current_user.username }}
+        </p>
+        {% if _bv == "resident" %}
+          <span class="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
+            <span class="text-emerald-600">{{ icon("home", 12) }}</span>거주자 인증
+          </span>
+        {% elif _bv == "ex_resident" %}
+          <span class="inline-flex items-center gap-1 rounded-full border border-stone-200 bg-white px-2 py-0.5 text-xs font-medium text-stone-700">
+            <span class="text-stone-600">{{ icon("home", 12) }}</span>전 거주자
+          </span>
+        {% elif _bv == "region_verified" %}
+          <span class="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-700">
+            <span class="text-sky-600">{{ icon("check-circle", 12) }}</span>지역 인증
+          </span>
+        {% else %}
+          <span class="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-white px-2 py-0.5 text-xs font-medium text-emerald-700">
+            <span class="text-emerald-600">{{ icon("heart", 12) }}</span>관심자
+          </span>
+        {% endif %}
+      </div>
+      {% set _stats = data.user_stats if data is defined else None %}
+      {% if _stats and (_stats.primary_region or _stats.resident_years_label) %}
+        <p class="mt-1 flex items-center gap-1 text-xs text-stone-600">
+          {% if _stats.primary_region %}
+            <span class="text-stone-400">{{ icon("map-pin", 12) }}</span>
+            <span class="font-medium text-stone-700">{{ _stats.primary_region.sigungu }}</span>
+          {% endif %}
+          {% if _stats.primary_region and _stats.resident_years_label %}<span class="text-stone-300">·</span>{% endif %}
+          {% if _stats.resident_years_label %}
+            <span>{{ _stats.resident_years_label }}</span>
+          {% endif %}
+        </p>
       {% else %}
-        <span class="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-white px-2 py-0.5 text-xs font-medium text-emerald-700">
-          <span class="text-emerald-600">{{ icon("heart", 12) }}</span>관심자
-        </span>
+        <p class="mt-1 text-xs text-stone-500">안녕하세요, 오늘도 정착의 한 걸음을 함께해요.</p>
       {% endif %}
     </div>
   </div>
+
+  {% if _stats %}
+    <dl class="mt-4 grid grid-cols-3 gap-2 sm:gap-3 border-t border-emerald-100/60 pt-3">
+      <a href="/u/{{ current_user.username }}/posts" class="group block rounded-lg px-2 py-1.5 hover:bg-white transition">
+        <dt class="flex items-center gap-1 text-[11px] font-medium text-stone-500">
+          <span class="text-emerald-600">{{ icon("file-pen", 12) }}</span>회고
+        </dt>
+        <dd class="mt-0.5 text-lg font-bold tabular-nums text-stone-900 group-hover:text-emerald-700">{{ _stats.review_count }}</dd>
+      </a>
+      <a href="/u/{{ current_user.username }}/posts" class="group block rounded-lg px-2 py-1.5 hover:bg-white transition">
+        <dt class="flex items-center gap-1 text-[11px] font-medium text-stone-500">
+          <span class="text-violet-600">{{ icon("calendar", 12) }}</span>정착계획
+        </dt>
+        <dd class="mt-0.5 text-lg font-bold tabular-nums text-stone-900 group-hover:text-violet-700">{{ _stats.plan_count }}</dd>
+      </a>
+      <a href="/u/{{ current_user.username }}/posts" class="group block rounded-lg px-2 py-1.5 hover:bg-white transition">
+        <dt class="flex items-center gap-1 text-[11px] font-medium text-stone-500">
+          <span class="text-sky-600">{{ icon("message-circle", 12) }}</span>답변
+        </dt>
+        <dd class="mt-0.5 text-lg font-bold tabular-nums text-stone-900 group-hover:text-sky-700">{{ _stats.answer_count }}</dd>
+      </a>
+    </dl>
+  {% endif %}
 </header>

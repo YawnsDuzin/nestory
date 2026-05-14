@@ -1,0 +1,33 @@
+{% from "components/_icon.html" import icon %}
+{# Journey 시작 메타 — 컴포저 본문 아래 컴팩트 폼.
+   타 type 메타 partial과 동일한 bg-stone-50 rounded-2xl 패널 패턴. #}
+<div class="mt-2 rounded-2xl bg-stone-50 p-4 space-y-3">
+  <h2 class="text-xs font-semibold text-stone-500 uppercase tracking-wide">Journey 시리즈 설정</h2>
+
+  {# 대표 이미지 — 선택 #}
+  <div>
+    <span class="text-xs text-stone-600">대표 이미지 (선택)</span>
+    <div class="mt-1 flex items-center gap-3">
+      <img id="cover-preview" src="" alt=""
+           class="hidden h-16 w-16 rounded-lg object-cover border border-stone-200 shrink-0">
+      <label class="inline-flex items-center gap-1.5 rounded-full bg-white border border-stone-200 px-3 py-1.5 text-sm text-stone-600 hover:border-stone-300 hover:text-stone-800 cursor-pointer">
+        <span class="text-stone-500">{{ icon("image", 14) }}</span>
+        <span id="cover-label">이미지 첨부</span>
+        <input type="file" name="cover_image" accept="image/jpeg,image/png,image/webp" class="hidden"
+               hx-post="/htmx/image/upload"
+               hx-trigger="change"
+               hx-encoding="multipart/form-data"
+               hx-on::after-request="if (event.detail.successful) { const d = JSON.parse(event.detail.xhr.responseText); document.getElementById('cover-image-id').value = d.image_id; const p = document.getElementById('cover-preview'); p.src = d.url; p.classList.remove('hidden'); document.getElementById('cover-label').textContent = '이미지 교체'; }">
+      </label>
+    </div>
+    <input type="hidden" name="cover_image_id" id="cover-image-id" value="">
+    <p class="text-[11px] text-stone-400 mt-1">JPEG/PNG/WebP, 최대 10MB</p>
+  </div>
+
+  {# 시작일 — 선택 #}
+  <label class="block">
+    <span class="text-xs text-stone-600">시작일 (선택)</span>
+    <input type="date" name="start_date"
+           class="mt-1 w-full rounded-lg border border-stone-200 bg-white p-2 text-sm">
+  </label>
+</div>

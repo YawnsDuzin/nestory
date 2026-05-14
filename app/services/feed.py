@@ -21,12 +21,28 @@ class RegionActivity:
 
 
 @dataclass
+class UserHomeStats:
+    """홈 hero 카드에 표시되는 로그인 사용자 누적 stat.
+
+    Pillar T(시계열 회고) · C(후회비용 데이터) · R(지역) · V(거주자 검증) 표면화.
+    모두 published + not-deleted 기준.
+    """
+    review_count: int
+    journey_episode_count: int
+    plan_count: int
+    answer_count: int
+    primary_region: Region | None
+    resident_years_label: str  # "" or "N년차"
+
+
+@dataclass
 class HomeData:
     recommended_regions: list[Region]
     popular_reviews: list[Post]
     featured_testimonial: Post | None
     mixed_feed: list[Post]
     region_activity: list["RegionActivity"]
+    user_stats: UserHomeStats | None = None
 
 
 def home_data(db: Session, user: User | None) -> HomeData:
@@ -86,6 +102,7 @@ def home_data(db: Session, user: User | None) -> HomeData:
 
     mixed_feed = home_mixed_feed(db, user) if user is not None else []
     region_activity = region_activity_summary(db, regions) if user is not None else []
+    user_stats = user_home_stats(db, user) if user is not None else None
 
     return HomeData(
         recommended_regions=regions,
@@ -93,6 +110,44 @@ def home_data(db: Session, user: User | None) -> HomeData:
         featured_testimonial=popular_reviews[0] if popular_reviews else None,
         mixed_feed=mixed_feed,
         region_activity=region_activity,
+        user_stats=user_stats,
+    )
+
+
+def user_home_stats(db: Session, user: User) -> UserHomeStats:
+    """홈 hero 카드용 사용자 누적 stat — 단일 GROUP BY 쿼리.
+
+    published + 비삭제 post만 카운트. resident_years_label은
+    `resident_year` 필터와 동일 규칙으로 계산.
+    """
+    rows = db.execute(
+        select(Post.type, func.count().label("cnt"))
+        .where(
+            Post.author_id == user.id,
+            Post.status == PostStatus.PUBLISHED,
+            Post.deleted_at.is_(None),
+        )
+        .group_by(Post.type)
+    ).all()
+    counts: dict[PostType, int] = {r.type: r.cnt for r in rows}
+
+    primary_region: Region | None = None
+    if user.primary_region_id is not None:
+        primary_region = db.get(Region, user.primary_region_id)
+
+    label = ""
+    if user.resident_verified_at is not None:
+        days = (datetime.now(UTC) - user.resident_verified_at).days
+        years = max(1, days // 365)
+        label = f"{years}년차"
+
+    return UserHomeStats(
+        review_count=counts.get(PostType.REVIEW, 0),
+        journey_episode_count=counts.get(PostType.JOURNEY_EPISODE, 0),
+        plan_count=counts.get(PostType.PLAN, 0),
+        answer_count=counts.get(PostType.ANSWER, 0),
+        primary_region=primary_region,
+        resident_years_label=label,
     )
 
 
@@ -250,8 +305,10 @@ __all__ = [
     "PAGE_SIZE",
     "HomeData",
     "RegionActivity",
+    "UserHomeStats",
     "home_data",
     "home_mixed_feed",
     "region_activity_summary",
+    "user_home_stats",
     "global_feed",
 ]

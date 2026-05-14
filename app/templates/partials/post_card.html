@@ -2,7 +2,8 @@
 {% from "components/_relative_time.html" import relative_time %}
 {% from "components/_icon.html" import icon %}
 {% from "components/_status_chip.html" import status_chip %}
-{# partials/post_card.html — Threads-style post row. Expects: post (with author, region).
+{# partials/post_card.html — 카드 전체가 동일 좌·우 padding을 가져 중앙 정렬되게 보이도록
+   avatar를 header row 안쪽으로 이동(36px). 본문·이미지·chip·액션 row 모두 full-width.
    제목은 본문 첫 줄 굵게로 통합 — Threads UI 에 별도 제목 필드가 없음. #}
 {% set type_value = {
   "review": "review",
@@ -17,66 +18,84 @@
     else ("/question/" ~ post.id if post.type.value == "question"
     else "/post/" ~ post.id)
 ) %}
-<article class="flex gap-3 py-5">
-  <div class="pt-0.5">{{ avatar(post.author, 40) }}</div>
-  <div class="min-w-0 flex-1">
-    <header class="flex items-center gap-1 text-[15px]">
-      <a href="/u/{{ post.author.username }}" class="font-semibold text-stone-900 truncate hover:underline">
-        {{ post.author.username }}
-      </a>
-      {% if post.author.badge_level.value in ("resident", "ex_resident") %}
-        <span title="거주자 인증" class="inline-flex">{{ icon("verified", 14) }}</span>
-      {% endif %}
-      {% if post.type.value == "journey_episode" and post.journey %}
-        <span class="ml-1.5 text-sm text-stone-500 truncate">
-          · 「{{ post.journey.title }}」 ep {{ post.episode_no }}
-        </span>
-      {% endif %}
-      <span class="ml-1.5 text-sm text-stone-500">{{ relative_time(post.published_at, now()) }}</span>
-      <button type="button" class="ml-auto rounded-full p-1 text-stone-400 hover:bg-stone-100 hover:text-stone-600" aria-label="더보기">{{ icon("more-horizontal", 18) }}</button>
-    </header>
-
-    {% set body_text = post.body | strip_md_images %}
-    {% set preview_image = post.body | first_image_url %}
-    <a href="{{ detail_url }}" class="block">
-      {% if post.title or body_text %}
-      <div class="mt-1 text-[15px] leading-[1.45] text-stone-900 whitespace-pre-line line-clamp-4">
-        {% if post.title %}<span class="font-semibold">{{ post.title }}</span>{% if body_text %}{{ "\n" }}{% endif %}{% endif %}{% if body_text %}{{ body_text }}{% endif %}
-      </div>
-      {% endif %}
-      {% if preview_image %}
-      <div class="mt-2 overflow-hidden rounded-2xl border border-stone-200">
-        <img src="{{ preview_image }}" alt="" loading="lazy"
-             class="block max-h-96 w-full object-cover">
-      </div>
-      {% endif %}
+<article class="px-3 sm:px-4 py-4 sm:py-5">
+  <header class="flex items-center gap-2 text-[15px]">
+    <a href="/u/{{ post.author.username }}" class="shrink-0">{{ avatar(post.author, 36) }}</a>
+    <a href="/u/{{ post.author.username }}" class="font-semibold text-stone-900 truncate hover:underline">
+      {{ post.author.username }}
     </a>
-
-    <div class="mt-2 flex items-center gap-2 text-xs text-stone-500">
-      {% if type_value %}{{ status_chip("post_type", type_value) }}{% endif %}
-      <span class="inline-flex items-center gap-1">
-        <span class="text-stone-400">{{ icon("map-pin", 12) }}</span>{{ post.region.sigungu }}
+    {% if post.author.badge_level.value in ("resident", "ex_resident") %}
+      <span title="거주자 인증" class="inline-flex">{{ icon("verified", 14) }}</span>
+    {% endif %}
+    {% if post.type.value == "journey_episode" and post.journey %}
+      <span class="ml-1 text-sm text-stone-500 truncate">
+        · 「{{ post.journey.title }}」 ep {{ post.episode_no }}
       </span>
-    </div>
+    {% endif %}
+    <span class="ml-1 text-sm text-stone-500 shrink-0">{{ relative_time(post.published_at, now()) }}</span>
+    <button type="button" class="ml-auto shrink-0 rounded-full p-1 text-stone-400 hover:bg-stone-100 hover:text-stone-600" aria-label="더보기">{{ icon("more-horizontal", 18) }}</button>
+  </header>
 
-    <div class="mt-2 -ml-2 flex items-center gap-1 text-stone-500">
-      <a href="{{ detail_url }}" aria-label="좋아요"
-         class="inline-flex h-9 w-9 items-center justify-center rounded-full hover:bg-stone-100 hover:text-rose-600">
-        {{ icon("heart", 18) }}
-      </a>
-      <a href="{{ detail_url }}#comments" aria-label="댓글"
-         class="inline-flex h-9 w-9 items-center justify-center rounded-full hover:bg-stone-100 hover:text-stone-900">
-        {{ icon("message-circle", 18) }}
-      </a>
-      <a href="{{ detail_url }}" aria-label="스크랩"
-         class="inline-flex h-9 w-9 items-center justify-center rounded-full hover:bg-stone-100 hover:text-emerald-700">
-        {{ icon("bookmark", 18) }}
-      </a>
-      <a href="{{ detail_url }}" aria-label="공유"
-         class="inline-flex h-9 w-9 items-center justify-center rounded-full hover:bg-stone-100 hover:text-stone-900">
-        {{ icon("send", 18) }}
-      </a>
-      <span class="ml-auto pr-2 text-xs text-stone-400 tabular-nums">조회 {{ post.view_count }}</span>
+  {% set body_text = post.body | strip_md_images %}
+  {% set preview_image = post.body | first_image_url %}
+  <a href="{{ detail_url }}" class="block">
+    {% if post.title or body_text %}
+    <div class="mt-2 text-[15px] leading-[1.45] text-stone-900 whitespace-pre-line line-clamp-4">
+      {% if post.title %}<span class="font-semibold">{{ post.title }}</span>{% if body_text %}{{ "\n" }}{% endif %}{% endif %}{% if body_text %}{{ body_text }}{% endif %}
     </div>
+    {% endif %}
+    {% if preview_image %}
+    <div class="mt-3 overflow-hidden rounded-2xl border border-stone-200">
+      <img src="{{ preview_image }}" alt="" loading="lazy"
+           class="block max-h-96 w-full object-cover">
+    </div>
+    {% endif %}
+  </a>
+
+  <div class="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-stone-500">
+    {% if type_value %}{{ status_chip("post_type", type_value) }}{% endif %}
+    <span class="inline-flex items-center gap-1">
+      <span class="text-stone-400">{{ icon("map-pin", 12) }}</span>{{ post.region.sigungu }}
+    </span>
+    {% set _meta = post.metadata_ or {} %}
+    {% if post.type.value == "review" and _meta.get("regret_items") %}
+      <span class="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700">
+        <span class="text-amber-600">{{ icon("banknote", 12) }}</span>후회 {{ _meta.get("regret_items") | length }}건
+      </span>
+    {% elif post.type.value == "journey_episode" and _meta.get("journey_ep_meta", {}).get("phase") %}
+      <span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
+        <span class="text-emerald-600">{{ icon("sprout", 12) }}</span>{{ _meta.journey_ep_meta.phase }}
+      </span>
+    {% elif post.type.value == "plan" and _meta.get("target_move_year") %}
+      <span class="inline-flex items-center gap-1 rounded-full bg-violet-50 px-2 py-0.5 text-[11px] font-medium text-violet-700">
+        <span class="text-violet-600">{{ icon("calendar", 12) }}</span>{{ _meta.target_move_year }}년 이주
+      </span>
+    {% elif post.type.value == "question" and _meta.get("tags") %}
+      {% for _tag in _meta.tags[:2] %}
+        <span class="inline-flex items-center gap-1 rounded-full bg-sky-50 px-2 py-0.5 text-[11px] font-medium text-sky-700">
+          <span class="text-sky-600">{{ icon("hash", 10) }}</span>{{ _tag }}
+        </span>
+      {% endfor %}
+    {% endif %}
+  </div>
+
+  <div class="mt-2 flex items-center gap-1 text-stone-500">
+    <a href="{{ detail_url }}" aria-label="좋아요"
+       class="inline-flex h-9 w-9 items-center justify-center rounded-full hover:bg-stone-100 hover:text-rose-600">
+      {{ icon("heart", 18) }}
+    </a>
+    <a href="{{ detail_url }}#comments" aria-label="댓글"
+       class="inline-flex h-9 w-9 items-center justify-center rounded-full hover:bg-stone-100 hover:text-stone-900">
+      {{ icon("message-circle", 18) }}
+    </a>
+    <a href="{{ detail_url }}" aria-label="스크랩"
+       class="inline-flex h-9 w-9 items-center justify-center rounded-full hover:bg-stone-100 hover:text-emerald-700">
+      {{ icon("bookmark", 18) }}
+    </a>
+    <a href="{{ detail_url }}" aria-label="공유"
+       class="inline-flex h-9 w-9 items-center justify-center rounded-full hover:bg-stone-100 hover:text-stone-900">
+      {{ icon("send", 18) }}
+    </a>
+    <span class="ml-auto text-xs text-stone-400 tabular-nums">조회 {{ post.view_count }}</span>
   </div>
 </article>

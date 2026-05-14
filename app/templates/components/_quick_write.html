@@ -1,0 +1,43 @@
+{% from "components/_icon.html" import icon %}
+{# components/_quick_write.html — 본문 진입 직후 빠른 쓰기 4-카드.
+   Expects: current_user. 거주자 미인증자에겐 후기/Journey 카드에 lock overlay. #}
+{% set _is_resident = current_user.badge_level.value in ("resident", "ex_resident") %}
+<section aria-label="빠른 쓰기" class="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
+  <a href="{{ '/write/review' if _is_resident else '/me/badge' }}"
+     class="group relative flex flex-col items-start gap-1.5 rounded-xl border border-stone-200 bg-white p-3 sm:p-4 hover:border-emerald-300 hover:shadow-sm transition">
+    <span class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 group-hover:bg-emerald-100">{{ icon("file-pen", 18) }}</span>
+    <p class="text-sm font-semibold text-stone-900">후기 작성</p>
+    <p class="text-[11px] text-stone-500 leading-tight">정착 회고 남기기</p>
+    {% if not _is_resident %}
+      <span class="absolute top-2 right-2 inline-flex items-center gap-0.5 rounded-full bg-stone-100 px-1.5 py-0.5 text-[10px] font-medium text-stone-500">
+        🔒 거주자
+      </span>
+    {% endif %}
+  </a>
+
+  <a href="{{ '/write/journey' if _is_resident else '/me/badge' }}"
+     class="group relative flex flex-col items-start gap-1.5 rounded-xl border border-stone-200 bg-white p-3 sm:p-4 hover:border-amber-300 hover:shadow-sm transition">
+    <span class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-amber-50 text-amber-700 group-hover:bg-amber-100">{{ icon("map", 18) }}</span>
+    <p class="text-sm font-semibold text-stone-900">Journey 시작</p>
+    <p class="text-[11px] text-stone-500 leading-tight">정착 과정 연재</p>
+    {% if not _is_resident %}
+      <span class="absolute top-2 right-2 inline-flex items-center gap-0.5 rounded-full bg-stone-100 px-1.5 py-0.5 text-[10px] font-medium text-stone-500">
+        🔒 거주자
+      </span>
+    {% endif %}
+  </a>
+
+  <a href="/write/question"
+     class="group flex flex-col items-start gap-1.5 rounded-xl border border-stone-200 bg-white p-3 sm:p-4 hover:border-sky-300 hover:shadow-sm transition">
+    <span class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-sky-50 text-sky-700 group-hover:bg-sky-100">{{ icon("help-circle", 18) }}</span>
+    <p class="text-sm font-semibold text-stone-900">질문하기</p>
+    <p class="text-[11px] text-stone-500 leading-tight">지역 거주자에게 직접</p>
+  </a>
+
+  <a href="/write/plan"
+     class="group flex flex-col items-start gap-1.5 rounded-xl border border-stone-200 bg-white p-3 sm:p-4 hover:border-violet-300 hover:shadow-sm transition">
+    <span class="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-violet-50 text-violet-700 group-hover:bg-violet-100">{{ icon("calendar", 18) }}</span>
+    <p class="text-sm font-semibold text-stone-900">정착 계획</p>
+    <p class="text-[11px] text-stone-500 leading-tight">비용·일정 정리</p>
+  </a>
+</section>

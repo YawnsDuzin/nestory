@@ -32,7 +32,14 @@ def write_journey_form(
         request, "pages/write/journey_create.html",
         {
             "user": user, "current_user": user,
+            "page_title": "Journey 시작",
+            "page_subtitle": "정착 과정을 시리즈로 기록합니다. 첫 에피소드는 생성 후 작성.",
+            "form_action": "/write/journey",
+            "submit_label": "Journey 시작",
+            "body_required": False,
+            "body_placeholder": "시리즈 소개 (선택, 마크다운 지원)",
             "regions": regions_service.list_all_for_dropdown(db),
+            "form": None,
         },
     )
 
@@ -42,11 +49,12 @@ def submit_journey(
     user: User = Depends(require_badge(BadgeLevel.RESIDENT)),
     db: Session = Depends(get_db),
     title: str = Form(...),
-    description: str = Form(""),
+    body: str = Form(""),
     region_id: int = Form(...),
     start_date: str = Form(""),
     cover_image_id: str = Form(""),
 ) -> RedirectResponse:
+    description = body  # composer body == journey description
     region = db.get(Region, region_id)
     if region is None:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Invalid region")

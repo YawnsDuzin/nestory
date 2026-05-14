@@ -21,7 +21,13 @@ from sqlalchemy.orm import Session
 
 from app.models._enums import PostStatus, PostType
 from app.services import feed as feed_service
-from app.services.feed import RegionActivity, home_mixed_feed, region_activity_summary
+from app.services.feed import (
+    RegionActivity,
+    UserHomeStats,
+    home_mixed_feed,
+    region_activity_summary,
+    user_home_stats,
+)
 from app.tests.factories import (
     JourneyEpisodePostFactory,
     JourneyFactory,
@@ -470,3 +476,78 @@ def test_home_data_prefers_user_interest_regions(db: Session) -> None:
     db.flush()
     data = feed_service.home_data(db, user)
     assert data.recommended_regions[0].id == interest.id
+
+
+# ---------------------------------------------------------------------------
+# user_home_stats — hero card 누적 stat
+# ---------------------------------------------------------------------------
+
+
+def test_user_home_stats_counts_published_posts_per_type(db: Session) -> None:
+    """published + 비삭제 post를 type별로 카운트."""
+    region = RegionFactory(slug="us-stats-region")
+    user = UserFactory()
+    # review × 3 (1개 draft + 1개 deleted는 제외)
+    for _ in range(3):
+        ReviewPostFactory(
+            author=user, region=region,
+            status=PostStatus.PUBLISHED, published_at=datetime.now(UTC),
+        )
+    ReviewPostFactory(author=user, region=region, status=PostStatus.DRAFT)
+    deleted = ReviewPostFactory(
+        author=user, region=region,
+        status=PostStatus.PUBLISHED, published_at=datetime.now(UTC),
+    )
+    deleted.deleted_at = datetime.now(UTC)
+    # question × 2
+    for _ in range(2):
+        QuestionPostFactory(
+            author=user, region=region,
+            status=PostStatus.PUBLISHED, published_at=datetime.now(UTC),
+        )
+    # 다른 사용자 post는 카운트 X
+    other = UserFactory()
+    ReviewPostFactory(
+        author=other, region=region,
+        status=PostStatus.PUBLISHED, published_at=datetime.now(UTC),
+    )
+    db.flush()
+
+    stats = user_home_stats(db, user)
+    assert isinstance(stats, UserHomeStats)
+    assert stats.review_count == 3
+    assert stats.answer_count == 0
+    assert stats.plan_count == 0
+
+
+def test_user_home_stats_resident_years_label(db: Session) -> None:
+    """resident_verified_at가 있으면 'N년차' 라벨, 없으면 빈 문자열."""
+    user = UserFactory(
+        resident_verified_at=datetime.now(UTC) - timedelta(days=400)
+    )
+    db.flush()
+    stats = user_home_stats(db, user)
+    assert stats.resident_years_label == "1년차"
+
+    user2 = UserFactory(resident_verified_at=None)
+    db.flush()
+    stats2 = user_home_stats(db, user2)
+    assert stats2.resident_years_label == ""
+
+
+def test_home_data_includes_user_stats_for_logged_in(db: Session) -> None:
+    """HomeData.user_stats는 로그인 사용자에만 채워진다."""
+    region = RegionFactory(slug="us-hd-region")
+    user = UserFactory()
+    ReviewPostFactory(
+        author=user, region=region,
+        status=PostStatus.PUBLISHED, published_at=datetime.now(UTC),
+    )
+    db.flush()
+
+    data = feed_service.home_data(db, user)
+    assert data.user_stats is not None
+    assert data.user_stats.review_count == 1
+
+    anon_data = feed_service.home_data(db, None)
+    assert anon_data.user_stats is None

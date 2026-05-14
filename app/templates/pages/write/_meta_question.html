@@ -1,7 +1,49 @@
 {% from "components/_icon.html" import icon %}
-{# 질문 메타 — 태그 한 줄. Threads 의 #해시태그 입력처럼 가볍게. #}
-<label class="mt-2 flex items-center gap-2 text-sm">
-  <span class="text-stone-400">{{ icon("hash", 16) }}</span>
-  <input type="text" name="tags" placeholder="단열, 지붕, 난방 (콤마 구분, 최대 10개)"
-         class="flex-1 border-0 bg-transparent p-0 text-stone-700 placeholder-stone-400 focus:outline-none focus:ring-0">
-</label>
+{# 질문 메타 — 태그 chip 입력. Enter 또는 콤마로 chip 생성, Backspace로 마지막 제거.
+   POST submit 시 hidden input "tags"에 콤마 조인한 값 채워서 전송 — 백엔드 호환. #}
+<div class="mt-2"
+     x-data="{
+       tags: [],
+       input: '',
+       max: 10,
+       add() {
+         const v = this.input.trim().replace(/,$/, '').trim();
+         if (!v || this.tags.includes(v) || this.tags.length >= this.max) {
+           this.input = '';
+           return;
+         }
+         this.tags.push(v);
+         this.input = '';
+       },
+       remove(i) { this.tags.splice(i, 1); },
+       onBackspace() {
+         if (this.input === '' && this.tags.length > 0) this.tags.pop();
+       },
+       onComma() {
+         if (this.input.includes(',')) this.add();
+       }
+     }">
+  <label class="flex flex-wrap items-center gap-1.5 py-1 text-sm">
+    <span class="text-stone-400 shrink-0">{{ icon("hash", 16) }}</span>
+    <template x-for="(tag, i) in tags" :key="i">
+      <span class="inline-flex items-center gap-1 rounded-full bg-sky-50 border border-sky-100 px-2 py-0.5 text-[12px] font-medium text-sky-700">
+        <span x-text="tag"></span>
+        <button type="button" @click="remove(i)" class="text-sky-500 hover:text-sky-700" aria-label="태그 제거">
+          ✕
+        </button>
+      </span>
+    </template>
+    <input type="text" x-model="input"
+           @keydown.enter.prevent="add()"
+           @keydown.backspace="onBackspace()"
+           @input="onComma()"
+           :placeholder="tags.length === 0 ? '단열, 지붕, 난방 (Enter로 태그 생성)' : '태그 추가'"
+           :disabled="tags.length >= max"
+           class="flex-1 min-w-[120px] border-0 bg-transparent p-0 text-stone-700 placeholder-stone-400 focus:outline-none focus:ring-0 disabled:cursor-not-allowed">
+    <span class="ml-auto text-[11px] tabular-nums text-stone-400">
+      <span x-text="tags.length"></span>/<span x-text="max"></span>
+    </span>
+  </label>
+  {# 백엔드는 콤마-구분 문자열로 받음 — submit 직전 input 합쳐 hidden 채움 #}
+  <input type="hidden" name="tags" :value="tags.join(',')">
+</div>
