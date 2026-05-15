@@ -162,6 +162,26 @@ def update_answer(db: Session, post: Post, *, body: str) -> Post:
     return post
 
 
+def update_plan(
+    db: Session,
+    post: Post,
+    *,
+    payload: PlanMetadata,
+    title: str,
+    body: str,
+) -> Post:
+    if post.type != PostType.PLAN:
+        raise ValueError(f"Cannot update_plan on type={post.type.value}")
+    post.title = title
+    post.body = body
+    meta = payload.model_dump(by_alias=True, exclude_none=True)
+    meta.pop("__post_type__", None)
+    post.metadata_ = {"__post_type__": "plan", **meta}
+    post.edited_at = datetime.now(UTC)
+    db.flush()
+    return post
+
+
 def create_answer(db: Session, author: User, parent_question: Post, body: str) -> Post:
     payload = AnswerMetadata()
     post = Post(
@@ -346,6 +366,7 @@ __all__ = [
     "next_journey_episode",
     "prev_journey_episode",
     "update_answer",
+    "update_plan",
     "update_question",
     "validate_body_length",
 ]

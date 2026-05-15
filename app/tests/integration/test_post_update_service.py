@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 from sqlalchemy.orm import Session
 
 from app.models._enums import PostStatus, PostType
-from app.schemas.post_metadata import QuestionMetadata
+from app.schemas.post_metadata import PlanMetadata, QuestionMetadata
 from app.services import posts as posts_service
 from app.tests.factories import PostFactory, UserFactory
 
@@ -70,3 +70,36 @@ def test_update_answer_rejects_non_answer(db: Session) -> None:
     db.flush()
     with pytest.raises(ValueError):
         posts_service.update_answer(db, q, body="x")
+
+
+def test_update_plan_changes_all_metadata_fields(db: Session) -> None:
+    author = UserFactory()
+    post = PostFactory(
+        author=author, author_id=author.id,
+        type=PostType.PLAN, status=PostStatus.PUBLISHED,
+        title="기존", body="기존",
+        metadata_={
+            "__post_type__": "plan",
+            "target_move_year": 2027,
+            "household_size": 1,
+            "budget_total_manwon_band": "<5000",
+            "construction_intent": "undecided",
+            "open_to_advice": True,
+        },
+    )
+    db.flush()
+    new_payload = PlanMetadata(
+        target_move_year=2028,
+        budget_total_manwon_band="10000-20000",
+        construction_intent="self_build",
+    )
+    posts_service.update_plan(
+        db, post, payload=new_payload, title="새 제목", body="새 본문"
+    )
+    assert post.title == "새 제목"
+    assert post.body == "새 본문"
+    assert post.metadata_["target_move_year"] == 2028
+    assert post.metadata_["budget_total_manwon_band"] == "10000-20000"
+    assert post.metadata_["construction_intent"] == "self_build"
+    assert post.edited_at is not None
+    assert post.type == PostType.PLAN
