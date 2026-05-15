@@ -3,6 +3,7 @@
 {% from "components/_relative_time.html" import relative_time %}
 {% from "components/_icon.html" import icon %}
 {% from "components/_status_chip.html" import status_chip %}
+{% from "components/_edited_badge.html" import edited_badge %}
 {% block title %}{{ post.title or "포스트" }} · Nestory{% endblock %}
 {% block content %}
 <article class="mx-auto max-w-xl">
@@ -18,8 +19,26 @@
         {% endif %}
         {% if post.published_at %}
           <span class="ml-1.5 text-sm text-stone-500">{{ relative_time(post.published_at, now()) }}</span>
+          {{ edited_badge(post.edited_at, now()) }}
         {% endif %}
-        <button type="button" class="ml-auto rounded-full p-1 text-stone-400 hover:bg-stone-100 hover:text-stone-600" aria-label="더보기">{{ icon("more-horizontal", 18) }}</button>
+        <div x-data="{ open: false }" @click.outside="open = false" class="relative ml-auto">
+          <button type="button" @click="open = !open" class="rounded-full p-1.5 text-stone-400 hover:bg-stone-100 hover:text-stone-600" aria-label="더보기">
+            {{ icon("more-horizontal", 18) }}
+          </button>
+          <div x-show="open" x-cloak class="absolute right-0 mt-1 w-32 rounded-lg border border-stone-200 bg-white shadow-md text-sm z-10">
+            {% if current_user and current_user.id == post.author_id %}
+              {% if post.type.value == "plan" %}
+                <a href="/write/plan/{{ post.id }}" class="block px-3 py-2 text-stone-700 hover:bg-stone-50">수정</a>
+              {% endif %}
+              <form method="post" action="/post/{{ post.id }}/delete"
+                    onsubmit="return confirm('이 게시글을 삭제하시겠습니까?');">
+                <button type="submit" class="block w-full text-left px-3 py-2 text-rose-600 hover:bg-rose-50">삭제</button>
+              </form>
+            {% else %}
+              <a href="#" class="block px-3 py-2 text-stone-700 hover:bg-stone-50">신고</a>
+            {% endif %}
+          </div>
+        </div>
       </div>
       <div class="mt-1 flex items-center gap-2 text-xs text-stone-500">
         {% set type_value = {

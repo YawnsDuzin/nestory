@@ -209,3 +209,51 @@ def test_question_detail_shows_edited_badge(client: TestClient, db: Session, log
     login(author.id)
     r = client.get(f"/question/{post.id}")
     assert "수정됨" in r.text
+
+
+def test_plan_detail_shows_edit_link_for_author(client: TestClient, db: Session, login) -> None:
+    author = UserFactory()
+    region = RegionFactory(slug="plan-edit-link-region")
+    post = PostFactory(
+        author=author, author_id=author.id,
+        region=region, region_id=region.id,
+        type=PostType.PLAN, status=PostStatus.PUBLISHED,
+        metadata_={
+            "__post_type__": "plan",
+            "target_move_year": 2027,
+            "household_size": 1,
+            "budget_total_manwon_band": "<5000",
+            "construction_intent": "undecided",
+            "open_to_advice": True,
+        },
+    )
+    db.commit()
+    login(author.id)
+    r = client.get(f"/post/{post.id}")
+    assert r.status_code == 200
+    assert f"/write/plan/{post.id}" in r.text
+    assert f"/post/{post.id}/delete" in r.text
+
+
+def test_plan_detail_shows_edited_badge(client: TestClient, db: Session, login) -> None:
+    from datetime import UTC, datetime, timedelta
+    author = UserFactory()
+    region = RegionFactory(slug="plan-edited-badge-region")
+    post = PostFactory(
+        author=author, author_id=author.id,
+        region=region, region_id=region.id,
+        type=PostType.PLAN, status=PostStatus.PUBLISHED,
+        metadata_={
+            "__post_type__": "plan",
+            "target_move_year": 2027,
+            "household_size": 1,
+            "budget_total_manwon_band": "<5000",
+            "construction_intent": "undecided",
+            "open_to_advice": True,
+        },
+    )
+    post.edited_at = datetime.now(UTC) - timedelta(hours=1)
+    db.commit()
+    login(author.id)
+    r = client.get(f"/post/{post.id}")
+    assert "수정됨" in r.text
