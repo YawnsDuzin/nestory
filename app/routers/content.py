@@ -305,6 +305,40 @@ def submit_answer(
     )
 
 
+@router.get("/write/answer/{post_id}", response_class=HTMLResponse)
+def edit_answer_form(
+    request: Request,
+    post: Post = Depends(require_author("post_id")),
+) -> HTMLResponse:
+    if post.type != PostType.ANSWER:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Not an answer")
+    return templates.TemplateResponse(
+        request,
+        "pages/write/answer_edit.html",
+        {
+            "current_user": post.author,
+            "page_title": "답변 수정",
+            "form_action": f"/write/answer/{post.id}",
+            "back_href": f"/question/{post.parent_post_id}",
+            "form": {"body": post.body},
+        },
+    )
+
+
+@router.post("/write/answer/{post_id}")
+def submit_edit_answer(
+    post: Post = Depends(require_author("post_id")),
+    db: Session = Depends(get_db),
+    body: str = Form(...),
+) -> RedirectResponse:
+    if post.type != PostType.ANSWER:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Not an answer")
+    parent_qid = post.parent_post_id
+    posts_service.update_answer(db, post, body=body)
+    db.commit()
+    return RedirectResponse(f"/question/{parent_qid}", status_code=status.HTTP_303_SEE_OTHER)
+
+
 @router.get("/post/{post_id}", response_class=HTMLResponse)
 def post_detail(
     request: Request,

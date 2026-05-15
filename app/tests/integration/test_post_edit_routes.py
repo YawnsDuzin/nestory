@@ -109,3 +109,46 @@ def test_post_edit_plan_updates_fields(client: TestClient, db: Session, login) -
     assert post.title == "새 계획"
     assert post.metadata_["target_move_year"] == 2030
     assert post.edited_at is not None
+
+
+def test_edit_answer_updates_body(client: TestClient, db: Session, login) -> None:
+    author = UserFactory()
+    question = PostFactory(type=PostType.QUESTION, status=PostStatus.PUBLISHED)
+    answer = PostFactory(
+        author=author, author_id=author.id,
+        type=PostType.ANSWER, status=PostStatus.PUBLISHED,
+        parent_post_id=question.id,
+        body="원본 답변",
+        metadata_={"__post_type__": "answer"},
+        title="",
+    )
+    db.commit()
+    login(author.id)
+    r = client.post(
+        f"/write/answer/{answer.id}",
+        data={"body": "수정된 답변"},
+        follow_redirects=False,
+    )
+    assert r.status_code == 303
+    assert r.headers["location"] == f"/question/{question.id}"
+    db.refresh(answer)
+    assert answer.body == "수정된 답변"
+    assert answer.edited_at is not None
+
+
+def test_get_edit_answer_renders(client: TestClient, db: Session, login) -> None:
+    author = UserFactory()
+    question = PostFactory(type=PostType.QUESTION, status=PostStatus.PUBLISHED)
+    answer = PostFactory(
+        author=author, author_id=author.id,
+        type=PostType.ANSWER, status=PostStatus.PUBLISHED,
+        parent_post_id=question.id,
+        body="원본 본문 텍스트",
+        metadata_={"__post_type__": "answer"},
+        title="",
+    )
+    db.commit()
+    login(author.id)
+    r = client.get(f"/write/answer/{answer.id}")
+    assert r.status_code == 200
+    assert "원본 본문 텍스트" in r.text
