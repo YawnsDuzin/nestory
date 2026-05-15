@@ -433,3 +433,20 @@ def question_detail(
             "comment_authors": comment_authors,
         },
     )
+
+
+@router.post("/post/{post_id}/delete")
+def delete_post(
+    post: Post = Depends(require_author("post_id")),
+    db: Session = Depends(get_db),
+) -> RedirectResponse:
+    """Soft delete (deleted_at 세팅). Type별 redirect:
+    - Answer → /question/{parent}
+    - 그 외 → /
+    """
+    redirect_to = "/"
+    if post.type == PostType.ANSWER and post.parent_post_id:
+        redirect_to = f"/question/{post.parent_post_id}"
+    posts_service.soft_delete_post(db, post)
+    db.commit()
+    return RedirectResponse(redirect_to, status_code=status.HTTP_303_SEE_OTHER)
