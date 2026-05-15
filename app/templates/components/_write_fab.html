@@ -2,7 +2,7 @@
 {# components/_write_fab.html — 우하단 floating "+ 쓰기" FAB.
    Expects: current_user. 권한 분기는 표시 단순화용 — 실제 가드는 라우트에서. #}
 {% set is_resident = current_user.badge_level.value in ("resident", "ex_resident") %}
-<div class="fixed bottom-6 right-6 z-40 sm:bottom-8 sm:right-8"
+<div class="fixed bottom-20 right-6 z-40 sm:bottom-8 sm:right-8"
      x-data="{ open: false }"
      @keydown.escape.window="open = false"
      @click.outside="open = false">

@@ -7,7 +7,7 @@ from pydantic import ValidationError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.deps import get_current_user, get_db, require_badge, require_user
+from app.deps import get_current_user, get_db, require_author, require_badge, require_user
 from app.models import Post, Region, User
 from app.models._enums import PostType
 from app.models.user import BadgeLevel
@@ -91,6 +91,62 @@ def write_question_form(
     )
 
 
+@router.get("/write/question/{post_id}", response_class=HTMLResponse)
+def edit_question_form(
+    request: Request,
+    post: Post = Depends(require_author("post_id")),
+    db: Session = Depends(get_db),
+) -> HTMLResponse:
+    if post.type != PostType.QUESTION:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Not a question")
+    regions = regions_service.list_all_for_dropdown(db)
+    form_view = {
+        "title": post.title,
+        "body": post.body,
+        "region_id": post.region_id,
+        "tags": ",".join(post.metadata_.get("tags", [])),
+    }
+    return templates.TemplateResponse(
+        request,
+        "pages/write/question.html",
+        {
+            "current_user": post.author,
+            "page_title": "질문 수정",
+            "page_subtitle": None,
+            "form_action": f"/write/question/{post.id}",
+            "cancel_href": f"/question/{post.id}",
+            "submit_label": "저장",
+            "regions": regions,
+            "form": form_view,
+        },
+    )
+
+
+@router.post("/write/question/{post_id}")
+def submit_edit_question(
+    post: Post = Depends(require_author("post_id")),
+    db: Session = Depends(get_db),
+    title: str = Form(...),
+    body: str = Form(...),
+    region_id: int = Form(...),
+    tags: str = Form(""),
+) -> RedirectResponse:
+    if post.type != PostType.QUESTION:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Not a question")
+    tag_list = [t.strip() for t in tags.split(",") if t.strip()][:10]
+    region = db.get(Region, region_id)
+    if region is None:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Invalid region")
+    post.region_id = region.id  # region 변경 허용
+    posts_service.update_question(
+        db, post,
+        payload=QuestionMetadata(tags=tag_list),
+        title=title, body=body,
+    )
+    db.commit()
+    return RedirectResponse(f"/question/{post.id}", status_code=status.HTTP_303_SEE_OTHER)
+
+
 @router.post("/write/question")
 def submit_question(
     user: User = Depends(require_user),
@@ -133,6 +189,66 @@ def write_plan_form(
             "form": None,
         },
     )
+
+
+@router.get("/write/plan/{post_id}", response_class=HTMLResponse)
+def edit_plan_form(
+    request: Request,
+    post: Post = Depends(require_author("post_id")),
+    db: Session = Depends(get_db),
+) -> HTMLResponse:
+    if post.type != PostType.PLAN:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Not a plan")
+    regions = regions_service.list_all_for_dropdown(db)
+    form_view = {
+        "title": post.title,
+        "body": post.body,
+        "region_id": post.region_id,
+        "target_move_year": post.metadata_.get("target_move_year"),
+        "budget_total_manwon_band": post.metadata_.get("budget_total_manwon_band"),
+        "construction_intent": post.metadata_.get("construction_intent"),
+    }
+    return templates.TemplateResponse(
+        request,
+        "pages/write/plan.html",
+        {
+            "current_user": post.author,
+            "page_title": "정착 계획 수정",
+            "page_subtitle": None,
+            "form_action": f"/write/plan/{post.id}",
+            "cancel_href": f"/post/{post.id}",
+            "submit_label": "저장",
+            "regions": regions,
+            "form": form_view,
+        },
+    )
+
+
+@router.post("/write/plan/{post_id}")
+def submit_edit_plan(
+    post: Post = Depends(require_author("post_id")),
+    db: Session = Depends(get_db),
+    title: str = Form(...),
+    body: str = Form(...),
+    region_id: int = Form(...),
+    target_move_year: int = Form(...),
+    budget_total_manwon_band: str = Form(...),
+    construction_intent: str = Form(...),
+) -> RedirectResponse:
+    if post.type != PostType.PLAN:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Not a plan")
+    region = db.get(Region, region_id)
+    if region is None:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Invalid region")
+    post.region_id = region.id
+    payload = PlanMetadata(
+        target_move_year=target_move_year,
+        budget_total_manwon_band=budget_total_manwon_band,  # type: ignore[arg-type]
+        construction_intent=construction_intent,  # type: ignore[arg-type]
+    )
+    posts_service.update_plan(db, post, payload=payload, title=title, body=body)
+    db.commit()
+    return RedirectResponse(f"/post/{post.id}", status_code=status.HTTP_303_SEE_OTHER)
 
 
 @router.post("/write/plan")
@@ -189,6 +305,40 @@ def submit_answer(
     return RedirectResponse(
         f"/question/{question_id}", status_code=status.HTTP_303_SEE_OTHER
     )
+
+
+@router.get("/write/answer/{post_id}", response_class=HTMLResponse)
+def edit_answer_form(
+    request: Request,
+    post: Post = Depends(require_author("post_id")),
+) -> HTMLResponse:
+    if post.type != PostType.ANSWER:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Not an answer")
+    return templates.TemplateResponse(
+        request,
+        "pages/write/answer_edit.html",
+        {
+            "current_user": post.author,
+            "page_title": "답변 수정",
+            "form_action": f"/write/answer/{post.id}",
+            "back_href": f"/question/{post.parent_post_id}",
+            "form": {"body": post.body},
+        },
+    )
+
+
+@router.post("/write/answer/{post_id}")
+def submit_edit_answer(
+    post: Post = Depends(require_author("post_id")),
+    db: Session = Depends(get_db),
+    body: str = Form(...),
+) -> RedirectResponse:
+    if post.type != PostType.ANSWER:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Not an answer")
+    parent_qid = post.parent_post_id
+    posts_service.update_answer(db, post, body=body)
+    db.commit()
+    return RedirectResponse(f"/question/{parent_qid}", status_code=status.HTTP_303_SEE_OTHER)
 
 
 @router.get("/post/{post_id}", response_class=HTMLResponse)
@@ -285,3 +435,20 @@ def question_detail(
             "comment_authors": comment_authors,
         },
     )
+
+
+@router.post("/post/{post_id}/delete")
+def delete_post(
+    post: Post = Depends(require_author("post_id")),
+    db: Session = Depends(get_db),
+) -> RedirectResponse:
+    """Soft delete (deleted_at 세팅). Type별 redirect:
+    - Answer → /question/{parent}
+    - 그 외 → /
+    """
+    redirect_to = "/"
+    if post.type == PostType.ANSWER and post.parent_post_id:
+        redirect_to = f"/question/{post.parent_post_id}"
+    posts_service.soft_delete_post(db, post)
+    db.commit()
+    return RedirectResponse(redirect_to, status_code=status.HTTP_303_SEE_OTHER)

@@ -1,0 +1,52 @@
+{# components/_bottom_tabbar.html — 모바일 전용 하단 탭바 (sm:hidden).
+   5탭: 홈 · 피드 · 시군매칭 · 탐색 · 내정보 — 시군매칭이 중앙(차별 기능 강조).
+   활성 상태: request.url.path 기반 prefix match → emerald-600 + font-medium.
+   PWA iOS notch 대응: pb-[env(safe-area-inset-bottom)]. #}
+{% from "components/_icon.html" import icon %}
+{% set p = request.url.path %}
+{% set profile_href = ("/u/" ~ current_user.username) if current_user else "/auth/login" %}
+{% set on_home    = (p == "/") %}
+{% set on_feed    = p.startswith("/feed") %}
+{% set on_match   = p.startswith("/match") %}
+{% set on_disc    = p.startswith("/discover") %}
+{% set on_profile = p.startswith("/u/") or p.startswith("/me") %}
+<nav class="fixed bottom-0 inset-x-0 z-30 border-t border-stone-200 bg-white pb-[env(safe-area-inset-bottom)] sm:hidden"
+     aria-label="모바일 네비게이션">
+  <ul class="mx-auto grid max-w-3xl grid-cols-5">
+    <li>
+      <a href="/"
+         {% if on_home %}aria-current="page"{% endif %}
+         class="flex flex-col items-center gap-0.5 py-2 text-[11px] {{ 'text-emerald-600 font-medium' if on_home else 'text-stone-500 hover:text-stone-900' }}">
+        {{ icon("home", 22) }}<span>홈</span>
+      </a>
+    </li>
+    <li>
+      <a href="/feed"
+         {% if on_feed %}aria-current="page"{% endif %}
+         class="flex flex-col items-center gap-0.5 py-2 text-[11px] {{ 'text-emerald-600 font-medium' if on_feed else 'text-stone-500 hover:text-stone-900' }}">
+        {{ icon("newspaper", 22) }}<span>피드</span>
+      </a>
+    </li>
+    <li>
+      <a href="/match/wizard"
+         {% if on_match %}aria-current="page"{% endif %}
+         class="flex flex-col items-center gap-0.5 py-2 text-[11px] {{ 'text-emerald-600 font-medium' if on_match else 'text-stone-500 hover:text-stone-900' }}">
+        {{ icon("target", 22) }}<span>시군 매칭</span>
+      </a>
+    </li>
+    <li>
+      <a href="/discover"
+         {% if on_disc %}aria-current="page"{% endif %}
+         class="flex flex-col items-center gap-0.5 py-2 text-[11px] {{ 'text-emerald-600 font-medium' if on_disc else 'text-stone-500 hover:text-stone-900' }}">
+        {{ icon("map-pin", 22) }}<span>탐색</span>
+      </a>
+    </li>
+    <li>
+      <a href="{{ profile_href }}"
+         {% if on_profile %}aria-current="page"{% endif %}
+         class="flex flex-col items-center gap-0.5 py-2 text-[11px] {{ 'text-emerald-600 font-medium' if on_profile else 'text-stone-500 hover:text-stone-900' }}">
+        {{ icon("user", 22) }}<span>내정보</span>
+      </a>
+    </li>
+  </ul>
+</nav>

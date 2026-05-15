@@ -1,9 +1,10 @@
 from collections.abc import Callable
 
-from fastapi import Depends, Header, HTTPException, Request, status
+from fastapi import Depends, Header, HTTPException, Path, Request, status
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
+from app.models import Post
 from app.models.user import BadgeLevel, User, UserRole
 
 
@@ -31,6 +32,34 @@ def require_admin(user: User = Depends(require_user)) -> User:
     if user.role != UserRole.ADMIN:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Admin only")
     return user
+
+
+def require_author(post_id_param: str = "post_id") -> Callable[..., Post]:
+    """Factory dependency — path param의 post_id로 Post를 로드해 본인 소유인지 검증.
+
+    동작:
+    - Post 존재 안 함 OR deleted_at != None → 404
+    - author_id != user.id → 403
+    - 통과 시 Post ORM 인스턴스를 라우트에 주입 (재조회 불필요)
+
+    Usage:
+        @router.post("/post/{post_id}/delete")
+        def delete(post: Post = Depends(require_author("post_id")), ...):
+    """
+
+    def dependency(
+        user: User = Depends(require_user),
+        db: Session = Depends(get_db),
+        post_id: int = Path(..., alias=post_id_param),
+    ) -> Post:
+        post = db.get(Post, post_id)
+        if post is None or post.deleted_at is not None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Post not found")
+        if post.author_id != user.id:
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "Not the author")
+        return post
+
+    return dependency
 
 
 _BADGE_RANK = {
@@ -93,6 +122,7 @@ __all__ = [
     "get_current_user",
     "get_db",
     "require_admin",
+    "require_author",
     "require_badge",
     "require_resident_in_region",
     "require_user",

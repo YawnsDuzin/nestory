@@ -1,21 +1,26 @@
-<form action="/me/profile" method="post" class="space-y-4">
+{# 부모(edit.html)의 x-data="{ dirty: false }" scope 안에서 사용.
+   입력/변경 시 dirty=true → sticky 헤더의 "저장" 버튼이 활성화됨.
+   제출 버튼은 sr-only — sticky 헤더의 버튼이 requestSubmit() 호출. #}
+<form id="basic-form" action="/me/profile" method="post" class="space-y-4"
+      @input="dirty = true"
+      @change="dirty = true">
   <label class="block">
-    <span class="text-sm text-stone-700">표시 이름</span>
+    <span class="text-sm font-medium text-stone-700">표시 이름</span>
     <input type="text" name="display_name" value="{{ current_user.display_name }}"
            required maxlength="64"
-           class="mt-1 w-full rounded border border-stone-300 px-3 py-2 focus:border-emerald-500 focus:outline-none">
+           class="mt-1.5 w-full rounded-lg border border-stone-300 bg-white px-3 py-2.5 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
   </label>
 
   <label class="block">
-    <span class="text-sm text-stone-700">자기소개 <span class="text-stone-400">(500자 이내)</span></span>
+    <span class="text-sm font-medium text-stone-700">자기소개 <span class="font-normal text-stone-400">(500자 이내)</span></span>
     <textarea name="bio" rows="4" maxlength="500"
-              class="mt-1 w-full rounded border border-stone-300 px-3 py-2 focus:border-emerald-500 focus:outline-none">{{ current_user.bio or "" }}</textarea>
+              class="mt-1.5 w-full rounded-lg border border-stone-300 bg-white px-3 py-2.5 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">{{ current_user.bio or "" }}</textarea>
   </label>
 
   <label class="block">
-    <span class="text-sm text-stone-700">관심 시군 <span class="text-stone-400">(선택)</span></span>
+    <span class="text-sm font-medium text-stone-700">관심 시군 <span class="font-normal text-stone-400">(선택)</span></span>
     <select name="primary_region_id"
-            class="mt-1 w-full rounded border border-stone-300 px-3 py-2 focus:border-emerald-500 focus:outline-none">
+            class="mt-1.5 w-full rounded-lg border border-stone-300 bg-white px-3 py-2.5 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
       <option value="">선택 안 함</option>
       {% for region in regions %}
         <option value="{{ region.id }}"
@@ -26,21 +31,30 @@
     </select>
   </label>
 
-  <fieldset class="space-y-2">
-    <legend class="text-sm font-medium text-stone-700">알림 수신</legend>
-    <label class="flex items-center gap-2">
-      <input type="checkbox" name="notify_email_enabled" value="1"
-             {% if current_user.notify_email_enabled %}checked{% endif %}>
-      <span class="text-sm">이메일</span>
-    </label>
-    <label class="flex items-center gap-2">
-      <input type="checkbox" name="notify_kakao_enabled" value="1"
-             {% if current_user.notify_kakao_enabled %}checked{% endif %}>
-      <span class="text-sm">카카오 알림톡 <span class="text-stone-400">(별도 비용 발생 가능)</span></span>
-    </label>
+  {# 알림 — 같은 form 안이지만 시각적으로 분리. mt-6 + 상단 구분선. #}
+  <fieldset class="pt-5 mt-2 border-t border-stone-100">
+    <legend class="text-sm font-semibold text-stone-500 uppercase tracking-wide">알림 수신</legend>
+    <div class="mt-3 space-y-3">
+      <label class="flex items-center justify-between">
+        <span class="text-sm text-stone-700">이메일</span>
+        <input type="checkbox" name="notify_email_enabled" value="1"
+               class="h-4 w-4 rounded border-stone-300 text-emerald-600 focus:ring-emerald-500"
+               {% if current_user.notify_email_enabled %}checked{% endif %}>
+      </label>
+      <label class="flex items-center justify-between">
+        <span class="text-sm text-stone-700">카카오 알림톡 <span class="text-stone-400">(별도 비용 발생 가능)</span></span>
+        <input type="checkbox" name="notify_kakao_enabled" value="1"
+               class="h-4 w-4 rounded border-stone-300 text-emerald-600 focus:ring-emerald-500"
+               {% if current_user.notify_kakao_enabled %}checked{% endif %}>
+      </label>
+    </div>
   </fieldset>
 
-  <button type="submit" class="rounded bg-emerald-600 px-4 py-2 font-medium text-white hover:bg-emerald-700">
-    저장
-  </button>
+  {# 폼 내 fallback submit — JS 미동작 환경(브라우저 외, no-JS) 대비.
+     sticky 헤더의 저장 버튼이 정상 동작하면 사용되지 않음. #}
+  <noscript>
+    <button type="submit" class="rounded-full bg-emerald-600 px-5 py-2 text-sm font-semibold text-white hover:bg-emerald-700">
+      저장
+    </button>
+  </noscript>
 </form>

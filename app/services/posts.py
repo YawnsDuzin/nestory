@@ -127,6 +127,68 @@ def create_question(
     return post
 
 
+def update_question(
+    db: Session,
+    post: Post,
+    *,
+    payload: QuestionMetadata,
+    title: str,
+    body: str,
+) -> Post:
+    """Question의 title/body/tags를 수정. edited_at 갱신.
+
+    - type, author, region, created_at, published_at은 불변.
+    - metadata는 type_tag(__post_type__) 제외 후 dict화.
+    """
+    if post.type != PostType.QUESTION:
+        raise ValueError(f"Cannot update_question on type={post.type.value}")
+    post.title = title
+    post.body = body
+    post.metadata_ = _meta_to_jsonb(payload)
+    post.edited_at = datetime.now(UTC)
+    db.flush()
+    return post
+
+
+def update_answer(db: Session, post: Post, *, body: str) -> Post:
+    """Answer의 body만 수정. title은 빈 문자열(answer 규칙)이므로 손대지 않음."""
+    if post.type != PostType.ANSWER:
+        raise ValueError(f"Cannot update_answer on type={post.type.value}")
+    post.body = body
+    post.edited_at = datetime.now(UTC)
+    db.flush()
+    return post
+
+
+def update_plan(
+    db: Session,
+    post: Post,
+    *,
+    payload: PlanMetadata,
+    title: str,
+    body: str,
+) -> Post:
+    if post.type != PostType.PLAN:
+        raise ValueError(f"Cannot update_plan on type={post.type.value}")
+    post.title = title
+    post.body = body
+    post.metadata_ = _meta_to_jsonb(payload)
+    post.edited_at = datetime.now(UTC)
+    db.flush()
+    return post
+
+
+def soft_delete_post(db: Session, post: Post) -> Post:
+    """Post.deleted_at 세팅. 이미 삭제되었으면 no-op (idempotent).
+
+    Feed/Hub/Detail 등에서 deleted_at 필터는 이미 적용 중 (기존 테스트 검증).
+    """
+    if post.deleted_at is None:
+        post.deleted_at = datetime.now(UTC)
+        db.flush()
+    return post
+
+
 def create_answer(db: Session, author: User, parent_question: Post, body: str) -> Post:
     payload = AnswerMetadata()
     post = Post(
@@ -310,5 +372,9 @@ __all__ = [
     "list_published_answers",
     "next_journey_episode",
     "prev_journey_episode",
+    "soft_delete_post",
+    "update_answer",
+    "update_plan",
+    "update_question",
     "validate_body_length",
 ]

@@ -1,23 +1,8 @@
-{% from "components/_icon.html" import icon %}
 {# Threads-style composer: 보더리스 인풋, 자동 확장 textarea.
    parent form의 composer() x-data (title/body/bodyBytes/bodyMax)를 상속해 사용.
+   region selector는 _base.html의 작성자 헤더로 이동 — 여기는 제목/본문/카운터만.
    Cmd/Ctrl+Enter 단축키는 parent에서 처리하지 않고 여기 textarea/input에 직접 바인딩. #}
 <div class="space-y-1">
-  {% if regions %}
-    <div class="flex items-center gap-1.5 text-sm text-stone-500">
-      <span class="text-stone-400">{{ icon("map-pin", 14) }}</span>
-      <select name="region_id" required
-              class="bg-transparent text-stone-700 focus:outline-none focus:ring-0 border-0 p-0 pr-6 text-sm">
-        {% for r in regions %}
-          <option value="{{ r.id }}"
-                  {% if form and form.region_id == r.id %}selected{% endif %}>
-            {{ r.sido }} {{ r.sigungu }}
-          </option>
-        {% endfor %}
-      </select>
-    </div>
-  {% endif %}
-
   <input type="text" name="title" required maxlength="300"
          placeholder="제목"
          x-model="title"

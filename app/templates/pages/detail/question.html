@@ -3,6 +3,7 @@
 {% from "components/_relative_time.html" import relative_time %}
 {% from "components/_icon.html" import icon %}
 {% from "components/_status_chip.html" import status_chip %}
+{% from "components/_edited_badge.html" import edited_badge %}
 {% block title %}{{ question.title }} · Nestory{% endblock %}
 {% block content %}
 <article class="mx-auto max-w-xl">
@@ -17,8 +18,24 @@
     {% endif %}
     {% if question.published_at %}
       <span class="ml-1 text-sm text-stone-500">{{ relative_time(question.published_at, now()) }}</span>
+      {{ edited_badge(question.edited_at, now()) }}
     {% endif %}
-    <button type="button" class="ml-auto rounded-full p-1 text-stone-400 hover:bg-stone-100 hover:text-stone-600" aria-label="더보기">{{ icon("more-horizontal", 18) }}</button>
+    <div x-data="{ open: false }" @click.outside="open = false" class="relative ml-auto">
+      <button type="button" @click="open = !open" class="rounded-full p-1.5 text-stone-400 hover:bg-stone-100 hover:text-stone-600" aria-label="더보기">
+        {{ icon("more-horizontal", 18) }}
+      </button>
+      <div x-show="open" x-cloak class="absolute right-0 mt-1 w-32 rounded-lg border border-stone-200 bg-white shadow-md text-sm z-10">
+        {% if current_user and current_user.id == question.author_id %}
+          <a href="/write/question/{{ question.id }}" class="block px-3 py-2 text-stone-700 hover:bg-stone-50">수정</a>
+          <form method="post" action="/post/{{ question.id }}/delete"
+                onsubmit="return confirm('이 질문을 삭제하시겠습니까?');">
+            <button type="submit" class="block w-full text-left px-3 py-2 text-rose-600 hover:bg-rose-50">삭제</button>
+          </form>
+        {% else %}
+          <a href="#" class="block px-3 py-2 text-stone-700 hover:bg-stone-50">신고</a>
+        {% endif %}
+      </div>
+    </div>
   </header>
 
   <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-stone-500">
@@ -80,6 +97,23 @@
                 {% endif %}
                 <span class="text-xs text-stone-400">·</span>
                 <span class="text-xs text-stone-400">{{ relative_time(ans.published_at, now()) if ans.published_at else '' }}</span>
+                {{ edited_badge(ans.edited_at, now()) }}
+                <div x-data="{ open: false }" @click.outside="open = false" class="relative ml-auto">
+                  <button type="button" @click="open = !open" class="rounded-full p-1 text-stone-400 hover:bg-stone-100" aria-label="더보기">
+                    {{ icon("more-horizontal", 16) }}
+                  </button>
+                  <div x-show="open" x-cloak class="absolute right-0 mt-1 w-32 rounded-lg border border-stone-200 bg-white shadow-md text-sm z-10">
+                    {% if current_user and current_user.id == ans.author_id %}
+                      <a href="/write/answer/{{ ans.id }}" class="block px-3 py-2 text-stone-700 hover:bg-stone-50">수정</a>
+                      <form method="post" action="/post/{{ ans.id }}/delete"
+                            onsubmit="return confirm('답변을 삭제하시겠습니까?');">
+                        <button type="submit" class="block w-full text-left px-3 py-2 text-rose-600 hover:bg-rose-50">삭제</button>
+                      </form>
+                    {% else %}
+                      <a href="#" class="block px-3 py-2 text-stone-700 hover:bg-stone-50">신고</a>
+                    {% endif %}
+                  </div>
+                </div>
               </header>
               <div class="mt-1 prose prose-sm prose-stone max-w-none text-[15px] leading-relaxed">{{ ans.body | markdown | safe }}</div>
             </div>

@@ -68,6 +68,7 @@ class Post(Base):
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    edited_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Relationships (P1.3 deferred — added for N+1 elimination in detail/list routes)
     author: Mapped["User"] = relationship(

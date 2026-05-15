@@ -9,10 +9,14 @@
     <div class="hidden sm:flex items-center gap-5 text-sm text-stone-600">
       <a href="/feed" class="hover:text-stone-900">피드</a>
       <a href="/discover" class="hover:text-stone-900">탐색</a>
-      <a href="/match/wizard" class="inline-flex items-center gap-1.5 hover:text-stone-900">{{ icon("target", 16) }}시군 매칭</a>
-      <a href="/search" class="inline-flex items-center gap-1.5 hover:text-stone-900">{{ icon("search", 16) }}검색</a>
+      <a href="/match/wizard" class="hover:text-stone-900">시군 매칭</a>
     </div>
     <div class="flex items-center gap-2 text-sm">
+      <a href="/search"
+         class="h-9 w-9 inline-flex items-center justify-center rounded text-stone-600 hover:bg-stone-50 hover:text-stone-900"
+         aria-label="검색">
+        {{ icon("search", 18) }}
+      </a>
       {% if current_user %}
         {# 알림 bell — HTMX 30s polling, placeholder는 동일 크기 유지 #}
         <div hx-get="/notifications/_bell"

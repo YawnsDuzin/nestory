@@ -1,0 +1,14 @@
+{# components/_edited_badge.html — Post.edited_at 있을 때 "· 수정됨 N분 전" 칩.
+   사용:
+     {% from "components/_edited_badge.html" import edited_badge %}
+     {{ edited_badge(post.edited_at, now()) }}
+   디자인: 작은 stone-400 텍스트, title 속성에 정확한 시각.
+#}
+{% from "components/_relative_time.html" import relative_time %}
+{% macro edited_badge(edited_at, now=None) -%}
+  {% if edited_at %}
+    <span class="text-[11px] text-stone-400" title="{{ edited_at.strftime('%Y-%m-%d %H:%M') }}">
+      · 수정됨 {{ relative_time(edited_at, now) }}
+    </span>
+  {% endif %}
+{%- endmacro %}
