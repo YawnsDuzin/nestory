@@ -7,7 +7,7 @@ from pydantic import ValidationError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.deps import get_current_user, get_db, require_badge, require_user
+from app.deps import get_current_user, get_db, require_author, require_badge, require_user
 from app.models import Post, Region, User
 from app.models._enums import PostType
 from app.models.user import BadgeLevel
@@ -89,6 +89,61 @@ def write_question_form(
             "form": None,
         },
     )
+
+
+@router.get("/write/question/{post_id}", response_class=HTMLResponse)
+def edit_question_form(
+    request: Request,
+    post: Post = Depends(require_author("post_id")),
+    db: Session = Depends(get_db),
+) -> HTMLResponse:
+    if post.type != PostType.QUESTION:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Not a question")
+    regions = regions_service.list_all_for_dropdown(db)
+    form_view = {
+        "title": post.title,
+        "body": post.body,
+        "region_id": post.region_id,
+        "tags": ",".join(post.metadata_.get("tags", [])),
+    }
+    return templates.TemplateResponse(
+        request,
+        "pages/write/question.html",
+        {
+            "current_user": post.author,
+            "page_title": "질문 수정",
+            "page_subtitle": None,
+            "form_action": f"/write/question/{post.id}",
+            "submit_label": "저장",
+            "regions": regions,
+            "form": form_view,
+        },
+    )
+
+
+@router.post("/write/question/{post_id}")
+def submit_edit_question(
+    post: Post = Depends(require_author("post_id")),
+    db: Session = Depends(get_db),
+    title: str = Form(...),
+    body: str = Form(...),
+    region_id: int = Form(...),
+    tags: str = Form(""),
+) -> RedirectResponse:
+    if post.type != PostType.QUESTION:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Not a question")
+    tag_list = [t.strip() for t in tags.split(",") if t.strip()][:10]
+    region = db.get(Region, region_id)
+    if region is None:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Invalid region")
+    post.region_id = region.id  # region 변경 허용
+    posts_service.update_question(
+        db, post,
+        payload=QuestionMetadata(tags=tag_list),
+        title=title, body=body,
+    )
+    db.commit()
+    return RedirectResponse(f"/question/{post.id}", status_code=status.HTTP_303_SEE_OTHER)
 
 
 @router.post("/write/question")

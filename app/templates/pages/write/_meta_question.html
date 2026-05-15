@@ -3,9 +3,15 @@
    POST submit 시 hidden input "tags"에 콤마 조인한 값 채워서 전송 — 백엔드 호환. #}
 <div class="mt-2"
      x-data="{
+       initialTags: '{{ (form.tags if form else "") }}',
        tags: [],
        input: '',
        max: 10,
+       init() {
+         if (this.initialTags) {
+           this.tags = this.initialTags.split(',').map(t => t.trim()).filter(t => t);
+         }
+       },
        add() {
          const v = this.input.trim().replace(/,$/, '').trim();
          if (!v || this.tags.includes(v) || this.tags.length >= this.max) {
