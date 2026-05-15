@@ -127,6 +127,31 @@ def create_question(
     return post
 
 
+def update_question(
+    db: Session,
+    post: Post,
+    *,
+    payload: QuestionMetadata,
+    title: str,
+    body: str,
+) -> Post:
+    """Question의 title/body/tags를 수정. edited_at 갱신.
+
+    - type, author, region, created_at, published_at은 불변.
+    - metadata는 type_tag(__post_type__) 제외 후 dict화.
+    """
+    if post.type != PostType.QUESTION:
+        raise ValueError(f"Cannot update_question on type={post.type.value}")
+    post.title = title
+    post.body = body
+    meta = payload.model_dump(by_alias=True, exclude_none=True)
+    meta.pop("__post_type__", None)
+    post.metadata_ = {"__post_type__": "question", **meta}
+    post.edited_at = datetime.now(UTC)
+    db.flush()
+    return post
+
+
 def create_answer(db: Session, author: User, parent_question: Post, body: str) -> Post:
     payload = AnswerMetadata()
     post = Post(
@@ -310,5 +335,6 @@ __all__ = [
     "list_published_answers",
     "next_journey_episode",
     "prev_journey_episode",
+    "update_question",
     "validate_body_length",
 ]
