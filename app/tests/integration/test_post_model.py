@@ -1,4 +1,5 @@
 import pytest
+from datetime import UTC, datetime
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -8,6 +9,7 @@ from app.tests.factories import (
     JourneyEpisodePostFactory,
     JourneyFactory,
     PlanPostFactory,
+    PostFactory,
     QuestionPostFactory,
     ResidentUserFactory,
     ReviewPostFactory,
@@ -77,3 +79,21 @@ def test_journey_episode_no_uniqueness_does_not_block_null_journey(db: Session) 
     ReviewPostFactory(title="r1", body="x")
     ReviewPostFactory(title="r2", body="y")
     db.flush()  # no IntegrityError
+
+
+def test_post_edited_at_defaults_to_none(db: Session) -> None:
+    """edited_at은 created/published 시점엔 None — 수정 발생 시에만 세팅."""
+    post = PostFactory(type=PostType.QUESTION, status=PostStatus.PUBLISHED)
+    db.flush()
+    assert post.edited_at is None
+
+
+def test_post_edited_at_settable(db: Session) -> None:
+    """edited_at은 timezone-aware datetime을 수용해야 한다."""
+    post = PostFactory()
+    db.flush()
+    now = datetime.now(UTC)
+    post.edited_at = now
+    db.flush()
+    db.refresh(post)
+    assert post.edited_at is not None
