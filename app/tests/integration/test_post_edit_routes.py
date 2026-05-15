@@ -152,3 +152,15 @@ def test_get_edit_answer_renders(client: TestClient, db: Session, login) -> None
     r = client.get(f"/write/answer/{answer.id}")
     assert r.status_code == 200
     assert "원본 본문 텍스트" in r.text
+
+
+def test_edit_question_cancel_href(client: TestClient, db: Session, login) -> None:
+    author = UserFactory()
+    post = PostFactory(
+        author=author, author_id=author.id,
+        type=PostType.QUESTION, status=PostStatus.PUBLISHED,
+    )
+    db.commit()
+    login(author.id)
+    r = client.get(f"/write/question/{post.id}")
+    assert f'href="/question/{post.id}"' in r.text
