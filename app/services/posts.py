@@ -152,6 +152,16 @@ def update_question(
     return post
 
 
+def update_answer(db: Session, post: Post, *, body: str) -> Post:
+    """Answer의 body만 수정. title은 빈 문자열(answer 규칙)이므로 손대지 않음."""
+    if post.type != PostType.ANSWER:
+        raise ValueError(f"Cannot update_answer on type={post.type.value}")
+    post.body = body
+    post.edited_at = datetime.now(UTC)
+    db.flush()
+    return post
+
+
 def create_answer(db: Session, author: User, parent_question: Post, body: str) -> Post:
     payload = AnswerMetadata()
     post = Post(
@@ -335,6 +345,7 @@ __all__ = [
     "list_published_answers",
     "next_journey_episode",
     "prev_journey_episode",
+    "update_answer",
     "update_question",
     "validate_body_length",
 ]

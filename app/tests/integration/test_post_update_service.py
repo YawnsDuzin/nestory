@@ -44,3 +44,29 @@ def test_update_question_sets_edited_at_close_to_now(db: Session) -> None:
     after = datetime.now(UTC)
     assert post.edited_at is not None
     assert before <= post.edited_at <= after
+
+
+def test_update_answer_changes_body_only(db: Session) -> None:
+    question = PostFactory(type=PostType.QUESTION, status=PostStatus.PUBLISHED)
+    author = UserFactory()
+    answer = PostFactory(
+        author=author, author_id=author.id,
+        type=PostType.ANSWER, status=PostStatus.PUBLISHED,
+        parent_post_id=question.id,
+        body="기존 답변",
+        metadata_={"__post_type__": "answer"},
+    )
+    db.flush()
+    posts_service.update_answer(db, answer, body="수정된 답변")
+    assert answer.body == "수정된 답변"
+    assert answer.edited_at is not None
+    assert answer.parent_post_id == question.id  # 불변
+    assert answer.type == PostType.ANSWER         # 불변
+
+
+def test_update_answer_rejects_non_answer(db: Session) -> None:
+    import pytest
+    q = PostFactory(type=PostType.QUESTION, status=PostStatus.PUBLISHED)
+    db.flush()
+    with pytest.raises(ValueError):
+        posts_service.update_answer(db, q, body="x")
