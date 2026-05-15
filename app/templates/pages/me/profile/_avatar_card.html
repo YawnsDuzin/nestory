@@ -1,21 +1,29 @@
 {% from "components/_avatar.html" import avatar %}
+{% from "components/_icon.html" import icon %}
 
-<div class="flex items-center gap-4">
-  {{ avatar(current_user, 56) }}
+{# 큰 아바타 + 우하단 카메라 뱃지 (Instagram/Threads/카카오톡 패턴).
+   raw <input type=file>는 sr-only로 숨기고 label이 카메라 뱃지를 trigger.
+   파일 선택 즉시 form.requestSubmit() — 별도 "변경" 버튼 불필요. #}
+<div class="flex flex-col items-center gap-2">
+  <form action="/me/profile/avatar" method="post" enctype="multipart/form-data"
+        class="relative inline-block">
+    {{ avatar(current_user, 96) }}
+    <label for="avatar-input"
+           class="absolute -bottom-1 -right-1 inline-flex h-8 w-8 items-center justify-center rounded-full bg-stone-900 text-white shadow-sm ring-2 ring-white hover:bg-stone-700 cursor-pointer"
+           aria-label="사진 변경">
+      {{ icon("camera", 16) }}
+    </label>
+    <input id="avatar-input" type="file" name="image"
+           accept="image/jpeg,image/png,image/webp" required
+           class="sr-only"
+           onchange="this.form.requestSubmit()">
+  </form>
 
-  <div class="flex flex-col gap-2">
-    <form action="/me/profile/avatar" method="post" enctype="multipart/form-data" class="flex items-center gap-2">
-      <input type="file" name="image" accept="image/jpeg,image/png,image/webp" required
-             class="text-sm">
-      <button type="submit" class="rounded bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-700">
-        사진 변경
+  {% if current_user.avatar_image_id %}
+    <form action="/me/profile/avatar/delete" method="post">
+      <button type="submit" class="text-xs text-stone-500 hover:text-rose-600 hover:underline">
+        사진 제거
       </button>
     </form>
-
-    {% if current_user.avatar_image_id %}
-      <form action="/me/profile/avatar/delete" method="post">
-        <button type="submit" class="text-sm text-stone-500 hover:underline">사진 제거</button>
-      </form>
-    {% endif %}
-  </div>
+  {% endif %}
 </div>
