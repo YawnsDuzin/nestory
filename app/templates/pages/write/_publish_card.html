@@ -1,6 +1,7 @@
 {% from "components/_icon.html" import icon %}
-{# Threads 컴포저 푸터 — 좌측 이미지 아이콘, 우측 "게시" 블랙 pill. #}
-<div class="mt-5 flex items-center justify-between pt-3 border-t border-stone-200">
+{# Threads 컴포저 푸터 — 좌측 이미지 아이콘, 우측 "게시" 블랙 pill.
+   -mx + px로 border-t 라인은 카드 좌우 끝까지, 내용은 카드 padding 유지. #}
+<div class="mt-5 flex items-center justify-between -mx-6 sm:-mx-10 px-6 sm:px-10 pt-3 border-t border-stone-200">
   <label class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-2 text-sm text-stone-500 hover:bg-stone-100 hover:text-stone-700 cursor-pointer"
          title="이미지 첨부 (JPEG/PNG/WebP, 최대 10MB)">
     {{ icon("image", 18) }}
