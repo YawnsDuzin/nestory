@@ -85,6 +85,7 @@ def test_post_edited_at_defaults_to_none(db: Session) -> None:
     """edited_at은 created/published 시점엔 None — 수정 발생 시에만 세팅."""
     post = PostFactory(type=PostType.QUESTION, status=PostStatus.PUBLISHED)
     db.flush()
+    db.refresh(post)
     assert post.edited_at is None
 
 
@@ -96,4 +97,4 @@ def test_post_edited_at_settable(db: Session) -> None:
     post.edited_at = now
     db.flush()
     db.refresh(post)
-    assert post.edited_at is not None
+    assert post.edited_at == now
