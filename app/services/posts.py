@@ -144,9 +144,7 @@ def update_question(
         raise ValueError(f"Cannot update_question on type={post.type.value}")
     post.title = title
     post.body = body
-    meta = payload.model_dump(by_alias=True, exclude_none=True)
-    meta.pop("__post_type__", None)
-    post.metadata_ = {"__post_type__": "question", **meta}
+    post.metadata_ = _meta_to_jsonb(payload)
     post.edited_at = datetime.now(UTC)
     db.flush()
     return post
@@ -174,9 +172,7 @@ def update_plan(
         raise ValueError(f"Cannot update_plan on type={post.type.value}")
     post.title = title
     post.body = body
-    meta = payload.model_dump(by_alias=True, exclude_none=True)
-    meta.pop("__post_type__", None)
-    post.metadata_ = {"__post_type__": "plan", **meta}
+    post.metadata_ = _meta_to_jsonb(payload)
     post.edited_at = datetime.now(UTC)
     db.flush()
     return post
