@@ -40,10 +40,18 @@
 <body class="h-full bg-stone-50 text-stone-900 antialiased">
   {% include "components/_kakao_inapp_banner.html" %}
   {% include "components/nav.html" %}
-  <main class="mx-auto max-w-3xl px-5 sm:px-6 py-6 pb-24 sm:pb-16">
+  <main class="mx-auto max-w-3xl px-5 sm:px-6 py-6 pb-28 sm:pb-16">
     {% block content %}{% endblock %}
   </main>
-  {% if current_user %}{% include "components/_write_fab.html" %}{% endif %}
+  {# FAB은 둘러보기 화면에만. 작성/인증/관리/배지 화면에서는 primary 액션 버튼과 충돌하므로 숨김 #}
+  {% if current_user
+         and not request.url.path.startswith('/write')
+         and not request.url.path.startswith('/auth')
+         and not request.url.path.startswith('/admin')
+         and not request.url.path.startswith('/me') %}
+    {% include "components/_write_fab.html" %}
+  {% endif %}
+  {% include "components/_bottom_tabbar.html" %}
   <footer class="mt-8 py-4 text-center text-xs text-stone-500">
     © Nestory · 전원생활 정착의 여정
   </footer>
