@@ -103,3 +103,21 @@ def test_update_plan_changes_all_metadata_fields(db: Session) -> None:
     assert post.metadata_["construction_intent"] == "self_build"
     assert post.edited_at is not None
     assert post.type == PostType.PLAN
+
+
+def test_soft_delete_sets_deleted_at(db: Session) -> None:
+    post = PostFactory(type=PostType.QUESTION, status=PostStatus.PUBLISHED)
+    db.flush()
+    assert post.deleted_at is None
+    posts_service.soft_delete_post(db, post)
+    assert post.deleted_at is not None
+
+
+def test_soft_delete_idempotent(db: Session) -> None:
+    """이미 삭제된 게시글에 다시 호출해도 deleted_at은 first-call 시각 유지."""
+    post = PostFactory(type=PostType.PLAN, status=PostStatus.PUBLISHED)
+    db.flush()
+    posts_service.soft_delete_post(db, post)
+    first = post.deleted_at
+    posts_service.soft_delete_post(db, post)
+    assert post.deleted_at == first  # 변경 안 됨

@@ -182,6 +182,17 @@ def update_plan(
     return post
 
 
+def soft_delete_post(db: Session, post: Post) -> Post:
+    """Post.deleted_at 세팅. 이미 삭제되었으면 no-op (idempotent).
+
+    Feed/Hub/Detail 등에서 deleted_at 필터는 이미 적용 중 (기존 테스트 검증).
+    """
+    if post.deleted_at is None:
+        post.deleted_at = datetime.now(UTC)
+        db.flush()
+    return post
+
+
 def create_answer(db: Session, author: User, parent_question: Post, body: str) -> Post:
     payload = AnswerMetadata()
     post = Post(
@@ -365,6 +376,7 @@ __all__ = [
     "list_published_answers",
     "next_journey_episode",
     "prev_journey_episode",
+    "soft_delete_post",
     "update_answer",
     "update_plan",
     "update_question",
