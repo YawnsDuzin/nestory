@@ -190,6 +190,65 @@ def write_plan_form(
     )
 
 
+@router.get("/write/plan/{post_id}", response_class=HTMLResponse)
+def edit_plan_form(
+    request: Request,
+    post: Post = Depends(require_author("post_id")),
+    db: Session = Depends(get_db),
+) -> HTMLResponse:
+    if post.type != PostType.PLAN:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Not a plan")
+    regions = regions_service.list_all_for_dropdown(db)
+    form_view = {
+        "title": post.title,
+        "body": post.body,
+        "region_id": post.region_id,
+        "target_move_year": post.metadata_.get("target_move_year"),
+        "budget_total_manwon_band": post.metadata_.get("budget_total_manwon_band"),
+        "construction_intent": post.metadata_.get("construction_intent"),
+    }
+    return templates.TemplateResponse(
+        request,
+        "pages/write/plan.html",
+        {
+            "current_user": post.author,
+            "page_title": "정착 계획 수정",
+            "page_subtitle": None,
+            "form_action": f"/write/plan/{post.id}",
+            "submit_label": "저장",
+            "regions": regions,
+            "form": form_view,
+        },
+    )
+
+
+@router.post("/write/plan/{post_id}")
+def submit_edit_plan(
+    post: Post = Depends(require_author("post_id")),
+    db: Session = Depends(get_db),
+    title: str = Form(...),
+    body: str = Form(...),
+    region_id: int = Form(...),
+    target_move_year: int = Form(...),
+    budget_total_manwon_band: str = Form(...),
+    construction_intent: str = Form(...),
+) -> RedirectResponse:
+    if post.type != PostType.PLAN:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Not a plan")
+    region = db.get(Region, region_id)
+    if region is None:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Invalid region")
+    post.region_id = region.id
+    payload = PlanMetadata(
+        target_move_year=target_move_year,
+        budget_total_manwon_band=budget_total_manwon_band,  # type: ignore[arg-type]
+        construction_intent=construction_intent,  # type: ignore[arg-type]
+    )
+    posts_service.update_plan(db, post, payload=payload, title=title, body=body)
+    db.commit()
+    return RedirectResponse(f"/post/{post.id}", status_code=status.HTTP_303_SEE_OTHER)
+
+
 @router.post("/write/plan")
 def submit_plan(
     user: User = Depends(require_user),

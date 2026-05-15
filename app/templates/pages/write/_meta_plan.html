@@ -5,26 +5,27 @@
     <label class="block">
       <span class="text-xs text-stone-600">목표 이주 연도</span>
       <input type="number" name="target_move_year" required min="2026" max="2050"
+             value="{{ form.target_move_year if form else 2030 }}"
              class="mt-1 w-full rounded-lg border border-stone-200 bg-white p-2 text-sm">
     </label>
     <label class="block">
       <span class="text-xs text-stone-600">예산 (만원)</span>
       <select name="budget_total_manwon_band" required class="mt-1 w-full rounded-lg border border-stone-200 bg-white p-2 text-sm">
-        <option value="<5000">5,000 미만</option>
-        <option value="5000-10000">5,000-10,000</option>
-        <option value="10000-20000">10,000-20,000</option>
-        <option value="20000-40000">20,000-40,000</option>
-        <option value="40000+">40,000 이상</option>
+        <option value="<5000" {% if form and form.budget_total_manwon_band == '<5000' %}selected{% endif %}>5,000 미만</option>
+        <option value="5000-10000" {% if form and form.budget_total_manwon_band == '5000-10000' %}selected{% endif %}>5,000-10,000</option>
+        <option value="10000-20000" {% if form and form.budget_total_manwon_band == '10000-20000' %}selected{% endif %}>10,000-20,000</option>
+        <option value="20000-40000" {% if form and form.budget_total_manwon_band == '20000-40000' %}selected{% endif %}>20,000-40,000</option>
+        <option value="40000+" {% if form and form.budget_total_manwon_band == '40000+' %}selected{% endif %}>40,000 이상</option>
       </select>
     </label>
   </div>
   <label class="block">
     <span class="text-xs text-stone-600">건축 의향</span>
     <select name="construction_intent" required class="mt-1 w-full rounded-lg border border-stone-200 bg-white p-2 text-sm">
-      <option value="self_build">직접 건축</option>
-      <option value="buy_existing">기존 매입</option>
-      <option value="rent_first">임대 먼저</option>
-      <option value="undecided">미결정</option>
+      <option value="self_build" {% if form and form.construction_intent == 'self_build' %}selected{% endif %}>직접 건축</option>
+      <option value="buy_existing" {% if form and form.construction_intent == 'buy_existing' %}selected{% endif %}>기존 매입</option>
+      <option value="rent_first" {% if form and form.construction_intent == 'rent_first' %}selected{% endif %}>임대 먼저</option>
+      <option value="undecided" {% if form and form.construction_intent == 'undecided' %}selected{% endif %}>미결정</option>
     </select>
   </label>
 </div>
