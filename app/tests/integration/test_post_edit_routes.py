@@ -164,3 +164,48 @@ def test_edit_question_cancel_href(client: TestClient, db: Session, login) -> No
     login(author.id)
     r = client.get(f"/write/question/{post.id}")
     assert f'href="/question/{post.id}"' in r.text
+
+
+def test_question_detail_shows_edit_link_for_author(client: TestClient, db: Session, login) -> None:
+    author = UserFactory()
+    post = PostFactory(
+        author=author, author_id=author.id,
+        type=PostType.QUESTION, status=PostStatus.PUBLISHED,
+    )
+    db.commit()
+    login(author.id)
+    r = client.get(f"/question/{post.id}")
+    assert r.status_code == 200
+    assert f"/write/question/{post.id}" in r.text
+    assert f"/post/{post.id}/delete" in r.text
+
+
+def test_question_detail_hides_edit_link_for_non_author(
+    client: TestClient, db: Session, login
+) -> None:
+    author = UserFactory()
+    other = UserFactory()
+    post = PostFactory(
+        author=author, author_id=author.id,
+        type=PostType.QUESTION, status=PostStatus.PUBLISHED,
+    )
+    db.commit()
+    login(other.id)
+    r = client.get(f"/question/{post.id}")
+    assert r.status_code == 200
+    assert f"/write/question/{post.id}" not in r.text
+    assert f"/post/{post.id}/delete" not in r.text
+
+
+def test_question_detail_shows_edited_badge(client: TestClient, db: Session, login) -> None:
+    from datetime import UTC, datetime, timedelta
+    author = UserFactory()
+    post = PostFactory(
+        author=author, author_id=author.id,
+        type=PostType.QUESTION, status=PostStatus.PUBLISHED,
+    )
+    post.edited_at = datetime.now(UTC) - timedelta(minutes=3)
+    db.commit()
+    login(author.id)
+    r = client.get(f"/question/{post.id}")
+    assert "수정됨" in r.text
