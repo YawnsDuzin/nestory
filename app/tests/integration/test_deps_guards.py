@@ -46,14 +46,17 @@ def _build_app() -> FastAPI:
     return app
 
 
-def _session_cookie(user_id: int) -> str:
+def _session_cookie(user_id: int, *, auth_iat: float | None = None) -> str:
     import json
     from base64 import b64encode
 
     import itsdangerous
 
     signer = itsdangerous.TimestampSigner("t" * 32)
-    data = b64encode(json.dumps({"user_id": user_id}).encode("utf-8"))
+    payload: dict[str, int | float] = {"user_id": user_id}
+    if auth_iat is not None:
+        payload["auth_iat"] = auth_iat
+    data = b64encode(json.dumps(payload).encode("utf-8"))
     return signer.sign(data).decode("utf-8")
 
 
@@ -152,3 +155,55 @@ def test_get_current_user_authorization_header_alone_does_not_authenticate(db: S
     with TestClient(test_app) as c:
         r = c.get("/protected", headers={"Authorization": f"Bearer user-{user.id}"})
         assert r.status_code == 401
+
+
+def test_session_invalidated_when_auth_iat_predates_password_change(db: Session) -> None:
+    """비번 변경 시점 이전 발급 세션은 거절 — 다른 디바이스 강제 로그아웃."""
+    from datetime import UTC, datetime, timedelta
+
+    test_app = _build_app()
+    user = UserFactory()
+    user.password_changed_at = datetime.now(UTC)
+    db.commit()
+    # 비번 변경 직전에 발급된 (오래된) 세션
+    old_iat = (datetime.now(UTC) - timedelta(minutes=5)).timestamp()
+    with TestClient(test_app) as c:
+        c.cookies.set("session", _session_cookie(user.id, auth_iat=old_iat))
+        assert c.get("/protected").status_code == 401
+
+
+def test_session_invalidated_when_auth_iat_missing_and_password_changed(db: Session) -> None:
+    """auth_iat 자체가 없는 구 세션 — password_changed_at이 설정된 사용자에겐 거절."""
+    from datetime import UTC, datetime
+
+    test_app = _build_app()
+    user = UserFactory()
+    user.password_changed_at = datetime.now(UTC)
+    db.commit()
+    with TestClient(test_app) as c:
+        c.cookies.set("session", _session_cookie(user.id))  # no auth_iat
+        assert c.get("/protected").status_code == 401
+
+
+def test_session_accepted_when_auth_iat_after_password_change(db: Session) -> None:
+    """비번 변경 후 새로 발급된 세션은 통과."""
+    from datetime import UTC, datetime, timedelta
+
+    test_app = _build_app()
+    user = UserFactory()
+    user.password_changed_at = datetime.now(UTC) - timedelta(hours=1)
+    db.commit()
+    fresh_iat = datetime.now(UTC).timestamp()
+    with TestClient(test_app) as c:
+        c.cookies.set("session", _session_cookie(user.id, auth_iat=fresh_iat))
+        assert c.get("/protected").status_code == 200
+
+
+def test_session_accepted_when_password_never_changed(db: Session) -> None:
+    """가입 후 비번 미변경 사용자 — auth_iat 없어도 통과 (기존 동작 보존)."""
+    test_app = _build_app()
+    user = UserFactory()  # password_changed_at = None
+    db.commit()
+    with TestClient(test_app) as c:
+        c.cookies.set("session", _session_cookie(user.id))
+        assert c.get("/protected").status_code == 200

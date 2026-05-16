@@ -213,6 +213,7 @@ def test_change_username_after_throttle_window_allowed(db: Session) -> None:
 def test_change_password_happy(db: Session) -> None:
     user = UserFactory(password_hash=auth_service.hash_password("oldPassword!"))
     db.flush()
+    before = datetime.now(UTC)
     updated = profile.change_password(
         db, user,
         current_password="oldPassword!",
@@ -220,6 +221,9 @@ def test_change_password_happy(db: Session) -> None:
     )
     assert auth_service.verify_password("newPassword!", updated.password_hash) is True
     assert auth_service.verify_password("oldPassword!", updated.password_hash) is False
+    # 비번 변경 시각을 stamp — 다른 디바이스 세션 무효화의 근거.
+    assert updated.password_changed_at is not None
+    assert updated.password_changed_at >= before
 
 
 def test_change_password_rejects_kakao_user(db: Session) -> None:

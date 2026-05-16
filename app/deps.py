@@ -19,7 +19,17 @@ def get_current_user(
     user_id = request.session.get("user_id")
     if not user_id:
         return None
-    return db.get(User, user_id)
+    user = db.get(User, user_id)
+    if user is None:
+        request.session.clear()
+        return None
+    # 비번 변경 시점 이전 발급 세션은 모두 무효화 (다른 디바이스 강제 로그아웃).
+    if user.password_changed_at is not None:
+        auth_iat = request.session.get("auth_iat")
+        if auth_iat is None or auth_iat < user.password_changed_at.timestamp():
+            request.session.clear()
+            return None
+    return user
 
 
 def require_user(user: User | None = Depends(get_current_user)) -> User:

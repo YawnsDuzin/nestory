@@ -295,5 +295,9 @@ def profile_password_change(
     except ProfileError as e:
         request.session["flash"] = str(e)
         return RedirectResponse("/me/profile/password", status_code=status.HTTP_303_SEE_OTHER)
-    request.session["flash"] = "비밀번호가 변경되었습니다"
-    return RedirectResponse("/me/profile", status_code=status.HTTP_303_SEE_OTHER)
+    # 모든 디바이스의 기존 세션 무효화 — 본인 세션도 함께 종료해 재로그인 유도.
+    # get_current_user가 user.password_changed_at > session.auth_iat 인 세션을 차단한다.
+    request.session.clear()
+    return RedirectResponse(
+        "/auth/login?msg=password_changed", status_code=status.HTTP_303_SEE_OTHER
+    )

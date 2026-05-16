@@ -217,6 +217,7 @@ def change_password(
     if len(new_password) < PASSWORD_MIN_LENGTH:
         raise ProfileError(f"비밀번호는 최소 {PASSWORD_MIN_LENGTH}자 이상")
     user.password_hash = auth.hash_password(new_password)
+    user.password_changed_at = datetime.now(UTC)
     db.flush()
     return user
 

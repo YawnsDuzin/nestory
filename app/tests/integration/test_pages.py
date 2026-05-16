@@ -55,8 +55,8 @@ def test_anonymous_home_hero_shows_t_axis_headline(client: TestClient) -> None:
     """헤드라인이 PRD T축(1년차 / 3년차) 카피를 직접 노출."""
     r = client.get("/")
     assert r.status_code == 200
-    assert "1년차에 좋다는 후기는 많아도" in r.text
-    assert "3년차의 진실은 어디서 듣나요" in r.text
+    assert "1년차의 설렘도 진짜고" in r.text
+    assert "둘 다 들을 수 있는 곳" in r.text
 
 
 def test_anonymous_home_renders_when_no_featured_testimonials(

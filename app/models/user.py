@@ -63,6 +63,9 @@ class User(Base):
     username_changed_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    password_changed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     notify_email_enabled: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=True, server_default="true"
     )

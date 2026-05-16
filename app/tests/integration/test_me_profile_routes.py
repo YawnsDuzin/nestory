@@ -300,8 +300,33 @@ def test_post_password_happy_changes_hash(
         follow_redirects=False,
     )
     assert r.status_code == 303
+    # 모든 디바이스 강제 로그아웃 — 로그인 페이지로 리디렉트하며 안내 메시지 표시.
+    assert r.headers["location"] == "/auth/login?msg=password_changed"
     db.refresh(user)
     assert auth_service.verify_password("newPassword", user.password_hash) is True
+    assert user.password_changed_at is not None
+    # 후속 요청은 세션이 비어있어 보호 라우트 접근 불가.
+    follow = client.get("/me/profile", follow_redirects=False)
+    assert follow.status_code in (302, 303, 307, 401)
+
+
+def test_post_password_invalidates_other_device_sessions(
+    client: TestClient, db: Session, login
+) -> None:
+    """다른 디바이스의 기존 세션(=auth_iat 없음 또는 stale)도 다음 요청에서 무효화."""
+    user = UserFactory(password_hash=auth_service.hash_password("oldPassword"))
+    db.commit()
+    login(user.id)
+    # 비번 변경 — 본인 세션 clear됨.
+    client.post(
+        "/me/profile/password",
+        data={"current_password": "oldPassword", "new_password": "newPassword"},
+        follow_redirects=False,
+    )
+    # 다른 디바이스에서 비번 변경 이전에 발급된 세션(auth_iat 없음)으로 접근 시도.
+    login(user.id)
+    r = client.get("/me/profile", follow_redirects=False)
+    assert r.status_code in (302, 303, 307, 401)
 
 
 def test_post_password_wrong_current_flashes(

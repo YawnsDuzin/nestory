@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-**Nestory** — 은퇴자·전원주택 예비 입주자를 위한 커뮤니티 웹앱. Python 3.12 + FastAPI + Jinja2 SSR + HTMX + PostgreSQL 16. uv 패키지 매니저, PowerShell 환경 (Windows 11). Docker Desktop 필요.
+**Nestory** — 은퇴자·전원주택 예비 입주자를 위한 커뮤니티 웹앱. Python 3.12 + FastAPI + Jinja2 SSR + HTMX + PostgreSQL 16. uv 패키지 매니저, PowerShell 환경 (Windows 11). **로컬 PostgreSQL 16 native 설치 필요** — Docker / docker compose 사용하지 않음 (2026-05-16 결정).
 
 PRD는 `docs/superpowers/specs/2026-04-17-nestory-design.md` (v1.1.1, OI-14 PostHog 확정). 변경 시 반드시 인라인 `[v1.1]` / `[v1.1.1]` 라벨로 추적. 차별화 4축(T·C·R·V — Time-lag·Regret Cost·Region Match·Peer Validation)이 PRD §1.5에 정의되어 있고 모든 데이터 모델·UX 결정은 이 축을 강화해야 함.
 
@@ -12,15 +12,11 @@ PRD는 `docs/superpowers/specs/2026-04-17-nestory-design.md` (v1.1.1, OI-14 Post
 
 ## Commands
 
-모든 명령은 프로젝트 루트에서 실행. PowerShell.
+모든 명령은 프로젝트 루트에서 실행. PowerShell. **전제: native PostgreSQL 16이 `localhost:5432`에서 기동 중** (`nestory` DB·user·password, 그리고 pytest용 `nestory_test` DB). Docker / docker compose는 이 프로젝트에서 사용하지 않음.
 
 ```powershell
 # 의존성 설치 / 갱신
 uv sync
-
-# 로컬 Postgres + worker 컨테이너 (host 포트 5433)
-docker compose -f docker-compose.local.yml up -d
-docker compose -f docker-compose.local.yml down
 
 # 마이그레이션
 uv run alembic upgrade head            # 적용
@@ -28,22 +24,17 @@ uv run alembic current                 # 현재 head
 uv run alembic history --verbose       # 체인 확인 (linear여야 함)
 uv run alembic revision --autogenerate -m "<설명>"
 
-# 개발 서버 (호스트에서 직접 — --reload 자동 갱신)
+# 개발 서버 (uvicorn — --reload 자동 갱신)
 uv run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
-# 풀스택 테스트 환경 (app + nginx + 별도 postgres, host 포트 8080 — 5433 충돌 없음)
-docker compose -f docker-compose.test.yml up -d              # 약 10–20초 후 http://localhost:8080
-docker compose -f docker-compose.test.yml up -d --build      # 코드 변경 후 이미지 재빌드 (첫 빌드 1–2분, 캐시 시 즉시)
-docker compose -f docker-compose.test.yml down
-
-# 워커 (PG 기반 작업 큐)
+# 워커 (PG 기반 작업 큐 — 별도 터미널)
 uv run python -m app.workers.runner
 
 # 데모 데이터 시드 (alembic upgrade head 선행 필요)
 uv run python -m scripts.seed_regions                  # 지역 마스터 (양평군 slug=yangpyeong 포함)
 uv run python -m scripts.seed_yangpyeong_demo          # 양평군 허브 4탭(후기·Journey·질문·이웃) + 샘플 이미지 + 5 데모 계정. idempotent
 
-# 테스트 — Postgres 컨테이너 기동된 상태여야 함
+# 테스트 — native Postgres 가 기동돼 있어야 함 (TEST_DATABASE_URL 별도 DB)
 uv run pytest app/tests/ -q
 uv run pytest app/tests/integration/test_post_model.py -v   # 단일 파일
 uv run pytest app/tests/integration/test_post_model.py::test_create_review_post_with_metadata -v  # 단일 테스트
@@ -52,11 +43,11 @@ uv run pytest app/tests/integration/test_post_model.py::test_create_review_post_
 uv run ruff check app/
 uv run ruff check --fix app/db/migrations/versions/   # autogenerate 후 UP007 자동 변환
 
-# 백업 / DB 직접 접근
-docker exec nestory-postgres-local psql -U nestory -d nestory -c "\dt"
+# DB 직접 접근 (native psql)
+psql -h localhost -p 5432 -U nestory -d nestory -c "\dt"
 ```
 
-DB 접속 정보 (DBeaver 등): host `localhost`, port **`5433`** (5432 아님 — 호스트 PG 충돌 회피), db/user/password 모두 `nestory`.
+DB 접속 정보 (DBeaver 등): host `localhost`, port **`5432`** (native), db/user/password 모두 `nestory`. pytest 전용 DB는 같은 인스턴스의 `nestory_test`.
 
 **데모 계정** (시드 후 사용, 모두 비밀번호 `demo1234`):
 
