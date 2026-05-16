@@ -510,7 +510,7 @@ new_string:
     </h1>
     <p class="mt-6 text-base sm:text-lg text-stone-600 max-w-xl mx-auto text-center">
       같은 사람의 1년차 → 3년차 회고로<br>
-      가짜 후기 없이 정착의 진실을 봅니다.
+      시간이 지나야 보이는 정착의 진짜 모습을 만나보세요.
     </p>
 
     {# Featured testimonial — popular_reviews[0] 가 있을 때만 #}
