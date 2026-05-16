@@ -1,4 +1,5 @@
 import secrets
+from datetime import UTC, datetime
 
 import httpx
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
@@ -8,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.deps import get_db
+from app.models import User
 from app.rate_limit import limiter
 from app.schemas.auth import LoginForm, SignupForm
 from app.services.auth import (
@@ -19,6 +21,15 @@ from app.services.auth import (
 from app.services.kakao import build_authorize_url, exchange_code_for_profile
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+def _login_session(request: Request, user: User) -> None:
+    # 세션 fixation 방어를 위해 clear 후 user_id 재설정.
+    # auth_iat: 발급 시각 — get_current_user에서 user.password_changed_at과 비교해
+    # 비번 변경 이전에 발급된 모든 세션(다른 디바이스 포함)을 무효화한다.
+    request.session.clear()
+    request.session["user_id"] = user.id
+    request.session["auth_iat"] = datetime.now(UTC).timestamp()
 
 
 @router.post("/signup")
@@ -48,8 +59,7 @@ async def signup(
             "가입에 실패했습니다. 다른 이메일/아이디로 시도해주세요.",
         ) from err
 
-    request.session.clear()
-    request.session["user_id"] = user.id
+    _login_session(request, user)
     return RedirectResponse("/", status_code=status.HTTP_303_SEE_OTHER)
 
 
@@ -66,8 +76,7 @@ async def login(
     if user is None or not verify_password(form.password, user.password_hash):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Invalid credentials")
 
-    request.session.clear()
-    request.session["user_id"] = user.id
+    _login_session(request, user)
     return RedirectResponse("/", status_code=status.HTTP_303_SEE_OTHER)
 
 
@@ -115,6 +124,5 @@ async def kakao_callback(
         db, kakao_id=profile.kakao_id, email=profile.email, nickname=profile.nickname
     )
     db.commit()
-    request.session.clear()
-    request.session["user_id"] = user.id
+    _login_session(request, user)
     return RedirectResponse("/", status_code=status.HTTP_303_SEE_OTHER)
