@@ -1,5 +1,6 @@
-import pytest
 from datetime import UTC, datetime
+
+import pytest
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 

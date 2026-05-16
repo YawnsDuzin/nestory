@@ -8,9 +8,9 @@ from dotenv import load_dotenv
 # TRUNCATE CASCADE 하므로 반드시 별도 test DB에서 실행해야 한다. dev/test 공용
 # DB 사용 사고를 두 번 겪고 도입 (2026-05-13). 두 URL이 같으면 import 시점에 fail.
 #
-# .env 예:
-#   DATABASE_URL=postgresql+psycopg://nestory:nestory@localhost:5432/nestory   # dev
-#   TEST_DATABASE_URL=postgresql+psycopg://nestory:nestory@localhost:5433/nestory_test  # test
+# .env 예 (native Postgres 5432, 같은 인스턴스에 두 개의 DB):
+#   DATABASE_URL=postgresql+psycopg://nestory:nestory@localhost:5432/nestory        # dev
+#   TEST_DATABASE_URL=postgresql+psycopg://nestory:nestory@localhost:5432/nestory_test  # test
 load_dotenv()
 _TEST_DB_URL = (os.environ.get("TEST_DATABASE_URL") or "").strip()
 _DEV_DB_URL = (os.environ.get("DATABASE_URL") or "").strip()
@@ -18,7 +18,7 @@ if not _TEST_DB_URL:
     raise RuntimeError(
         "TEST_DATABASE_URL not set. pytest TRUNCATEs all tables — refusing to run "
         "without a dedicated test DB. Set TEST_DATABASE_URL in .env to a non-dev DB "
-        "(e.g. postgresql+psycopg://nestory:nestory@localhost:5433/nestory)."
+        "(e.g. postgresql+psycopg://nestory:nestory@localhost:5432/nestory_test)."
     )
 if _DEV_DB_URL and _TEST_DB_URL == _DEV_DB_URL:
     raise RuntimeError(
